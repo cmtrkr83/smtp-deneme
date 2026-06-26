@@ -16,10 +16,26 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
 const LOGS_FILE = path.join(DATA_DIR, "logs.json");
+
+function seedInitialAdmin() {
+  const users = loadUsers();
+  if (Object.keys(users).length === 0 && ADMIN_EMAIL) {
+    const normEmail = ADMIN_EMAIL.toLowerCase().trim();
+    users[normEmail] = {
+      email: normEmail,
+      role: "admin",
+      created: Date.now(),
+      lastLogin: null,
+    };
+    saveUsers(users);
+    console.log(`[INIT] Admin kullanici olusturuldu: ${normEmail}`);
+  }
+}
 
 if (!JWT_SECRET || JWT_SECRET === "degistirin-buraya-gizli-anahtar-yazin") {
   console.warn("[UYARI] JWT_SECRET zayif! .env dosyasinda guclu bir anahtar belirleyin.");
@@ -706,6 +722,8 @@ app.get("/api/verify-token", (req, res) => {
     res.json({ valid: false });
   }
 });
+
+seedInitialAdmin();
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server http://localhost:${PORT} adresinde calisiyor`);
