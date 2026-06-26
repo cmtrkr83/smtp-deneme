@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Giriş Sistemi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div class="logo">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h1>Hoş Geldiniz</h1>
+        <p id="status">Yükleniyor...</p>
+      </div>
+      <div id="buttons" style="display:flex;flex-direction:column;gap:12px;align-items:center;">
+        <a href="/login.html" class="btn btn-primary" style="text-decoration:none;max-width:240px;">
+          <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
+        </a>
+      </div>
+    </div>
+  </div>
+  <script>
+    const token = localStorage.getItem("token");
+    const statusEl = document.getElementById("status");
+    const buttons = document.getElementById("buttons");
+
+    if (token) {
+      fetch("/api/verify-token", {
+        headers: { Authorization: "Bearer " + token },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.valid) {
+            statusEl.textContent = "Zaten giriş yapmış durumdasınız.";
+            buttons.innerHTML =
+              '<a href="/dashboard.html" class="btn btn-primary" style="text-decoration:none;max-width:240px;"><i class="fa-solid fa-gauge-high"></i> Panoya Git</a>';
+          } else {
+            localStorage.removeItem("token");
+            statusEl.textContent = "Giriş yaparak devam edin.";
+          }
+        });
+    } else {
+      statusEl.textContent = "Giriş yaparak devam edin.";
+    }
+  </script>
+</body>
+</html>

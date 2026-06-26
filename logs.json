@@ -1,0 +1,124 @@
+{
+  "logs": [
+    {
+      "id": "7173e510-bc45-4492-9426-d69eb410b9a1",
+      "timestamp": 1782471026555,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gonderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "00d57699-8955-4420-8337-ba99d50c14af",
+      "timestamp": 1782471503444,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gonderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d30fd8de-9e47-4f12-8058-e0d5779a3fee",
+      "timestamp": 1782471745099,
+      "action": "user_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "cemburbut@gmail.com (lise) kullanici eklendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e18730f4-b933-4cc3-ba94-74cc9fa45733",
+      "timestamp": 1782471757158,
+      "action": "otp_request",
+      "user": "cemburbut@gmail.com",
+      "detail": "cemburbut@gmail.com adresine OTP gonderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "c5aa8e58-de84-493a-b6ab-5cb222abb008",
+      "timestamp": 1782471893031,
+      "action": "login",
+      "user": "cemburbut@gmail.com",
+      "detail": "cemburbut@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "08852a6a-e596-4a87-abb5-3e3d958a06a4",
+      "timestamp": 1782471943014,
+      "action": "announcement_read",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"Sistem Bakım Duyurusu\" duyurusu okundu.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "778ffc87-0a39-4c7c-838f-db6e2da8737b",
+      "timestamp": 1782471944045,
+      "action": "announcement_read",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"Lise Kayıt Dönemi\" duyurusu okundu.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d49f1138-e01e-482d-a9b7-566ca2e87cab",
+      "timestamp": 1782475541192,
+      "action": "profile_update",
+      "user": "cemburbut@gmail.com",
+      "detail": "Okul bilgileri guncellendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "869b3003-1951-473e-aa49-8124c92959ef",
+      "timestamp": 1782475545889,
+      "action": "profile_update",
+      "user": "cemburbut@gmail.com",
+      "detail": "Okul bilgileri guncellendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "ba12287c-2491-41ef-99fb-6c9d4ae9c306",
+      "timestamp": 1782475576992,
+      "action": "profile_update",
+      "user": "cemburbut@gmail.com",
+      "detail": "Okul bilgileri guncellendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "03258519-2488-4971-8ca2-93d7e36a295c",
+      "timestamp": 1782475756737,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gonderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "8b87b2d1-3559-491c-be3b-220729b342a1",
+      "timestamp": 1782475808739,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gonderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e944cdeb-b7ff-478f-8159-e8aad2ecfc53",
+      "timestamp": 1782475822334,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "474a7f8c-df05-4ad6-86d3-3c54086e91e1",
+      "timestamp": 1782475841768,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "768879@meb.gov.tr (lise) kullanici silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f37381f3-dd1a-42a8-abde-3dfee6afc8d6",
+      "timestamp": 1782476684884,
+      "action": "profile_update",
+      "user": "cemburbut@gmail.com",
+      "detail": "Okul bilgileri guncellendi.",
+      "ip": "127.0.0.1"
+    }
+  ]
+}

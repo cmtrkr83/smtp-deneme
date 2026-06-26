@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title> KODM PANEL </title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="dashboard-body">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">M</div>
+        <div class="logo-text">
+          KODM
+          <small>Yönetim Paneli</small>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-item" id="mobileLogoutBtn" style="display:none;">
+          <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-area">
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div style="flex:1"></div>
+        <div class="topbar-user">
+          <div class="avatar" id="userAvatar">K</div>
+          <div>
+            <div class="user-name" id="userName">Yükleniyor...</div>
+            <div class="user-role" id="userRole">-</div>
+          </div>
+        </div>
+        <button class="btn-logout" id="logoutBtn">
+          <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+        </button>
+      </header>
+
+      <!-- Content -->
+      <div class="content-area" id="contentArea">
+        <!-- Dynamic content loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/login.html";
+    }
+
+    let currentUser = null;
+    let dashboardData = null;
+
+    function buildSidebar(role) {
+      const nav = document.getElementById("sidebarNav");
+      const items = [];
+
+      const allItems = [
+        { page: "dashboard", icon: "fa-gauge-high", label: "Genel Bakış", roles: ["admin", "lise", "ortaokul"] },
+        { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
+        { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul"] },
+        { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
+        { separator: true, roles: ["admin", "lise", "ortaokul"] },
+        { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul"] },
+        { page: "schools", icon: "fa-school", label: "Okullar", roles: ["admin"] },
+        { page: "reports", icon: "fa-chart-bar", label: "Raporlar", roles: ["admin"] },
+        { page: "settings", icon: "fa-sliders", label: "Ayarlar", roles: ["admin"] },
+      ];
+
+      allItems.forEach((item) => {
+        if (!item.roles.includes(role)) return;
+        if (item.separator) {
+          items.push('<div class="nav-section-title">İşlemler</div>');
+          return;
+        }
+        items.push(`<button class="nav-item" data-page="${item.page}"><i class="fa-solid ${item.icon}"></i> ${item.label}</button>`);
+      });
+
+      nav.innerHTML = items.join("");
+
+      // Re-bind click events
+      nav.querySelectorAll(".nav-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          nav.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+          item.classList.add("active");
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebarBackdrop").classList.remove("show");
+
+    const page = item.dataset.page;
+    if (page === "dashboard") renderDashboard();
+    else if (page === "users") renderUsers();
+    else if (page === "announcements") renderAnnouncements();
+    else if (page === "logs") renderLogs();
+    else if (page === "schools") renderSchools();
+    else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
+    else renderPlaceholder(page);
+        });
+      });
+    }
+
+    const roleLabels = {
+      admin: "Sistem Yöneticisi",
+      lise: "Lise Grubu",
+      ortaokul: "Ortaokul Grubu",
+    };
+
+    // Sidebar toggle
+    document.getElementById("sidebarToggle").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.toggle("open");
+      document.getElementById("sidebarBackdrop").classList.toggle("show");
+    });
+    document.getElementById("sidebarBackdrop").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("sidebarBackdrop").classList.remove("show");
+    });
+
+    // Logout
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "/index.html";
+    }
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("mobileLogoutBtn")?.addEventListener("click", logout);
+
+    // Fetch profile and dashboard data
+    async function init() {
+      try {
+        const [profileRes, dashRes] = await Promise.all([
+          fetch("/api/profile", { headers: { Authorization: "Bearer " + token } }),
+          fetch("/api/dashboard", { headers: { Authorization: "Bearer " + token } }),
+        ]);
+
+        if (!profileRes.ok || !dashRes.ok) throw new Error("Unauthorized");
+
+        currentUser = await profileRes.json();
+        dashboardData = await dashRes.json();
+
+        // Update topbar
+        const initial = currentUser.email.charAt(0).toUpperCase();
+        document.getElementById("userAvatar").textContent = initial;
+        document.getElementById("userName").textContent = currentUser.email;
+        document.getElementById("userRole").textContent = roleLabels[currentUser.role] || currentUser.role;
+
+        buildSidebar(currentUser.role);
+
+        const firstNav = document.querySelector(".nav-item");
+        if (firstNav) firstNav.click();
+        else renderDashboard();
+      } catch {
+        localStorage.removeItem("token");
+        window.location.href = "/login.html";
+      }
+    }
+
+    function renderDashboard() {
+      const area = document.getElementById("contentArea");
+      const data = dashboardData;
+      if (!data) return;
+
+      const roleLabel = roleLabels[data.role] || data.role;
+
+      let html = `
+        <div class="content-header">
+          <h2>Genel Bakış</h2>
+          <p>${roleLabel} paneline hoş geldiniz.</p>
+        </div>
+      `;
+
+      // Stats
+      if (data.stats) {
+        html += `<div class="stats-grid">`;
+        data.stats.forEach((s) => {
+          html += `
+            <div class="stat-card">
+              <div class="stat-icon" style="background:${s.color}15;color:${s.color}">
+                <i class="fa-solid ${s.icon}"></i>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">${s.value}</div>
+                <div class="stat-label">${s.label}</div>
+              </div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      // Links
+      if (data.links) {
+        html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
+        html += `<div class="cards-grid" id="quickLinks">`;
+        data.links.forEach((l) => {
+          const isNav = l.url.startsWith("/navigate/");
+          html += `
+            <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}">
+              <div class="card-icon"><i class="fa-solid ${l.icon}"></i></div>
+              <h4>${l.title}</h4>
+              <p>${l.desc}</p>
+            </a>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      // Announcements
+      if (data.announcements && data.announcements.length > 0) {
+        html += `<div class="section-title"><i class="fa-solid fa-bullhorn"></i> Duyurular</div>`;
+        html += `<div class="announcements-list">`;
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
+        data.announcements.forEach((a) => {
+          const isRead = a.read;
+          const date = new Date(a.createdAt).toLocaleDateString("tr-TR");
+          html += `
+            <div class="announcement-item" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                  <span class="ann-tag ${a.target}">${targetLabels[a.target] || a.target}</span>
+                  ${isRead
+                    ? '<span style="font-size:11px;color:#16a34a;"><i class="fa-solid fa-check"></i> Okundu</span>'
+                    : '<span style="font-size:11px;color:#d97706;"><i class="fa-solid fa-circle"></i> Okunmadı</span>'}
+                </div>
+                <h4>${a.title}</h4>
+                <p>${a.content}</p>
+                <div class="ann-date">${date}</div>
+              </div>
+              ${!isRead ? `<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;flex-shrink:0;" onclick="markAsRead('${a.id}')"><i class="fa-solid fa-check"></i> Okundu İşaretle</button>` : ''}
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      area.innerHTML = html;
+
+      // Quick link navigation
+      document.querySelectorAll("#quickLinks .link-card[data-nav]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          const page = el.dataset.nav;
+          const navBtn = document.querySelector(`.nav-item[data-page="${page}"]`);
+          if (navBtn) navBtn.click();
+        });
+      });
+    }
+
+    function escHtml(s) {
+      if (!s) return "";
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    async function markAsRead(id, source) {
+      try {
+        await fetch("/api/announcements/" + id + "/read", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (source === "announcements") {
+          await renderSchoolAnnouncements();
+        } else {
+          const dashRes = await fetch("/api/dashboard", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (dashRes.ok) {
+            dashboardData = await dashRes.json();
+            renderDashboard();
+          }
+        }
+      } catch {}
+    }
+
+    function renderPlaceholder(page) {
+      const area = document.getElementById("contentArea");
+      const titles = {
+        users: "Kullanıcı Yönetimi",
+        announcements: "Duyuru Yönetimi",
+        logs: "Log Kayıtları",
+        schools: "Okul Yönetimi",
+        reports: "Raporlar",
+        settings: "Ayarlar",
+      };
+      if (page === "users") { renderUsers(); return; }
+      if (page === "announcements") { renderAnnouncements(); return; }
+      if (page === "logs") { renderLogs(); return; }
+      if (page === "schools") { renderSchools(); return; }
+      area.innerHTML = `
+        <div class="content-header">
+          <h2>${titles[page] || page}</h2>
+          <p>Bu bölüm hazırlanıyor.</p>
+        </div>
+        <div style="text-align:center;padding:60px 0;color:#ccc;">
+          <i class="fa-solid fa-wrench" style="font-size:48px;margin-bottom:16px;display:block;"></i>
+          <div style="font-size:14px;">Sayfa yapım aşamasındadır.</div>
+        </div>
+      `;
+    }
+
+    // ---- User Management ----
+
+    async function renderUsers() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>Kullanıcı Yönetimi</h2>
+            <p>Sisteme erişebilecek kullanıcıları yönetin.</p>
+          </div>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAddUserModal()">
+            <i class="fa-solid fa-plus"></i> Kullanıcı Ekle
+          </button>
+        </div>
+        <div class="users-table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>E-posta</th>
+                <th>Rol</th>
+                <th>Kayıt Tarihi</th>
+                <th>Son Giriş</th>
+                <th style="text-align:right;">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="5" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-overlay" id="userModal" style="display:none" onclick="if(event.target===this)closeUserModal()">
+          <div class="modal">
+            <div class="modal-header">
+              <h3 id="modalTitle">Kullanıcı Ekle</h3>
+              <button class="modal-close" onclick="closeUserModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="modalEmail">E-posta Adresi</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-envelope icon"></i>
+                  <input type="email" id="modalEmail" class="form-control" placeholder="ornek@mail.com" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="modalRole">Rol</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-user-tag icon"></i>
+                  <select id="modalRole" class="form-control" style="padding-left:44px;-webkit-appearance:none;appearance:none;">
+                    <option value="admin">Sistem Yöneticisi</option>
+                    <option value="lise">Lise Grubu</option>
+                    <option value="ortaokul">Ortaokul Grubu</option>
+                  </select>
+                </div>
+              </div>
+              <div id="modalMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-ghost" style="width:auto;" onclick="closeUserModal()">İptal</button>
+              <button class="btn btn-primary" style="width:auto;" id="modalSaveBtn" onclick="saveUser()">Kaydet</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-overlay" id="deleteModal" style="display:none" onclick="if(event.target===this)closeDeleteModal()">
+          <div class="modal" style="max-width:400px;">
+            <div class="modal-header">
+              <h3>Kullanıcıyı Sil</h3>
+              <button class="modal-close" onclick="closeDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+              <p style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:8px;">
+                <span id="deleteEmail" style="color:#fff;font-weight:500;"></span> kullanıcısını silmek istediğinize emin misiniz?
+              </p>
+              <div id="deleteMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-ghost" style="width:auto;" onclick="closeDeleteModal()">İptal</button>
+              <button class="btn btn-danger" style="width:auto;" id="deleteConfirmBtn" onclick="confirmDelete()">Sil</button>
+            </div>
+          </div>
+        </div>
+      `;
+      await loadUsersTable();
+    }
+
+    let editEmail = null;
+    let deleteTarget = null;
+
+    async function loadUsersTable() {
+      const tbody = document.getElementById("usersTableBody");
+      try {
+        const res = await fetch("/api/users", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const users = await res.json();
+        tbody.innerHTML = users.map((u) => {
+          const roleLabel = roleLabels[u.role] || u.role;
+          const created = u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-";
+          const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") + " " + new Date(u.lastLogin).toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"}) : "-";
+          const canDelete = u.email !== currentUser.email;
+          return `
+            <tr>
+              <td class="cell-email">${u.email}</td>
+              <td>
+                <select class="role-select" data-email="${u.email}" onchange="updateRole('${u.email}',this.value)">
+                  <option value="admin" ${u.role==="admin"?"selected":""}>Sistem Yöneticisi</option>
+                  <option value="lise" ${u.role==="lise"?"selected":""}>Lise Grubu</option>
+                  <option value="ortaokul" ${u.role==="ortaokul"?"selected":""}>Ortaokul Grubu</option>
+                </select>
+              </td>
+              <td class="cell-date">${created}</td>
+              <td class="cell-date">${lastLogin}</td>
+              <td class="cell-actions">
+                ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:rgba(255,255,255,0.15);font-size:12px;">(siz)</span>'}
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:40px;">Kullanıcılar yüklenirken hata oluştu.</td></tr>';
+      }
+    }
+
+    function showAddUserModal() {
+      editEmail = null;
+      document.getElementById("modalTitle").textContent = "Kullanıcı Ekle";
+      document.getElementById("modalSaveBtn").textContent = "Kaydet";
+      document.getElementById("modalEmail").value = "";
+      document.getElementById("modalEmail").disabled = false;
+      document.getElementById("modalRole").value = "admin";
+      document.getElementById("modalMessage").textContent = "";
+      document.getElementById("modalMessage").className = "message";
+      document.getElementById("userModal").style.display = "flex";
+      setTimeout(() => document.getElementById("modalEmail").focus(), 100);
+    }
+
+    function closeUserModal() {
+      document.getElementById("userModal").style.display = "none";
+    }
+
+    async function saveUser() {
+      const email = document.getElementById("modalEmail").value.trim();
+      const role = document.getElementById("modalRole").value;
+      const msg = document.getElementById("modalMessage");
+      const btn = document.getElementById("modalSaveBtn");
+
+      if (!email) {
+        msg.textContent = "E-posta adresi girin.";
+        msg.className = "message error show";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = " Kaydediliyor...";
+
+      try {
+        const res = await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ email, role }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          closeUserModal();
+          await loadUsersTable();
+        } else {
+          msg.textContent = data.error || "Hata oluştu.";
+          msg.className = "message error show";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Kaydet";
+      }
+    }
+
+    async function updateRole(email, role) {
+      try {
+        await fetch("/api/users/" + encodeURIComponent(email), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ role }),
+        });
+      } catch {}
+    }
+
+    function showDeleteModal(email) {
+      deleteTarget = email;
+      document.getElementById("deleteEmail").textContent = email;
+      document.getElementById("deleteMessage").textContent = "";
+      document.getElementById("deleteMessage").className = "message";
+      document.getElementById("deleteModal").style.display = "flex";
+    }
+
+    function closeDeleteModal() {
+      document.getElementById("deleteModal").style.display = "none";
+      deleteTarget = null;
+    }
+
+    async function confirmDelete() {
+      if (!deleteTarget) return;
+      const msg = document.getElementById("deleteMessage");
+      const btn = document.getElementById("deleteConfirmBtn");
+
+      btn.disabled = true;
+      btn.textContent = " Siliniyor...";
+
+      try {
+        const res = await fetch("/api/users/" + encodeURIComponent(deleteTarget), {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          closeDeleteModal();
+          await loadUsersTable();
+        } else {
+          msg.textContent = data.error || "Hata oluştu.";
+          msg.className = "message error show";
+          btn.disabled = false;
+          btn.textContent = "Sil";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+        btn.disabled = false;
+        btn.textContent = "Sil";
+      }
+    }
+
+    // ---- Announcement Management ----
+
+    let editingAnnId = null;
+
+    async function renderAnnouncements() {
+      const area = document.getElementById("contentArea");
+      const isAdmin = currentUser.role === "admin";
+
+      if (isAdmin) {
+        area.innerHTML = `
+          <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h2>Duyuru Yönetimi</h2>
+              <p>Duyuruları oluşturun, düzenleyin ve yönetin.</p>
+            </div>
+            <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAnnModal()">
+              <i class="fa-solid fa-plus"></i> Duyuru Ekle
+            </button>
+          </div>
+          <div class="users-table-wrapper">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Başlık</th>
+                  <th>Hedef</th>
+                  <th>Bitiş</th>
+                  <th>Okunma</th>
+                  <th style="text-align:right;">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="annTableBody">
+                <tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="modal-overlay" id="annModal" style="display:none" onclick="if(event.target===this)closeAnnModal()">
+            <div class="modal" style="max-width:560px;">
+              <div class="modal-header">
+                <h3 id="annModalTitle">Duyuru Ekle</h3>
+                <button class="modal-close" onclick="closeAnnModal()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label for="annTitle">Başlık</label>
+                  <div class="input-wrapper">
+                    <i class="fa-solid fa-heading icon"></i>
+                    <input type="text" id="annTitle" class="form-control" placeholder="Duyuru başlığı" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="annContent">İçerik</label>
+                  <textarea id="annContent" class="form-control" style="padding-left:16px;min-height:100px;resize:vertical;" placeholder="Duyuru içeriği"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="annTarget">Hedef Kitle</label>
+                  <div class="input-wrapper">
+                    <i class="fa-solid fa-bullseye icon"></i>
+                    <select id="annTarget" class="form-control" style="padding-left:44px;">
+                      <option value="all">Tüm Kullanıcılar</option>
+                      <option value="lise">Lise Grubu</option>
+                      <option value="ortaokul">Ortaokul Grubu</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="annExpiry">Geçerlilik Süresi (gün)</label>
+                  <div class="input-wrapper">
+                    <i class="fa-solid fa-calendar icon"></i>
+                    <input type="number" id="annExpiry" class="form-control" style="padding-left:44px;" value="7" min="1" max="365" />
+                  </div>
+                </div>
+                <div id="annModalMessage" class="message"></div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-ghost" style="width:auto;" onclick="closeAnnModal()">İptal</button>
+                <button class="btn btn-primary" style="width:auto;" id="annSaveBtn" onclick="saveAnnouncement()">Kaydet</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-overlay" id="readModal" style="display:none" onclick="if(event.target===this)closeReadModal()">
+            <div class="modal" style="max-width:480px;">
+              <div class="modal-header">
+                <h3>Okunma Durumu</h3>
+                <button class="modal-close" onclick="closeReadModal()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <div class="modal-body">
+                <p id="readModalContent" style="color:#666;font-size:14px;line-height:1.6;"></p>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-ghost" style="width:auto;" onclick="closeReadModal()">Kapat</button>
+              </div>
+            </div>
+          </div>
+        `;
+        await loadAnnouncementsTable();
+      } else {
+        area.innerHTML = `
+          <div class="content-header">
+            <div>
+              <h2>Duyurular</h2>
+              <p>Size özel duyuruları görüntüleyin.</p>
+            </div>
+          </div>
+          <div id="schoolAnnouncements"></div>
+        `;
+        await renderSchoolAnnouncements();
+      }
+    }
+
+    async function loadAnnouncementsTable() {
+      const tbody = document.getElementById("annTableBody");
+      try {
+        const res = await fetch("/api/announcements", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        readData = list;
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
+        tbody.innerHTML = list.map((a) => {
+          const expires = new Date(a.expiresAt).toLocaleDateString("tr-TR");
+          const expired = a.expiresAt < Date.now();
+          const readCount = a.readCount || (a.readBy ? a.readBy.length : 0);
+          const readDetail = a.readBy && a.readBy.length > 0
+            ? a.readBy.join(", ")
+            : "Henüz okunmadı";
+          return `
+            <tr style="${expired ? 'opacity:0.4;' : ''}">
+              <td class="cell-email">${a.title}</td>
+              <td><span class="ann-tag ${a.target === 'all' ? 'admin' : a.target}" style="font-size:11px;">${targetLabels[a.target] || a.target}</span></td>
+              <td class="cell-date">${expired ? 'Süresi doldu' : expires}</td>
+              <td class="cell-date">
+                ${readCount > 0
+                  ? `<a href="#" onclick="showReadDetail('${a.id}');return false;" style="color:#6366f1;text-decoration:none;">${readCount} kişi</a>`
+                  : '0 kişi'}
+              </td>
+              <td class="cell-actions">
+                <button class="btn-icon" onclick="editAnn('${a.id}')" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteAnn('${a.id}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#dc2626;padding:40px;">Duyurular yüklenirken hata oluştu.</td></tr>';
+      }
+    }
+
+    async function renderSchoolAnnouncements() {
+      const container = document.getElementById("schoolAnnouncements");
+      container.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px;">Yükleniyor...</p>';
+      try {
+        const res = await fetch("/api/announcements", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
+
+        if (list.length === 0) {
+          container.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px;">Henüz duyuru bulunmuyor.</p>';
+          return;
+        }
+
+        container.innerHTML = '<div class="announcements-list">' + list.map((a) => {
+          const isRead = a.read;
+          const date = new Date(a.createdAt).toLocaleDateString("tr-TR");
+          return `
+            <div class="announcement-item" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                  <span class="ann-tag ${a.target}">${targetLabels[a.target] || a.target}</span>
+                  ${isRead
+                    ? '<span style="font-size:11px;color:#16a34a;"><i class="fa-solid fa-check"></i> Okundu</span>'
+                    : '<span style="font-size:11px;color:#d97706;"><i class="fa-solid fa-circle"></i> Okunmadı</span>'}
+                </div>
+                <h4>${a.title}</h4>
+                <p>${a.content}</p>
+                <div class="ann-date">${date}</div>
+              </div>
+              ${!isRead ? `<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;flex-shrink:0;" onclick="markAsRead('${a.id}', 'announcements')"><i class="fa-solid fa-check"></i> Okundu İşaretle</button>` : ''}
+            </div>
+          `;
+        }).join('') + '</div>';
+      } catch {
+        container.innerHTML = '<p style="color:#dc2626;text-align:center;padding:40px;">Duyurular yüklenirken hata oluştu.</p>';
+      }
+    }
+
+    let readData = [];
+
+    function showReadDetail(id) {
+      const all = readData;
+      const ann = all.find((a) => a.id === id);
+      if (!ann) return;
+      const readers = ann.readBy && ann.readBy.length > 0 ? ann.readBy.join(", ") : "Henüz kimse okumadı.";
+      document.getElementById("readModalContent").textContent = `Okuyanlar: ${readers}`;
+      document.getElementById("readModal").style.display = "flex";
+    }
+
+    function closeReadModal() {
+      document.getElementById("readModal").style.display = "none";
+    }
+
+    function showAnnModal() {
+      editingAnnId = null;
+      document.getElementById("annModalTitle").textContent = "Duyuru Ekle";
+      document.getElementById("annSaveBtn").textContent = "Kaydet";
+      document.getElementById("annTitle").value = "";
+      document.getElementById("annContent").value = "";
+      document.getElementById("annTarget").value = "all";
+      document.getElementById("annExpiry").value = "7";
+      document.getElementById("annModalMessage").textContent = "";
+      document.getElementById("annModalMessage").className = "message";
+      document.getElementById("annModal").style.display = "flex";
+      setTimeout(() => document.getElementById("annTitle").focus(), 100);
+    }
+
+    function closeAnnModal() {
+      document.getElementById("annModal").style.display = "none";
+    }
+
+    async function editAnn(id) {
+      try {
+        const res = await fetch("/api/announcements", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const ann = list.find((a) => a.id === id);
+        if (!ann) return;
+        editingAnnId = id;
+        document.getElementById("annModalTitle").textContent = "Duyuru Düzenle";
+        document.getElementById("annSaveBtn").textContent = "Güncelle";
+        document.getElementById("annTitle").value = ann.title;
+        document.getElementById("annContent").value = ann.content;
+        document.getElementById("annTarget").value = ann.target;
+        const remainingDays = Math.ceil((ann.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
+        document.getElementById("annExpiry").value = Math.max(1, remainingDays);
+        document.getElementById("annModalMessage").textContent = "";
+        document.getElementById("annModalMessage").className = "message";
+        document.getElementById("annModal").style.display = "flex";
+        setTimeout(() => document.getElementById("annTitle").focus(), 100);
+      } catch {}
+    }
+
+    async function saveAnnouncement() {
+      const title = document.getElementById("annTitle").value.trim();
+      const content = document.getElementById("annContent").value.trim();
+      const target = document.getElementById("annTarget").value;
+      const expiresInDays = parseInt(document.getElementById("annExpiry").value) || 7;
+      const msg = document.getElementById("annModalMessage");
+      const btn = document.getElementById("annSaveBtn");
+
+      if (!title || !content) {
+        msg.textContent = "Başlık ve içerik gerekli.";
+        msg.className = "message error show";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = " Kaydediliyor...";
+
+      try {
+        const method = editingAnnId ? "PUT" : "POST";
+        const url = editingAnnId ? "/api/announcements/" + editingAnnId : "/api/announcements";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ title, content, target, expiresInDays }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          closeAnnModal();
+          await loadAnnouncementsTable();
+        } else {
+          msg.textContent = data.error || "Hata oluştu.";
+          msg.className = "message error show";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = editingAnnId ? "Güncelle" : "Kaydet";
+      }
+    }
+
+    async function deleteAnn(id) {
+      if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
+      try {
+        await fetch("/api/announcements/" + id, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        await loadAnnouncementsTable();
+      } catch {}
+    }
+
+    // ---- Logs ----
+
+    let logPage = 1;
+
+    async function renderLogs() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>Log Kayıtları</h2>
+            <p>Sistem hareketlerini görüntüleyin ve dışa aktarın.</p>
+          </div>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportLogs()">
+            <i class="fa-solid fa-download"></i> TXT İndir
+          </button>
+        </div>
+        <div class="users-table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Saat</th>
+                <th>İşlem</th>
+                <th>Kullanıcı</th>
+                <th>Detay</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="logsPagination" style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;"></div>
+      `;
+      logPage = 1;
+      await loadLogs();
+    }
+
+    async function loadLogs() {
+      const tbody = document.getElementById("logsTableBody");
+      const pagination = document.getElementById("logsPagination");
+      try {
+        const res = await fetch("/api/logs?page=" + logPage + "&limit=50", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        tbody.innerHTML = data.list.map((l) => `
+          <tr>
+            <td class="cell-date">${l.date}</td>
+            <td class="cell-date">${l.time}</td>
+            <td><span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:500;background:${getActionColor(l.action)}15;color:${getActionColor(l.action)};">${l.actionLabel}</span></td>
+            <td class="cell-email" style="font-size:13px;">${l.user}</td>
+            <td style="color:#666;font-size:13px;">${l.detail}</td>
+            <td style="color:#aaa;font-size:12px;font-family:monospace;">${l.ip}</td>
+          </tr>
+        `).join("");
+
+        let p = `<button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" onclick="changeLogPage(${logPage - 1})" ${logPage <= 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> Önceki</button>
+                 <span style="font-size:13px;color:#888;">Sayfa ${data.page} / ${data.totalPages}</span>
+                 <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" onclick="changeLogPage(${logPage + 1})" ${logPage >= data.totalPages ? 'disabled' : ''}>Sonraki <i class="fa-solid fa-chevron-right"></i></button>`;
+        pagination.innerHTML = p;
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626;padding:40px;">Loglar yüklenirken hata oluştu.</td></tr>';
+        pagination.innerHTML = "";
+      }
+    }
+
+    function changeLogPage(p) {
+      logPage = p;
+      loadLogs();
+    }
+
+    function getActionColor(action) {
+      const colors = {
+        login: "#22c55e",
+        otp_request: "#6366f1",
+        user_create: "#22c55e",
+        user_delete: "#ef4444",
+        user_role_change: "#f59e0b",
+        announcement_create: "#22c55e",
+        announcement_edit: "#f59e0b",
+        announcement_delete: "#ef4444",
+        announcement_read: "#6366f1",
+      };
+      return colors[action] || "#888";
+    }
+
+    async function exportLogs() {
+      try {
+        const res = await fetch("/api/logs/export", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "sistem-log-" + Date.now() + ".txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert("Loglar indirilirken hata oluştu.");
+      }
+    }
+
+    // ---- Schools ----
+
+    async function renderSchools() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <h2>Okullar</h2>
+          <p>Sisteme kayıtlı okulları gruplarına göre görüntüleyin.</p>
+        </div>
+        <div id="schoolsContent">
+          <div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+        </div>
+      `;
+      try {
+        const res = await fetch("/api/users", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const users = await res.json();
+        const lise = users.filter((u) => u.role === "lise");
+        const ortaokul = users.filter((u) => u.role === "ortaokul");
+
+        let html = "";
+        if (lise.length === 0 && ortaokul.length === 0) {
+          html = `
+            <div style="text-align:center;padding:60px 0;color:#ccc;">
+              <i class="fa-solid fa-school" style="font-size:48px;margin-bottom:16px;display:block;"></i>
+              <div style="font-size:14px;">Henüz okul eklenmemiş.</div>
+              <div style="font-size:13px;color:#aaa;margin-top:8px;">Kullanıcılar sayfasından lise veya ortaokul rolüyle kullanıcı ekleyebilirsiniz.</div>
+            </div>
+          `;
+        } else {
+          const renderSchoolCard = (u, color) => {
+            const p = u.profile || {};
+            const schoolCode = p.schoolCode || (u.email.match(/^(\d+)@/) ? u.email.match(/^(\d+)@/)[1] : null);
+            return `
+              <div class="announcement-item" style="margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div>
+                    <h4 style="color:${color};">${p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email)}</h4>
+                    <p style="font-size:12px;color:#aaa;margin-bottom:8px;">${u.email}</p>
+                  </div>
+                  <span class="ann-tag ${u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : "Ortaokul"}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 20px;font-size:13px;">
+                  <div><span style="color:#888;">Kod:</span> ${schoolCode || "-"}</div>
+                  ${p.principalName ? `<div><span style="color:#888;">Müdür:</span> ${p.principalName}</div>` : ""}
+                  ${p.schoolPhone ? `<div><span style="color:#888;">Okul Tel:</span> ${p.schoolPhone}</div>` : ""}
+                  ${p.principalPhone ? `<div><span style="color:#888;">Müdür Tel:</span> ${p.principalPhone}</div>` : ""}
+                  ${p.studentCount ? `<div><span style="color:#888;">Öğrenci:</span> ${p.studentCount}</div>` : ""}
+                  ${p.teacherCount ? `<div><span style="color:#888;">Öğretmen:</span> ${p.teacherCount}</div>` : ""}
+                  ${p.classCount ? `<div><span style="color:#888;">Şube:</span> ${p.classCount}</div>` : ""}
+                  <div><span style="color:#888;">Kayıt:</span> ${new Date(u.created).toLocaleDateString("tr-TR")}</div>
+                  <div><span style="color:#888;">Son Giriş:</span> ${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") : "-"}</div>
+                </div>
+                ${!p.schoolName ? '<div style="margin-top:8px;"><span style="font-size:12px;color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i> Okul bilgileri henüz girilmemiş</span></div>' : ""}
+              </div>
+            `;
+          };
+
+          if (lise.length > 0) {
+            html += `
+              <div class="section-title" style="margin-top:0;"><i class="fa-solid fa-school" style="color:#d97706;"></i> Lise Grubu (${lise.length})</div>
+              <div class="announcements-list" style="margin-bottom:28px;">${lise.map((u) => renderSchoolCard(u, "#d97706")).join("")}</div>
+            `;
+          }
+          if (ortaokul.length > 0) {
+            html += `
+              <div class="section-title"><i class="fa-solid fa-school" style="color:#9333ea;"></i> Ortaokul Grubu (${ortaokul.length})</div>
+              <div class="announcements-list" style="margin-bottom:28px;">${ortaokul.map((u) => renderSchoolCard(u, "#9333ea")).join("")}</div>
+            `;
+          }
+        }
+        document.getElementById("schoolsContent").innerHTML = html;
+      } catch {
+        document.getElementById("schoolsContent").innerHTML =
+          '<div style="text-align:center;padding:40px;color:#dc2626;">Okullar yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    // ---- School Profile Form ----
+
+    function showSchoolProfileForm() {
+      const p = currentUser.profile || {};
+      const modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.id = "schoolProfileModal";
+      modal.onclick = function(e) { if (e.target === this) closeSchoolProfileForm(); };
+      modal.innerHTML = `
+        <div class="modal" style="max-width:520px;">
+          <div class="modal-header">
+            <h3>Okul Bilgileri</h3>
+            <button class="modal-close" onclick="closeSchoolProfileForm()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group" style="grid-column:1/-1;">
+                <label>E-posta</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-envelope icon"></i>
+                  <input type="text" class="form-control" value="${escHtml(currentUser.email)}" disabled style="opacity:0.6;" />
+                </div>
+              </div>
+              <div class="form-group" style="grid-column:1/-1;">
+                <label for="spSchoolName">Okul Adı</label>
+                <input type="text" id="spSchoolName" class="form-control" style="padding-left:16px;" placeholder="Örn: Atatürk Lisesi" value="${escHtml(p.schoolName || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spSchoolCode">Okul Kodu</label>
+                ${/^\d+@meb\.(gov\.tr|k12\.tr)$/.test(currentUser.email)
+                  ? `<input type="text" id="spSchoolCode" class="form-control" style="padding-left:16px;" value="${escHtml(p.schoolCode || currentUser.email.split('@')[0])}" disabled title="E-posta adresinizden otomatik alınır" />`
+                  : `<input type="text" id="spSchoolCode" class="form-control" style="padding-left:16px;" placeholder="123456" value="${escHtml(p.schoolCode || '')}" />`}
+              </div>
+              <div class="form-group">
+                <label for="spSchoolPhone">Okul Telefonu</label>
+                <input type="text" id="spSchoolPhone" class="form-control" style="padding-left:16px;" placeholder="02121234567" value="${escHtml(p.schoolPhone || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spPrincipalName">Müdür Adı Soyadı</label>
+                <input type="text" id="spPrincipalName" class="form-control" style="padding-left:16px;" placeholder="Ahmet Yılmaz" value="${escHtml(p.principalName || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spPrincipalPhone">Müdür Telefonu</label>
+                <input type="text" id="spPrincipalPhone" class="form-control" style="padding-left:16px;" placeholder="05321234567" value="${escHtml(p.principalPhone || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spStudentCount">Öğrenci Sayısı</label>
+                <input type="number" id="spStudentCount" class="form-control" style="padding-left:16px;" placeholder="0" value="${escHtml(p.studentCount || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spTeacherCount">Öğretmen Sayısı</label>
+                <input type="number" id="spTeacherCount" class="form-control" style="padding-left:16px;" placeholder="0" value="${escHtml(p.teacherCount || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spClassCount">Şube Sayısı</label>
+                <input type="number" id="spClassCount" class="form-control" style="padding-left:16px;" placeholder="0" value="${escHtml(p.classCount || '')}" />
+              </div>
+            </div>
+            <div id="spMessage" class="message"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" style="width:auto;" onclick="closeSchoolProfileForm()">İptal</button>
+            <button class="btn btn-primary" style="width:auto;" id="spSaveBtn" onclick="saveSchoolProfile()">Kaydet</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById("spSchoolName").focus();
+    }
+
+    function closeSchoolProfileForm() {
+      const el = document.getElementById("schoolProfileModal");
+      if (el) el.remove();
+    }
+
+    async function saveSchoolProfile() {
+      const schoolCodeEl = document.getElementById("spSchoolCode");
+      const data = {
+        schoolName: document.getElementById("spSchoolName").value.trim(),
+        schoolCode: schoolCodeEl ? schoolCodeEl.value.trim() : "",
+        principalName: document.getElementById("spPrincipalName").value.trim(),
+        principalPhone: document.getElementById("spPrincipalPhone").value.trim(),
+        schoolPhone: document.getElementById("spSchoolPhone").value.trim(),
+        studentCount: document.getElementById("spStudentCount").value.trim(),
+        teacherCount: document.getElementById("spTeacherCount").value.trim(),
+        classCount: document.getElementById("spClassCount").value.trim(),
+      };
+      const msg = document.getElementById("spMessage");
+      const btn = document.getElementById("spSaveBtn");
+
+      if (!data.schoolName) {
+        msg.textContent = "Okul adı gerekli.";
+        msg.className = "message error show";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = " Kaydediliyor...";
+
+      try {
+        const res = await fetch("/api/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          currentUser.profile = data;
+          closeSchoolProfileForm();
+          renderDashboard();
+        } else {
+          const err = await res.json();
+          msg.textContent = err.error || "Hata oluştu.";
+          msg.className = "message error show";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Kaydet";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

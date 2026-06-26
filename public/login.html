@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Giriş Yap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div class="logo">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h1>Giriş Yap</h1>
+        <p>E-posta adresinize OTP kodu gönderelim</p>
+      </div>
+
+      <form id="emailForm" class="fade-in">
+        <div class="form-group">
+          <label for="email">E-posta Adresi</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-envelope icon"></i>
+            <input type="email" id="email" class="form-control" placeholder="ornek@mail.com" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="sendOtpBtn">
+          <i class="fa-solid fa-paper-plane"></i> OTP Gönder
+        </button>
+        <div id="emailMessage" class="message"></div>
+      </form>
+
+      <form id="otpForm" style="display:none" class="fade-in">
+        <div class="timer" id="timerDisplay">
+          <div class="timer-label">Kodun Süresi</div>
+          <div class="timer-value" id="countdown">03:00</div>
+        </div>
+        <div class="form-group">
+          <label for="otp">OTP Kodu</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-key icon"></i>
+            <input type="text" id="otp" class="form-control" placeholder="123456" maxlength="6" inputmode="numeric" pattern="[0-9]*" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="verifyOtpBtn">
+          <i class="fa-solid fa-check"></i> Doğrula
+        </button>
+        <div id="otpMessage" class="message"></div>
+        <div id="cooldownMessage" class="message"></div>
+        <div class="form-footer">
+          <button type="button" class="btn btn-link" id="backBtn">
+            <i class="fa-solid fa-arrow-left"></i> Geri
+          </button>
+          <button type="button" class="btn btn-link" id="resendBtn" style="display:none">
+            <i class="fa-solid fa-rotate"></i> Yeni Kod
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (token) {
+      window.location.href = "/dashboard.html";
+    }
+
+    let currentEmail = "";
+    let countdownInterval = null;
+
+    function showMessage(el, text, type) {
+      el.textContent = text;
+      el.className = "message " + type + " show";
+    }
+
+    function hideMessage(el) {
+      el.textContent = "";
+      el.className = "message";
+    }
+
+    function startCountdown(expiresInMs) {
+      const timerEl = document.getElementById("countdown");
+      const timerDisplay = document.getElementById("timerDisplay");
+      const resendBtn = document.getElementById("resendBtn");
+      let remaining = Math.floor(expiresInMs / 1000);
+
+      clearInterval(countdownInterval);
+
+      function tick() {
+        if (remaining <= 0) {
+          timerEl.textContent = "00:00";
+          timerDisplay.classList.add("expired");
+          resendBtn.style.display = "inline";
+          clearInterval(countdownInterval);
+          return;
+        }
+        const mins = String(Math.floor(remaining / 60)).padStart(2, "0");
+        const secs = String(remaining % 60).padStart(2, "0");
+        timerEl.textContent = mins + ":" + secs;
+        timerDisplay.classList.remove("expired");
+        resendBtn.style.display = "none";
+        remaining--;
+      }
+
+      tick();
+      countdownInterval = setInterval(tick, 1000);
+    }
+
+    document.getElementById("emailForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const btn = document.getElementById("sendOtpBtn");
+      const msg = document.getElementById("emailMessage");
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
+      hideMessage(msg);
+
+      try {
+        const res = await fetch("/api/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          currentEmail = email;
+          showMessage(msg, data.message, "success");
+          document.getElementById("emailForm").style.display = "none";
+          document.getElementById("otpForm").style.display = "block";
+          hideMessage(document.getElementById("cooldownMessage"));
+          hideMessage(document.getElementById("otpMessage"));
+          document.getElementById("otp").value = "";
+          document.getElementById("otp").focus();
+          startCountdown(data.expiresIn);
+        } else {
+          if (data.cooldown) {
+            showMessage(msg, data.cooldown + " saniye sonra tekrar deneyin.", "warning");
+            startCountdown(data.cooldown * 1000);
+          } else {
+            showMessage(msg, data.error, "error");
+          }
+        }
+      } catch {
+        showMessage(msg, "Bağlantı hatası.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> OTP Gönder';
+      }
+    });
+
+    document.getElementById("otpForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const otp = document.getElementById("otp").value;
+      const btn = document.getElementById("verifyOtpBtn");
+      const msg = document.getElementById("otpMessage");
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Doğrulanıyor...';
+      hideMessage(msg);
+
+      try {
+        const res = await fetch("/api/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: currentEmail, otp }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem("token", data.token);
+          showMessage(msg, "Giriş başarılı! Yönlendiriliyor...", "success");
+          setTimeout(() => (window.location.href = "/dashboard.html"), 800);
+        } else {
+          if (data.lockout) {
+            showMessage(msg, data.lockout + " saniye bekleyin.", "warning");
+          } else {
+            showMessage(msg, data.error, "error");
+          }
+        }
+      } catch {
+        showMessage(msg, "Bağlantı hatası.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Doğrula';
+      }
+    });
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      clearInterval(countdownInterval);
+      document.getElementById("otpForm").style.display = "none";
+      document.getElementById("emailForm").style.display = "block";
+      hideMessage(document.getElementById("emailMessage"));
+      hideMessage(document.getElementById("otpMessage"));
+      hideMessage(document.getElementById("cooldownMessage"));
+      document.getElementById("otp").value = "";
+    });
+
+    document.getElementById("resendBtn").addEventListener("click", () => {
+      clearInterval(countdownInterval);
+      document.getElementById("otpForm").style.display = "none";
+      document.getElementById("emailForm").style.display = "block";
+      hideMessage(document.getElementById("emailMessage"));
+      hideMessage(document.getElementById("otpMessage"));
+      document.getElementById("otp").value = "";
+      document.getElementById("email").focus();
+    });
+  </script>
+</body>
+</html>
