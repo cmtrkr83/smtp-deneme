@@ -16,9 +16,10 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
-const USERS_FILE = path.join(__dirname, "users.json");
-const ANNOUNCEMENTS_FILE = path.join(__dirname, "announcements.json");
-const LOGS_FILE = path.join(__dirname, "logs.json");
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
+const LOGS_FILE = path.join(DATA_DIR, "logs.json");
 
 if (!JWT_SECRET || JWT_SECRET === "degistirin-buraya-gizli-anahtar-yazin") {
   console.warn("[UYARI] JWT_SECRET zayif! .env dosyasinda guclu bir anahtar belirleyin.");
