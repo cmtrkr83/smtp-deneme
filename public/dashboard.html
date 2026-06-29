@@ -74,14 +74,14 @@
       const items = [];
 
       const allItems = [
-        { page: "dashboard", icon: "fa-gauge-high", label: "Genel Bakış", roles: ["admin", "lise", "ortaokul"] },
+        { page: "dashboard", icon: "fa-gauge-high", label: "Genel Bakış", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
-        { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul"] },
-        { page: "surveys", icon: "fa-square-poll-vertical", label: "Anketler", roles: ["admin", "lise", "ortaokul"] },
-        { page: "files", icon: "fa-folder-open", label: "Dosyalar", roles: ["admin", "lise", "ortaokul"] },
+        { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "surveys", icon: "fa-square-poll-vertical", label: "Anketler", roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "files", icon: "fa-folder-open", label: "Dosyalar", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
-        { separator: true, roles: ["admin", "lise", "ortaokul"] },
-        { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul"] },
+        { separator: true, roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul", "diger"] },
         { page: "schools", icon: "fa-school", label: "Okullar", roles: ["admin"] },
         { page: "reports", icon: "fa-chart-bar", label: "Raporlar", roles: ["admin"] },
         { page: "settings", icon: "fa-sliders", label: "Ayarlar", roles: ["admin"] },
@@ -125,6 +125,7 @@
       admin: "Sistem Yöneticisi",
       lise: "Lise Grubu",
       ortaokul: "Ortaokul Grubu",
+      diger: "Diğer",
     };
 
     // Sidebar toggle
@@ -230,7 +231,7 @@
       if (currentUser.role === "admin" && data.announcements && data.announcements.length > 0) {
         html += `<div class="section-title"><i class="fa-solid fa-bullhorn"></i> Duyurular</div>`;
         html += `<div class="announcements-list">`;
-        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
         data.announcements.forEach((a) => {
           const isRead = a.read;
           const date = new Date(a.createdAt).toLocaleDateString("tr-TR");
@@ -330,9 +331,17 @@
             <h2>Kullanıcı Yönetimi</h2>
             <p>Sisteme erişebilecek kullanıcıları yönetin.</p>
           </div>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAddUserModal()">
-            <i class="fa-solid fa-plus"></i> Kullanıcı Ekle
-          </button>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAddUserModal()">
+              <i class="fa-solid fa-plus"></i> Kullanıcı Ekle
+            </button>
+            <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showImportModal()">
+              <i class="fa-solid fa-file-excel"></i> Excel'den Yükle
+            </button>
+            <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showClearModal()">
+              <i class="fa-solid fa-trash-can"></i> Tümünü Sil
+            </button>
+          </div>
         </div>
         <div class="users-table-wrapper">
           <table class="users-table">
@@ -372,6 +381,7 @@
                     <option value="admin">Sistem Yöneticisi</option>
                     <option value="lise">Lise Grubu</option>
                     <option value="ortaokul">Ortaokul Grubu</option>
+                    <option value="diger">Diğer</option>
                   </select>
                 </div>
               </div>
@@ -425,11 +435,12 @@
             <tr>
               <td class="cell-email">${u.email}</td>
               <td>
-                <select class="role-select" data-email="${u.email}" onchange="updateRole('${u.email}',this.value)">
-                  <option value="admin" ${u.role==="admin"?"selected":""}>Sistem Yöneticisi</option>
-                  <option value="lise" ${u.role==="lise"?"selected":""}>Lise Grubu</option>
-                  <option value="ortaokul" ${u.role==="ortaokul"?"selected":""}>Ortaokul Grubu</option>
-                </select>
+                  <select class="role-select" data-email="${u.email}" onchange="updateRole('${u.email}',this.value)">
+                    <option value="admin" ${u.role==="admin"?"selected":""}>Sistem Yöneticisi</option>
+                    <option value="lise" ${u.role==="lise"?"selected":""}>Lise Grubu</option>
+                    <option value="ortaokul" ${u.role==="ortaokul"?"selected":""}>Ortaokul Grubu</option>
+                    <option value="diger" ${u.role==="diger"?"selected":""}>Diğer</option>
+                  </select>
               </td>
               <td class="cell-date">${created}</td>
               <td class="cell-date">${lastLogin}</td>
@@ -553,6 +564,164 @@
       }
     }
 
+    // ---- Excel Import ----
+
+    function showImportModal() {
+      const area = document.getElementById("contentArea");
+      const div = document.createElement("div");
+      div.id = "importModalOverlay";
+      div.className = "modal-overlay";
+      div.style.display = "flex";
+      div.onclick = function(e) { if (e.target === this) closeImportModal(); };
+      div.innerHTML = `
+        <div class="modal" style="max-width:500px;">
+          <div class="modal-header">
+            <h3><i class="fa-solid fa-file-excel"></i> Excel'den Kullanıcı Yükle</h3>
+            <button class="modal-close" onclick="closeImportModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size:13px;color:#888;margin-bottom:16px;">
+              Sütun başlıkları: <b>İl</b>, <b>İlçe</b>, <b>Genel Müdürlük</b>, <b>Kurum Türü</b>, <b>Kurum Kodu</b>, <b>Kurum</b>.<br>
+              E-posta adresleri <b>kurumkodu@meb.k12.tr</b> şeklinde otomatik oluşturulur.
+            </p>
+            <div class="form-group">
+              <label>Excel Dosyası (.xlsx, .xls)</label>
+              <input type="file" id="importFileInput" accept=".xlsx,.xls" style="width:100%;padding:10px;border:1px solid #e2e4e9;border-radius:8px;font-size:14px;background:#fff;" />
+            </div>
+            <div id="importMessage" class="message"></div>
+            <div id="importResult" style="display:none;margin-top:12px;padding:16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" style="width:auto;" onclick="closeImportModal()">İptal</button>
+            <button class="btn btn-primary" style="width:auto;" id="importBtn" onclick="importUsers()">
+              <i class="fa-solid fa-upload"></i> Yükle
+            </button>
+          </div>
+        </div>
+      `;
+      area.appendChild(div);
+    }
+
+    function closeImportModal() {
+      const el = document.getElementById("importModalOverlay");
+      if (el) el.remove();
+    }
+
+    async function importUsers() {
+      const fileInput = document.getElementById("importFileInput");
+      const msg = document.getElementById("importMessage");
+      const btn = document.getElementById("importBtn");
+      const resultDiv = document.getElementById("importResult");
+
+      if (!fileInput.files || !fileInput.files[0]) {
+        msg.className = "message error show";
+        msg.textContent = "Lütfen bir Excel dosyası seçin.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+      msg.className = "message";
+      msg.textContent = "";
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const res = await fetch("/api/users/import", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          resultDiv.style.display = "block";
+          resultDiv.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><i class="fa-solid fa-check-circle" style="font-size:24px;color:#22c55e;"></i>'
+            + '<div><div style="font-weight:600;color:#15803d;">' + data.added + ' yeni kullanıcı eklendi</div>'
+            + '<div style="font-size:12px;color:#888;">' + data.updated + ' kullanıcı güncellendi</div></div></div>';
+          if (data.errors && data.errors.length > 0) {
+            resultDiv.innerHTML += '<div style="margin-top:8px;font-size:12px;color:#ef4444;">Hatalar: ' + data.errors.join(", ") + '</div>';
+          }
+          btn.textContent = ' Yükle';
+          btn.disabled = false;
+          loadUsersTable();
+        } else {
+          msg.className = "message error show";
+          msg.textContent = data.error || "Yükleme başarısız.";
+          btn.innerHTML = '<i class="fa-solid fa-upload"></i> Yükle';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        msg.className = "message error show";
+        msg.textContent = "Bir hata oluştu: " + e.message;
+        btn.innerHTML = '<i class="fa-solid fa-upload"></i> Yükle';
+        btn.disabled = false;
+      }
+    }
+
+    function showClearModal() {
+      const area = document.getElementById("contentArea");
+      const div = document.createElement("div");
+      div.id = "clearModalOverlay";
+      div.className = "modal-overlay";
+      div.style.display = "flex";
+      div.onclick = function(e) { if (e.target === this) closeClearModal(); };
+      div.innerHTML = `
+        <div class="modal" style="max-width:400px;">
+          <div class="modal-header">
+            <h3><i class="fa-solid fa-trash-can"></i> Tüm Kullanıcıları Sil</h3>
+            <button class="modal-close" onclick="closeClearModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size:14px;color:#888;margin-bottom:12px;">
+              <strong style="color:#ef4444;">Yönetici (admin) grubu hariç</strong> tüm kullanıcılar sistemden silinecektir. Bu işlem geri alınamaz.
+            </p>
+            <div id="clearMessage" class="message"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" style="width:auto;" onclick="closeClearModal()">İptal</button>
+            <button class="btn btn-danger" style="width:auto;" onclick="clearUsers()">
+              <i class="fa-solid fa-trash-can"></i> Tümünü Sil
+            </button>
+          </div>
+        </div>
+      `;
+      area.appendChild(div);
+    }
+
+    function closeClearModal() {
+      const el = document.getElementById("clearModalOverlay");
+      if (el) el.remove();
+    }
+
+    async function clearUsers() {
+      const msg = document.getElementById("clearMessage");
+      const btn = document.querySelector("#clearModalOverlay .btn-danger");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Siliniyor...';
+      try {
+        const res = await fetch("/api/users/clear", {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          closeClearModal();
+          loadUsersTable();
+        } else {
+          msg.className = "message error show";
+          msg.textContent = data.error || "Hata oluştu.";
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Tümünü Sil';
+        }
+      } catch {
+        msg.className = "message error show";
+        msg.textContent = "Bağlantı hatası.";
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Tümünü Sil';
+      }
+    }
+
     // ---- Announcement Management ----
 
     let editingAnnId = null;
@@ -614,6 +783,7 @@
                       <option value="all">Tüm Kullanıcılar</option>
                       <option value="lise">Lise Grubu</option>
                       <option value="ortaokul">Ortaokul Grubu</option>
+                      <option value="diger">Diğer</option>
                     </select>
                   </div>
                 </div>
@@ -671,7 +841,7 @@
         if (!res.ok) throw new Error();
         const list = await res.json();
         readData = list;
-        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
         tbody.innerHTML = list.map((a) => {
           const expires = new Date(a.expiresAt).toLocaleDateString("tr-TR");
           const expired = a.expiresAt < Date.now();
@@ -710,7 +880,7 @@
         });
         if (!res.ok) throw new Error();
         const list = await res.json();
-        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
 
         if (list.length === 0) {
           container.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px;">Henüz duyuru bulunmuyor.</p>';
@@ -983,9 +1153,10 @@
         const users = await res.json();
         const lise = users.filter((u) => u.role === "lise");
         const ortaokul = users.filter((u) => u.role === "ortaokul");
+        const diger = users.filter((u) => u.role === "diger");
 
         let html = "";
-        if (lise.length === 0 && ortaokul.length === 0) {
+        if (lise.length === 0 && ortaokul.length === 0 && diger.length === 0) {
           html = `
             <div style="text-align:center;padding:60px 0;color:#ccc;">
               <i class="fa-solid fa-school" style="font-size:48px;margin-bottom:16px;display:block;"></i>
@@ -1004,7 +1175,7 @@
                     <h4 style="color:${color};">${p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email)}</h4>
                     <p style="font-size:12px;color:#aaa;margin-bottom:8px;">${u.email}</p>
                   </div>
-                  <span class="ann-tag ${u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : "Ortaokul"}</span>
+                  <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : u.role === "ortaokul" ? "Ortaokul" : "Diğer"}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 20px;font-size:13px;">
                   <div><span style="color:#888;">Kod:</span> ${schoolCode || "-"}</div>
@@ -1032,6 +1203,12 @@
             html += `
               <div class="section-title"><i class="fa-solid fa-school" style="color:#9333ea;"></i> Ortaokul Grubu (${ortaokul.length})</div>
               <div class="announcements-list" style="margin-bottom:28px;">${ortaokul.map((u) => renderSchoolCard(u, "#9333ea")).join("")}</div>
+            `;
+          }
+          if (diger.length > 0) {
+            html += `
+              <div class="section-title"><i class="fa-solid fa-users" style="color:#ec4899;"></i> Diğer (${diger.length})</div>
+              <div class="announcements-list" style="margin-bottom:28px;">${diger.map((u) => renderSchoolCard(u, "#ec4899")).join("")}</div>
             `;
           }
         }
@@ -1236,8 +1413,9 @@
           const expires = new Date(f.expiresAt).toLocaleDateString("tr-TR");
           const uploaded = new Date(f.uploadedAt).toLocaleDateString("tr-TR");
           const expired = f.expiresAt <= Date.now();
+          const groupLabel = f.targetGroup === "lise" ? "Lise Grubu" : f.targetGroup === "ortaokul" ? "Ortaokul Grubu" : "Diğer";
           const targetLabel = f.targetType === "all" ? "Tüm Kullanıcılar"
-            : f.targetType === "group" ? (f.targetGroup === "lise" ? "Lise Grubu" : "Ortaokul Grubu")
+            : f.targetType === "group" ? groupLabel
             : (f.targetUsers || []).join(", ");
           return `
             <tr>
@@ -1296,6 +1474,7 @@
               <select id="fileTargetGroup" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;">
                 <option value="lise">Lise Grubu</option>
                 <option value="ortaokul">Ortaokul Grubu</option>
+                <option value="diger">Diğer</option>
               </select>
             </div>
             <div id="fileTargetUsersWrap" style="display:none;">
@@ -1445,7 +1624,7 @@
             const date = u.downloadedAt ? new Date(u.downloadedAt).toLocaleDateString("tr-TR") + " " + new Date(u.downloadedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "-";
             html += '<tr style="' + (u.downloaded ? '' : 'opacity:0.6;') + '">'
               + '<td class="cell-email">' + escHtml(u.email) + '</td>'
-              + '<td style="font-size:12px;">' + (u.role === "lise" ? "Lise" : "Ortaokul") + '</td>'
+              + '<td style="font-size:12px;">' + (u.role === "lise" ? "Lise" : u.role === "ortaokul" ? "Ortaokul" : "Diğer") + '</td>'
               + '<td style="font-size:12px;">' + escHtml(u.schoolName) + '</td>'
               + '<td><span class="' + statusClass + '" style="font-size:11px;">' + statusText + '</span></td>'
               + '<td class="cell-date">' + date + '</td>'
@@ -1579,6 +1758,7 @@
         { label: "Admin", count: d.users.admin, color: "#6366f1" },
         { label: "Lise", count: d.users.lise, color: "#22c55e" },
         { label: "Ortaokul", count: d.users.ortaokul, color: "#f59e0b" },
+        { label: "Diğer", count: d.users.diger, color: "#ec4899" },
       ];
       roles.forEach((r) => {
         const pct = d.users.total > 0 ? Math.round((r.count / d.users.total) * 100) : 0;
@@ -1688,6 +1868,7 @@
         { count: users.admin, color: "#6366f1", label: "Admin" },
         { count: users.lise, color: "#22c55e", label: "Lise" },
         { count: users.ortaokul, color: "#f59e0b", label: "Ortaokul" },
+        { count: users.diger, color: "#ec4899", label: "Diğer" },
       ];
       const total = users.total || 1;
       let startAngle = -Math.PI / 2;
@@ -1764,7 +1945,7 @@
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
         tbody.innerHTML = list.map((s) => {
           const expired = s.expiresAt < Date.now();
-          const targetStr = s.targetType === "group" ? (s.targetGroup === "lise" ? "Lise" : "Ortaokul") : targetLabels[s.targetType] || "Tümü";
+          const targetStr = s.targetType === "group" ? (s.targetGroup === "lise" ? "Lise" : s.targetGroup === "ortaokul" ? "Ortaokul" : "Diğer") : targetLabels[s.targetType] || "Tümü";
           return `
             <tr style="${expired ? 'opacity:0.4;' : ''}">
               <td class="cell-email">${escHtml(s.title)}</td>
@@ -1859,6 +2040,7 @@
               <select id="svTargetGroup" class="form-control" style="padding-left:16px;">
                 <option value="lise" ${s.targetGroup === "lise" ? "selected" : ""}>Lise</option>
                 <option value="ortaokul" ${s.targetGroup === "ortaokul" ? "selected" : ""}>Ortaokul</option>
+                <option value="diger" ${s.targetGroup === "diger" ? "selected" : ""}>Diğer</option>
               </select>
             </div>
             <div class="form-group" id="svTargetUsersWrap" style="margin-bottom:0;grid-column:1/-1;${s.targetType !== "users" ? 'display:none;' : ''}">

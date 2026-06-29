@@ -311,6 +311,62 @@
       "user": "cemturker@protonmail.com",
       "detail": "cemturker@protonmail.com basariyla giris yapti.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "4a1373c1-9921-4f3a-afe6-8ddf0238c11b",
+      "timestamp": 1782730952825,
+      "action": "user_import",
+      "user": "forumcemturker@gmail.com",
+      "detail": "903 kullanici import edildi, 0 atlandi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "eac0e9c8-e053-4d3b-9697-3dd0ac45b9c2",
+      "timestamp": 1782731371007,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "905 kullanici silindi (admin haric).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "439d0a1c-c5e2-4a00-ba20-dc8937e606c3",
+      "timestamp": 1782731384036,
+      "action": "user_import",
+      "user": "forumcemturker@gmail.com",
+      "detail": "903 yeni, 0 guncellendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "9d143ce2-49f4-4f07-a7ac-9ea589bace4f",
+      "timestamp": 1782731479294,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "903 kullanici silindi (admin haric).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "3b3ec186-56d2-483f-9db5-74716f0efdb4",
+      "timestamp": 1782731557276,
+      "action": "user_import",
+      "user": "forumcemturker@gmail.com",
+      "detail": "903 yeni, 0 guncellendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "4bb2f6e9-782e-4545-b80d-2295b1aa5dbc",
+      "timestamp": 1782732111327,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "903 kullanici silindi (admin haric).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "20757ee6-8e33-49a6-9ad2-5d318db0dfee",
+      "timestamp": 1782732140949,
+      "action": "user_import",
+      "user": "forumcemturker@gmail.com",
+      "detail": "903 yeni, 0 guncellendi.",
+      "ip": "127.0.0.1"
     }
   ]
 }

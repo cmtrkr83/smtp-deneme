@@ -171,7 +171,7 @@ function detectRole(email) {
   const e = email.toLowerCase();
   if (e.includes("lise")) return "lise";
   if (e.includes("ortaokul")) return "ortaokul";
-  return "admin";
+  return "diger";
 }
 
 function buildProfileStats(users, email) {
@@ -196,12 +196,13 @@ function getDashboardData(role, users, email) {
   const liseCount = userList.filter((u) => u.role === "lise").length;
   const ortaokulCount = userList.filter((u) => u.role === "ortaokul").length;
   const adminCount = userList.filter((u) => u.role === "admin").length;
+  const digerCount = userList.filter((u) => u.role === "diger").length;
 
   const allAnn = loadAnnouncements();
   const now = Date.now();
   const activeAnn = allAnn.filter((a) => a.expiresAt > now);
   const filteredAnn = activeAnn.filter(
-    (a) => a.target === "all" || a.target === role
+    (a) => a.target === "all" || a.target === role || (role === "diger" && a.target === "diger")
   ).map((a) => ({
     id: a.id,
     title: a.title,
@@ -231,6 +232,7 @@ function getDashboardData(role, users, email) {
         { label: "Yöneticiler", value: String(adminCount), icon: "fa-user-gear", color: "#22c55e" },
         { label: "Lise Grubu", value: String(liseCount), icon: "fa-school", color: "#f59e0b" },
         { label: "Ortaokul Grubu", value: String(ortaokulCount), icon: "fa-school", color: "#a855f7" },
+        { label: "Diğer Grubu", value: String(digerCount), icon: "fa-users", color: "#ec4899" },
       ],
     },
     lise: {
@@ -251,9 +253,18 @@ function getDashboardData(role, users, email) {
         { title: "Dosyalar", url: "/navigate/files", icon: "fa-folder-open", desc: "Gönderilen dosyaları indirin" },
       ],
     },
+    diger: {
+      announcements: filteredAnn,
+      stats: buildProfileStats(users, email),
+      links: [
+        { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
+        { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
+        { title: "Dosyalar", url: "/navigate/files", icon: "fa-folder-open", desc: "Gönderilen dosyaları indirin" },
+      ],
+    },
   };
 
-  if (role !== "admin") {
+  if (role !== "admin" && roleData[role]) {
     const unreadAnn = filteredAnn.filter((a) => !a.read).length;
 
     const allSurveyList = loadSurveys();
@@ -490,7 +501,7 @@ app.post("/api/users", (req, res) => {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Gecerli bir e-posta adresi girin." });
   }
-  const validRoles = ["admin", "lise", "ortaokul"];
+  const validRoles = ["admin", "lise", "ortaokul", "diger"];
   const userRole = validRoles.includes(role) ? role : detectRole(email);
 
   const normEmail = email.toLowerCase().trim();
@@ -523,7 +534,7 @@ app.put("/api/users/:email", (req, res) => {
   }
 
   const { role } = req.body;
-  const validRoles = ["admin", "lise", "ortaokul"];
+  const validRoles = ["admin", "lise", "ortaokul", "diger"];
   if (role && validRoles.includes(role)) {
     const oldRole = users[normEmail].role;
     users[normEmail].role = role;
@@ -531,6 +542,23 @@ app.put("/api/users/:email", (req, res) => {
   }
   saveUsers(users);
   res.json(users[normEmail]);
+});
+
+app.delete("/api/users/clear", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const users = loadUsers();
+  let deleted = 0;
+  for (const [email, u] of Object.entries(users)) {
+    if (u.role !== "admin") {
+      delete users[email];
+      deleted++;
+    }
+  }
+  saveUsers(users);
+  appendLog(makeLog("user_delete", decoded.email, `${deleted} kullanici silindi (admin haric).`, req));
+  res.json({ deleted });
 });
 
 app.delete("/api/users/:email", (req, res) => {
@@ -551,6 +579,92 @@ app.delete("/api/users/:email", (req, res) => {
   saveUsers(users);
   appendLog(makeLog("user_delete", decoded.email, `${normEmail} (${deleted.role}) kullanıcı silindi.`, req));
   res.json({ message: "Kullanıcı silindi." });
+});
+
+app.post("/api/users/import", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const XLSX = require("xlsx");
+  const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+  importUpload.single("file")(req, res, (err) => {
+    if (err) return res.status(400).json({ error: "Dosya yuklenirken hata: " + err.message });
+    if (!req.file) return res.status(400).json({ error: "Dosya secilmedi." });
+
+    try {
+      const wb = XLSX.read(req.file.buffer, { type: "buffer" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      if (rows.length === 0) return res.status(400).json({ error: "Excel dosyasi bos." });
+
+      const users = loadUsers();
+      let added = 0, updated = 0, errors = [];
+      const colMap = { il: null, ilce: null, genelMudurluk: null, kurumTuru: null, kurumKodu: null, kurum: null };
+      function normalizeCol(s) {
+        return s.toLowerCase().replace(/[\s\-_]/g, "").replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c");
+      }
+      const firstRow = rows[0];
+      for (const key of Object.keys(firstRow)) {
+        const k = normalizeCol(key);
+        if (k.includes("ilce")) colMap.ilce = key;
+        else if (k === "il") colMap.il = key;
+        else if (k.includes("genel") || k.includes("mudurluk")) colMap.genelMudurluk = key;
+        else if (k.includes("tur") || k.includes("turu")) colMap.kurumTuru = key;
+        else if (k.includes("kod") || k.includes("kodu")) colMap.kurumKodu = key;
+        else if (k === "kurum" || k.includes("kurumad") || k.includes("adi")) colMap.kurum = key;
+      }
+      if (!colMap.kurumKodu) {
+        return res.status(400).json({ error: "Excel'de 'Kurum Kodu' sutunu bulunamadi." });
+      }
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const kurumKodu = String(row[colMap.kurumKodu]).trim();
+        if (!kurumKodu) { skipped++; continue; }
+        const email = kurumKodu.toLowerCase() + "@meb.k12.tr";
+        const rawKurumTuru = colMap.kurumTuru ? String(row[colMap.kurumTuru] || "").trim() : "";
+        const kurumTuruCheck = rawKurumTuru.toLowerCase().replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c");
+        const rawKurumAdi = colMap.kurum ? String(row[colMap.kurum] || "").trim() : "";
+        const kurumAdiCheck = rawKurumAdi.toLowerCase().replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c");
+
+        let role = "diger";
+        const checkStr = kurumTuruCheck || kurumAdiCheck;
+        if (checkStr.includes("ortaokul")) {
+          role = "ortaokul";
+        } else if (checkStr.includes("lisesi") || checkStr.includes("lise") || checkStr.includes("meslek")) {
+          role = "lise";
+        } else if (["ilkokulu", "ilkokul", "merkezi", "kademe", "anaokul", "anaokulu"].some(k => checkStr.includes(k))) {
+          role = "diger";
+        } else if (email.includes("ortaokul")) {
+          role = "ortaokul";
+        } else if (email.includes("lise")) {
+          role = "lise";
+        }
+
+        const profile = {
+          schoolName: rawKurumAdi,
+          city: colMap.il ? String(row[colMap.il] || "").trim() : "",
+          district: colMap.ilce ? String(row[colMap.ilce] || "").trim() : "",
+          schoolCode: kurumKodu,
+          institutionType: rawKurumTuru,
+          directorate: colMap.genelMudurluk ? String(row[colMap.genelMudurluk] || "").trim() : "",
+        };
+        if (users[email]) {
+          users[email].profile = { ...(users[email].profile || {}), ...profile };
+          users[email].role = role;
+          updated++;
+        } else {
+          users[email] = { email, role, created: Date.now(), lastLogin: null, profile };
+          added++;
+        }
+      }
+      saveUsers(users);
+      appendLog(makeLog("user_import", decoded.email, `${added} yeni, ${updated} guncellendi.`, req));
+      res.json({ added, updated, errors: errors.length > 0 ? errors.slice(0, 10) : [] });
+    } catch (e) {
+      res.status(400).json({ error: "Excel okunurken hata: " + e.message });
+    }
+  });
 });
 
 // ---- Announcements ----
@@ -598,7 +712,7 @@ app.post("/api/announcements", (req, res) => {
   if (!title || !content || !target) {
     return res.status(400).json({ error: "Başlık, içerik ve hedef kitle gerekli." });
   }
-  const validTargets = ["all", "lise", "ortaokul"];
+  const validTargets = ["all", "lise", "ortaokul", "diger"];
   if (!validTargets.includes(target)) {
     return res.status(400).json({ error: "Geçersiz hedef kitle." });
   }
@@ -632,7 +746,7 @@ app.put("/api/announcements/:id", (req, res) => {
   if (title) list[idx].title = title;
   if (content) list[idx].content = content;
   if (target) {
-    const validTargets = ["all", "lise", "ortaokul"];
+    const validTargets = ["all", "lise", "ortaokul", "diger"];
     if (validTargets.includes(target)) list[idx].target = target;
   }
   if (expiresInDays) {
@@ -682,6 +796,7 @@ const actionLabels = {
   user_create: "Kullanıcı Ekleme",
   user_delete: "Kullanıcı Silme",
   user_role_change: "Rol Değiştirme",
+  user_import: "Toplu Kullanıcı Yükleme",
   announcement_create: "Duyuru Oluşturma",
   announcement_edit: "Duyuru Düzenleme",
   announcement_delete: "Duyuru Silme",
@@ -1367,7 +1482,7 @@ app.get("/api/reports", (req, res) => {
 
   const users = loadUsers();
   const userList = Object.values(users);
-  const roleCounts = { admin: 0, lise: 0, ortaokul: 0 };
+  const roleCounts = { admin: 0, lise: 0, ortaokul: 0, diger: 0 };
   userList.forEach((u) => { if (roleCounts[u.role] !== undefined) roleCounts[u.role]++; });
   const totalUsers = userList.length;
 
@@ -1470,6 +1585,7 @@ app.get("/api/reports", (req, res) => {
       admin: roleCounts.admin,
       lise: roleCounts.lise,
       ortaokul: roleCounts.ortaokul,
+      diger: roleCounts.diger,
     },
     monthlyActivity,
     dailyActivity,
