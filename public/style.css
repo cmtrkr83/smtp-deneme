@@ -605,6 +605,32 @@ body.dashboard-body::before {
   margin-bottom: 28px;
 }
 
+#quickLinks {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.report-card {
+  background: #fff;
+  border: 1px solid #e8eaee;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.report-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-card h4 i {
+  color: #6366f1;
+  font-size: 14px;
+}
+
 .link-card {
   background: #fff;
   border: 1px solid #e8eaee;
@@ -645,6 +671,28 @@ body.dashboard-body::before {
   font-size: 12px;
   color: #888;
   line-height: 1.4;
+}
+
+.link-card .card-icon {
+  position: relative;
+}
+
+.card-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }
 
 /* Announcements */
@@ -938,7 +986,8 @@ body.dashboard-body::before {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .cards-grid {
+  .cards-grid,
+  #quickLinks {
     grid-template-columns: 1fr;
   }
 }

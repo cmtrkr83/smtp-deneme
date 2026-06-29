@@ -1,0 +1,38 @@
+{
+  "responses": [
+    {
+      "id": "6244a230-f01a-4afa-bc8e-3509c590a729",
+      "surveyId": "07966566-0a7f-4085-a393-530d6699fa9f",
+      "userId": "cemburbut@gmail.com",
+      "submittedAt": 1782718712796,
+      "updatedAt": 1782718712796,
+      "answers": [
+        {
+          "questionId": "43421e98-2691-4f64-a8d7-e7a85b436a36",
+          "value": "123"
+        },
+        {
+          "questionId": "b995de96-0fdf-40e7-8279-078490f98d9a",
+          "value": "GGH"
+        },
+        {
+          "questionId": "6b334c5a-591e-4295-a62b-28961f79b6fa",
+          "value": "05332587454"
+        }
+      ]
+    },
+    {
+      "id": "41b665b2-52b9-4695-8645-3f84d691d393",
+      "surveyId": "17684621-8b97-42af-950e-2af97caaf20b",
+      "userId": "cemburbut@gmail.com",
+      "submittedAt": 1782718745208,
+      "updatedAt": 1782718745208,
+      "answers": [
+        {
+          "questionId": "ec379107-5942-42b7-b2c4-d2e7c30a69a2",
+          "value": "367415@meb.k12.tr"
+        }
+      ]
+    }
+  ]
+}

@@ -17,9 +17,9 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <div class="logo-icon">M</div>
+        <div class="logo-icon">K</div>
         <div class="logo-text">
-          KODM
+          KOCAELİ ODM
           <small>Yönetim Paneli</small>
         </div>
       </div>
@@ -77,6 +77,8 @@
         { page: "dashboard", icon: "fa-gauge-high", label: "Genel Bakış", roles: ["admin", "lise", "ortaokul"] },
         { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
         { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul"] },
+        { page: "surveys", icon: "fa-square-poll-vertical", label: "Anketler", roles: ["admin", "lise", "ortaokul"] },
+        { page: "files", icon: "fa-folder-open", label: "Dosyalar", roles: ["admin", "lise", "ortaokul"] },
         { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
         { separator: true, roles: ["admin", "lise", "ortaokul"] },
         { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul"] },
@@ -111,6 +113,9 @@
     else if (page === "logs") renderLogs();
     else if (page === "schools") renderSchools();
     else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
+    else if (page === "surveys") { renderSurveys(); }
+    else if (page === "files") { renderFiles(); }
+    else if (page === "reports") { renderReports(); }
     else renderPlaceholder(page);
         });
       });
@@ -209,9 +214,10 @@
         html += `<div class="cards-grid" id="quickLinks">`;
         data.links.forEach((l) => {
           const isNav = l.url.startsWith("/navigate/");
+          const badge = l.badge > 0 ? `<span class="card-badge">${l.badge}</span>` : "";
           html += `
             <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}">
-              <div class="card-icon"><i class="fa-solid ${l.icon}"></i></div>
+              <div class="card-icon"><i class="fa-solid ${l.icon}"></i>${badge}</div>
               <h4>${l.title}</h4>
               <p>${l.desc}</p>
             </a>
@@ -220,8 +226,8 @@
         html += `</div>`;
       }
 
-      // Announcements
-      if (data.announcements && data.announcements.length > 0) {
+      // Announcements (only for admin)
+      if (currentUser.role === "admin" && data.announcements && data.announcements.length > 0) {
         html += `<div class="section-title"><i class="fa-solid fa-bullhorn"></i> Duyurular</div>`;
         html += `<div class="announcements-list">`;
         const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul" };
@@ -1156,6 +1162,1247 @@
       } finally {
         btn.disabled = false;
         btn.textContent = "Kaydet";
+      }
+    }
+
+    // ---- Surveys ----
+
+    let editSurveyId = null;
+
+    function renderSurveys() {
+      if (currentUser.role === "admin") {
+        renderAdminSurveys();
+      } else {
+        renderUserSurveys();
+      }
+    }
+
+    // ---- File Distribution ----
+
+    function renderFiles() {
+      if (currentUser.role === "admin") {
+        renderAdminFiles();
+      } else {
+        renderUserFiles();
+      }
+    }
+
+    async function renderAdminFiles() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>Dosya Yönetimi</h2>
+            <p>ZIP dosyalarını kullanıcılara gönderin ve indirme durumlarını izleyin.</p>
+          </div>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUploadFile()">
+            <i class="fa-solid fa-upload"></i> Dosya Yükle
+          </button>
+        </div>
+        <div class="users-table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Dosya</th>
+                <th>Açıklama</th>
+                <th>Hedef</th>
+                <th>Son İndirme</th>
+                <th>İndirilme</th>
+                <th style="text-align:right;">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="adminFilesBody">
+              <tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      await loadAdminFilesTable();
+    }
+
+    async function loadAdminFilesTable() {
+      const tbody = document.getElementById("adminFilesBody");
+      try {
+        const res = await fetch("/api/files", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        if (list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">Henüz dosya yüklenmemiş.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = list.map((f) => {
+          const expires = new Date(f.expiresAt).toLocaleDateString("tr-TR");
+          const uploaded = new Date(f.uploadedAt).toLocaleDateString("tr-TR");
+          const expired = f.expiresAt <= Date.now();
+          const targetLabel = f.targetType === "all" ? "Tüm Kullanıcılar"
+            : f.targetType === "group" ? (f.targetGroup === "lise" ? "Lise Grubu" : "Ortaokul Grubu")
+            : (f.targetUsers || []).join(", ");
+          return `
+            <tr>
+              <td style="font-weight:600;">
+                <i class="fa-solid fa-file-zipper" style="color:#f59e0b;margin-right:8px;"></i>
+                ${escHtml(f.originalName)}
+                <div style="font-size:11px;color:#888;font-weight:400;">${(f.size / 1024).toFixed(1)} KB - ${uploaded}</div>
+              </td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(f.description)}</td>
+              <td style="font-size:12px;">${escHtml(targetLabel)}</td>
+              <td style="font-size:12px;color:${expired ? "#ef4444" : "#22c55e"};">${expired ? "Süresi Doldu" : expires}</td>
+              <td style="font-size:12px;"><a href="#" onclick="renderFileStatus('${f.id}');return false;" style="color:#6366f1;text-decoration:none;">${f.downloadCount} kez</a></td>
+              <td class="cell-actions">
+                <button class="btn-icon" onclick="downloadFile('${f.id}')" title="İndir"><i class="fa-solid fa-download"></i></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteFile('${f.id}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626;padding:40px;">Dosyalar yüklenirken hata oluştu.</td></tr>';
+      }
+    }
+
+    async function renderUploadFile() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>Dosya Yükle</h2>
+            <p>Sadece ZIP dosyası kabul edilir, maksimum 10 MB.</p>
+          </div>
+          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminFiles()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+        </div>
+        <div style="max-width:600px;margin:20px auto;background:#f8f9fc;padding:28px;border-radius:12px;">
+          <div id="uploadMsg" class="message"></div>
+          <form id="uploadForm" style="display:flex;flex-direction:column;gap:16px;" onsubmit="return false;">
+            <div>
+              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Dosya (ZIP)</label>
+              <input type="file" id="fileInput" accept=".zip" style="width:100%;padding:10px;border:1px solid #e2e4e9;border-radius:8px;font-size:14px;background:#fff;" />
+            </div>
+            <div>
+              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Açıklama</label>
+              <textarea id="fileDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;font-family:inherit;min-height:60px;resize:vertical;" placeholder="Dosya açıklaması..."></textarea>
+            </div>
+            <div>
+              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Hedef Kitle</label>
+              <select id="fileTargetType" onchange="toggleFileTarget()" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;">
+                <option value="all">Tüm Kullanıcılar</option>
+                <option value="group">Grup</option>
+                <option value="users">Belirli Kullanıcılar</option>
+              </select>
+            </div>
+            <div id="fileTargetGroupWrap" style="display:none;">
+              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Grup</label>
+              <select id="fileTargetGroup" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;">
+                <option value="lise">Lise Grubu</option>
+                <option value="ortaokul">Ortaokul Grubu</option>
+              </select>
+            </div>
+            <div id="fileTargetUsersWrap" style="display:none;">
+              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Kullanıcı E-postaları (virgülle ayırın)</label>
+              <input type="text" id="fileTargetUsers" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" placeholder="ornek1@mail.com, ornek2@mail.com" />
+            </div>
+            <div>
+              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">İndirme Süresi</label>
+              <input type="datetime-local" id="fileExpiresAt" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;align-self:flex-start;" onclick="uploadFile()">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Yükle
+            </button>
+          </form>
+        </div>
+      `;
+    }
+
+    function toggleFileTarget() {
+      const val = document.getElementById("fileTargetType").value;
+      document.getElementById("fileTargetGroupWrap").style.display = val === "group" ? "block" : "none";
+      document.getElementById("fileTargetUsersWrap").style.display = val === "users" ? "block" : "none";
+    }
+
+    async function uploadFile() {
+      const msg = document.getElementById("uploadMsg");
+      const fileInput = document.getElementById("fileInput");
+      const desc = document.getElementById("fileDesc");
+      const expiresAt = document.getElementById("fileExpiresAt");
+      const targetType = document.getElementById("fileTargetType");
+      const targetGroup = document.getElementById("fileTargetGroup");
+      const targetUsers = document.getElementById("fileTargetUsers");
+
+      if (!fileInput.files || !fileInput.files[0]) {
+        msg.className = "message error show"; msg.textContent = "Lütfen bir ZIP dosyası seçin."; return;
+      }
+      if (!desc.value.trim()) {
+        msg.className = "message error show"; msg.textContent = "Açıklama zorunlu."; return;
+      }
+      if (!expiresAt.value) {
+        msg.className = "message error show"; msg.textContent = "İndirme süresi zorunlu."; return;
+      }
+      if (fileInput.files[0].size > 10 * 1024 * 1024) {
+        msg.className = "message error show"; msg.textContent = "Dosya boyutu 10 MB'i geçemez."; return;
+      }
+      if (!fileInput.files[0].name.toLowerCase().endsWith(".zip")) {
+        msg.className = "message error show"; msg.textContent = "Sadece ZIP dosyası kabul edilir."; return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("description", desc.value.trim());
+      formData.append("expiresAt", new Date(expiresAt.value).getTime());
+      formData.append("targetType", targetType.value);
+      if (targetType.value === "group") formData.append("targetGroup", targetGroup.value);
+      if (targetType.value === "users") formData.append("targetUsers", targetUsers.value);
+
+      try {
+        const res = await fetch("/api/files", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msg.className = "message success show";
+          msg.textContent = "Dosya başarıyla yüklendi!";
+          setTimeout(() => renderAdminFiles(), 1000);
+        } else {
+          msg.className = "message error show";
+          msg.textContent = data.error || "Yükleme başarısız.";
+        }
+      } catch (e) {
+        msg.className = "message error show";
+        msg.textContent = "Bir hata oluştu: " + e.message;
+      }
+    }
+
+    async function deleteFile(id) {
+      if (!confirm("Bu dosyayı silmek istediğinize emin misiniz?")) return;
+      try {
+        const res = await fetch("/api/files/" + id, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (res.ok) {
+          loadAdminFilesTable();
+        }
+      } catch (_) {}
+    }
+
+    async function downloadFile(id) {
+      try {
+        const res = await fetch("/api/files/" + id + "/download", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || "Dosya indirilemedi.");
+          return;
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        const match = cd.match(/filename="?(.+?)"?$/);
+        const filename = match ? match[1] : "dosya.zip";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert("İndirme sırasında hata: " + e.message);
+      }
+    }
+
+    async function renderFileStatus(id) {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `<div class="content-header"><h2>Dosya İndirme Durumu</h2><p>Yükleniyor...</p></div><div id="fileStatusContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>`;
+      try {
+        const res = await fetch("/api/files/" + id + "/status", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const fileRes = await fetch("/api/files", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        const files = await fileRes.json();
+        const file = files.find((f) => f.id === id);
+        const fileName = file ? file.originalName : "Dosya";
+
+        let html = '<div class="content-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h2><i class="fa-solid fa-file-zipper"></i> ' + escHtml(fileName) + '</h2><p>Indirme durumu: ' + data.downloaded + '/' + data.total + ' kullanici indirdi.</p></div>'
+          + '<div style="display:flex;gap:10px;">'
+          + '<button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderAdminFiles()"><i class="fa-solid fa-arrow-left"></i> Geri</button>'
+          + '<button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:13px;" onclick="exportFileCSV(\'' + id + '\')"><i class="fa-solid fa-download"></i> CSV</button>'
+          + '</div></div>'
+          + '<div class="users-table-wrapper"><table class="users-table"><thead><tr><th>Kullanici</th><th>Rol</th><th>Okul</th><th>Durum</th><th>Indirme Tarihi</th></tr></thead><tbody>';
+        if (data.users.length === 0) {
+          html += '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Hedef kullanici bulunmuyor.</td></tr>';
+        } else {
+          data.users.forEach((u) => {
+            const statusClass = u.downloaded ? "ann-tag all" : "ann-tag lise";
+            const statusText = u.downloaded ? "Indirdi" : "Indirmedi";
+            const date = u.downloadedAt ? new Date(u.downloadedAt).toLocaleDateString("tr-TR") + " " + new Date(u.downloadedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "-";
+            html += '<tr style="' + (u.downloaded ? '' : 'opacity:0.6;') + '">'
+              + '<td class="cell-email">' + escHtml(u.email) + '</td>'
+              + '<td style="font-size:12px;">' + (u.role === "lise" ? "Lise" : "Ortaokul") + '</td>'
+              + '<td style="font-size:12px;">' + escHtml(u.schoolName) + '</td>'
+              + '<td><span class="' + statusClass + '" style="font-size:11px;">' + statusText + '</span></td>'
+              + '<td class="cell-date">' + date + '</td>'
+              + '</tr>';
+          });
+        }
+        html += '</tbody></table></div>';
+        area.innerHTML = html;
+      } catch {
+        document.getElementById("fileStatusContent").innerHTML = '<div style="color:#dc2626;padding:40px;">Durum yuklenirken hata olustu.</div>';
+      }
+    }
+
+    async function exportFileCSV(id) {
+      try {
+        const res = await fetch("/api/files/" + id + "/export", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) { alert("CSV export basarisiz."); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dosya-indirme-durumu.csv";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert("Hata: " + e.message);
+      }
+    }
+
+    async function renderUserFiles() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <h2>Dosyalar</h2>
+          <p>Size gönderilen dosyaları indirin.</p>
+        </div>
+        <div id="userFilesContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+      `;
+      try {
+        const res = await fetch("/api/files", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const container = document.getElementById("userFilesContent");
+        if (list.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:60px 0;color:#ccc;"><i class="fa-solid fa-folder-open" style="font-size:48px;margin-bottom:16px;display:block;"></i><div style="font-size:14px;">Size gönderilmiş dosya bulunmuyor.</div></div>';
+          return;
+        }
+        container.innerHTML = '<div class="announcements-list">' + list.map((f) => {
+          const expires = new Date(f.expiresAt).toLocaleDateString("tr-TR");
+          const uploaded = new Date(f.uploadedAt).toLocaleDateString("tr-TR");
+          const expired = f.expiresAt <= Date.now();
+          return `
+            <div class="announcement-item" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <i class="fa-solid fa-file-zipper" style="font-size:24px;color:#f59e0b;"></i>
+                  <div>
+                    <h4 style="margin:0;">${escHtml(f.originalName)}</h4>
+                    <div style="font-size:12px;color:#888;">${(f.size / 1024).toFixed(1)} KB</div>
+                  </div>
+                </div>
+                ${f.description ? `<p style="margin-top:8px;font-size:13px;color:#555;">${escHtml(f.description)}</p>` : ''}
+                <div style="display:flex;gap:16px;margin-top:4px;font-size:12px;color:#888;">
+                  <span><i class="fa-regular fa-calendar"></i> Yüklenme: ${uploaded}</span>
+                  <span style="color:${expired ? "#ef4444" : "#22c55e"};"><i class="fa-regular fa-clock"></i> Son: ${expires}</span>
+                  ${f.downloaded ? '<span style="color:#6366f1;"><i class="fa-solid fa-check-circle"></i> İndirildi</span>' : ''}
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:13px;flex-shrink:0;" onclick="downloadFile('${f.id}')" ${expired ? 'disabled' : ''}>
+                <i class="fa-solid fa-download"></i> İndir
+              </button>
+            </div>
+          `;
+        }).join('') + '</div>';
+      } catch {
+        document.getElementById("userFilesContent").innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Dosyalar yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    // ---- Reports ----
+
+    async function renderReports() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <h2><i class="fa-solid fa-chart-bar"></i> Raporlar</h2>
+          <p>Sistem istatistikleri ve kullanım analizleri.</p>
+        </div>
+        <div id="reportsContent" style="text-align:center;padding:60px;color:#aaa;">Yükleniyor...</div>
+      `;
+      try {
+        const res = await fetch("/api/reports", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        renderReportsContent(data);
+      } catch {
+        document.getElementById("reportsContent").innerHTML = '<div style="color:#dc2626;padding:40px;">Raporlar yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    function renderReportsContent(d) {
+      const container = document.getElementById("reportsContent");
+      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;">';
+      const cards = [
+        { label: "Toplam Kullanici", value: d.users.total, icon: "fa-users", color: "#6366f1" },
+        { label: "Anket", value: d.totals.surveys, icon: "fa-square-poll-vertical", color: "#22c55e" },
+        { label: "Yanit", value: d.totals.responses, icon: "fa-reply", color: "#f59e0b" },
+        { label: "Dosya Yukleme", value: d.totals.files, icon: "fa-upload", color: "#a855f7" },
+        { label: "Dosya Indirme", value: d.totals.fileDownloads, icon: "fa-download", color: "#06b6d4" },
+        { label: "Duyuru", value: d.totals.announcements, icon: "fa-bullhorn", color: "#ef4444" },
+        { label: "Ort. Okunma", value: "%" + d.totals.avgReadRate, icon: "fa-eye", color: "#ec4899" },
+      ];
+      cards.forEach((c) => {
+        html += '<div style="background:#fff;border:1px solid #e8eaee;border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;">'
+          + '<div style="width:44px;height:44px;border-radius:10px;background:' + c.color + '15;display:flex;align-items:center;justify-content:center;font-size:18px;color:' + c.color + ';flex-shrink:0;"><i class="fa-solid ' + c.icon + '"></i></div>'
+          + '<div><div style="font-size:20px;font-weight:700;color:#1a1a2e;">' + c.value + '</div><div style="font-size:11px;color:#888;margin-top:2px;">' + c.label + '</div></div>'
+          + '</div>';
+      });
+      html += '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
+
+      // 1) User distribution pie
+      html += '<div class="report-card"><h4><i class="fa-solid fa-users"></i> Kullanici Dagilimi</h4><div style="display:flex;align-items:center;gap:20px;">'
+        + '<canvas id="userPieChart" width="160" height="160"></canvas><div style="flex:1;">';
+      const roles = [
+        { label: "Admin", count: d.users.admin, color: "#6366f1" },
+        { label: "Lise", count: d.users.lise, color: "#22c55e" },
+        { label: "Ortaokul", count: d.users.ortaokul, color: "#f59e0b" },
+      ];
+      roles.forEach((r) => {
+        const pct = d.users.total > 0 ? Math.round((r.count / d.users.total) * 100) : 0;
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+          + '<span style="width:12px;height:12px;border-radius:3px;background:' + r.color + ';flex-shrink:0;"></span>'
+          + '<span style="flex:1;font-size:13px;color:#555;">' + r.label + '</span>'
+          + '<span style="font-weight:600;font-size:13px;color:#1a1a2e;">' + r.count + '</span>'
+          + '<span style="font-size:12px;color:#888;">(' + pct + '%)</span></div>';
+      });
+      html += '</div></div></div>';
+
+      // 2) Daily activity (last 7 days)
+      html += '<div class="report-card"><h4><i class="fa-solid fa-chart-line"></i> Son 7 Gun Aktivite</h4><div style="margin-top:8px;">';
+      const maxDaily = Math.max(...d.dailyActivity.map((a) => a.count), 1);
+      d.dailyActivity.forEach((a) => {
+        const pct = (a.count / maxDaily) * 100;
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+          + '<span style="width:80px;font-size:11px;color:#888;text-align:right;flex-shrink:0;">' + a.day + '</span>'
+          + '<div style="flex:1;height:22px;background:#f0f0f5;border-radius:6px;overflow:hidden;">'
+          + '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:6px;"></div></div>'
+          + '<span style="width:30px;font-size:12px;font-weight:600;color:#1a1a2e;">' + a.count + '</span></div>';
+      });
+      html += '</div></div></div>';
+
+      // Second row
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
+
+      // 3) Monthly activity
+      html += '<div class="report-card"><h4><i class="fa-solid fa-calendar"></i> Aylik Aktivite</h4><div style="display:flex;align-items:flex-end;gap:6px;margin-top:12px;height:120px;padding:0 4px;">';
+      const maxMonth = Math.max(...d.monthlyActivity.map((a) => a.count), 1);
+      d.monthlyActivity.forEach((a) => {
+        const pct = (a.count / maxMonth) * 100;
+        html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;">'
+          + '<span style="font-size:10px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">' + a.count + '</span>'
+          + '<div style="width:100%;height:' + pct + '%;background:linear-gradient(180deg,#6366f1,#818cf8);border-radius:4px 4px 0 0;min-height:4px;"></div>'
+          + '<span style="font-size:9px;color:#888;margin-top:4px;transform:rotate(-45deg);white-space:nowrap;">' + a.month.slice(-2) + '</span></div>';
+      });
+      html += '</div></div>';
+
+      // 4) Top actions
+      html += '<div class="report-card"><h4><i class="fa-solid fa-bolt"></i> En Cok Yapilan Islemler</h4><div style="margin-top:8px;">';
+      const topActions = d.activityByAction.slice(0, 8);
+      const maxAction = Math.max(...topActions.map((a) => a.count), 1);
+      const actionColors = ["#6366f1","#22c55e","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#14b8a6"];
+      topActions.forEach((a, i) => {
+        const pct = (a.count / maxAction) * 100;
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">'
+          + '<span style="flex:1;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + a.label + '</span>'
+          + '<div style="width:120px;height:18px;background:#f0f0f5;border-radius:4px;overflow:hidden;flex-shrink:0;">'
+          + '<div style="height:100%;width:' + pct + '%;background:' + actionColors[i % actionColors.length] + ';border-radius:4px;"></div></div>'
+          + '<span style="width:40px;font-size:12px;font-weight:600;color:#1a1a2e;text-align:right;">' + a.count + '</span></div>';
+      });
+      html += '</div></div></div>';
+
+      // Third row
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
+
+      // 5) Survey response rates
+      html += '<div class="report-card"><h4><i class="fa-solid fa-square-poll-vertical"></i> Anket Yanitlama Oranlari</h4><div style="margin-top:8px;">';
+      if (d.surveyStats.length === 0) {
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz anket bulunmuyor.</div>';
+      } else {
+        d.surveyStats.forEach((s) => {
+          const barColor = s.rate >= 70 ? "#22c55e" : s.rate >= 40 ? "#f59e0b" : "#ef4444";
+          html += '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">'
+            + '<span style="color:#555;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(s.title) + '</span>'
+            + '<span style="color:#888;">' + s.respCount + '/' + s.targetCount + '</span></div>'
+            + '<div style="height:20px;background:#f0f0f5;border-radius:6px;overflow:hidden;">'
+            + '<div style="height:100%;width:' + s.rate + '%;background:' + barColor + ';border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600;min-width:fit-content;padding:0 6px;">' + s.rate + '%</div></div></div>';
+        });
+      }
+      html += '</div></div>';
+
+      // 6) Top files
+      html += '<div class="report-card"><h4><i class="fa-solid fa-file-zipper"></i> En Cok Indirilen Dosyalar</h4><div style="margin-top:8px;">';
+      if (d.topFiles.length === 0) {
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz dosya yuklenmemis.</div>';
+      } else {
+        const maxDl = Math.max(...d.topFiles.map((f) => f.downloads), 1);
+        d.topFiles.forEach((f) => {
+          const pct = (f.downloads / maxDl) * 100;
+          html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+            + '<i class="fa-solid fa-file-zipper" style="color:#f59e0b;font-size:14px;flex-shrink:0;"></i>'
+            + '<span style="flex:1;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(f.name) + '</span>'
+            + '<div style="width:80px;height:18px;background:#f0f0f5;border-radius:4px;overflow:hidden;flex-shrink:0;">'
+            + '<div style="height:100%;width:' + pct + '%;background:#f59e0b;border-radius:4px;"></div></div>'
+            + '<span style="width:30px;font-size:12px;font-weight:600;color:#1a1a2e;text-align:right;">' + f.downloads + '</span></div>';
+        });
+      }
+      html += '</div></div></div>';
+      html += '<div style="text-align:center;padding:12px;color:#bbb;font-size:11px;">Raporlar gercek zamanli verilerle olusturulmustur.</div>';
+
+      container.innerHTML = html;
+      drawUserPieChart(d.users);
+    }
+
+    function drawUserPieChart(users) {
+      const canvas = document.getElementById("userPieChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2, r = 68;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const segments = [
+        { count: users.admin, color: "#6366f1", label: "Admin" },
+        { count: users.lise, color: "#22c55e", label: "Lise" },
+        { count: users.ortaokul, color: "#f59e0b", label: "Ortaokul" },
+      ];
+      const total = users.total || 1;
+      let startAngle = -Math.PI / 2;
+
+      segments.forEach((s) => {
+        if (s.count === 0) return;
+        const sliceAngle = (s.count / total) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        startAngle += sliceAngle;
+      });
+
+      // Center hole (donut)
+      ctx.beginPath();
+      ctx.arc(cx, cy, 36, 0, 2 * Math.PI);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+
+      // Center text
+      ctx.fillStyle = "#1a1a2e";
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(total, cx, cy - 6);
+      ctx.font = "10px sans-serif";
+      ctx.fillStyle = "#888";
+      ctx.fillText("Kullanıcı", cx, cy + 14);
+    }
+
+    async function renderAdminSurveys() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>Anket Yönetimi</h2>
+            <p>Anketleri oluşturun, düzenleyin ve sonuçları görüntüleyin.</p>
+          </div>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderSurveyBuilder(null)">
+            <i class="fa-solid fa-plus"></i> Anket Oluştur
+          </button>
+        </div>
+        <div class="users-table-wrapper">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Başlık</th>
+                <th>Hedef</th>
+                <th>Durum</th>
+                <th>Yanıt</th>
+                <th style="text-align:right;">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="surveyTableBody">
+              <tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      await loadSurveyTable();
+    }
+
+    async function loadSurveyTable() {
+      const tbody = document.getElementById("surveyTableBody");
+      try {
+        const res = await fetch("/api/surveys", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
+        tbody.innerHTML = list.map((s) => {
+          const expired = s.expiresAt < Date.now();
+          const targetStr = s.targetType === "group" ? (s.targetGroup === "lise" ? "Lise" : "Ortaokul") : targetLabels[s.targetType] || "Tümü";
+          return `
+            <tr style="${expired ? 'opacity:0.4;' : ''}">
+              <td class="cell-email">${escHtml(s.title)}</td>
+              <td><span class="ann-tag ${s.targetType}" style="font-size:11px;">${targetStr}</span></td>
+              <td class="cell-date">${expired ? 'Süresi doldu' : new Date(s.expiresAt).toLocaleDateString("tr-TR")}</td>
+              <td class="cell-date">
+                <a href="#" onclick="renderSurveyStatus('${s.id}');return false;" style="color:#6366f1;text-decoration:none;">${s.responseCount || 0} yanıt</a>
+              </td>
+              <td class="cell-actions">
+                <button class="btn-icon" onclick="renderSurveyBuilder('${s.id}')" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteSurvey('${s.id}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#dc2626;padding:40px;">Anketler yüklenirken hata oluştu.</td></tr>';
+      }
+    }
+
+    async function deleteSurvey(id) {
+      if (!confirm("Bu anketi ve tüm yanıtlarını silmek istediğinize emin misiniz?")) return;
+      try {
+        await fetch("/api/surveys/" + id, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        await loadSurveyTable();
+      } catch {}
+    }
+
+    function renderSurveyBuilder(id) {
+      editSurveyId = id;
+      const area = document.getElementById("contentArea");
+      if (id) {
+        fetch("/api/surveys/" + id, {
+          headers: { Authorization: "Bearer " + token },
+        })
+          .then((r) => r.json())
+          .then((s) => renderBuilderForm(s))
+          .catch(() => renderBuilderForm(null));
+      } else {
+        renderBuilderForm(null);
+      }
+    }
+
+    function renderBuilderForm(survey) {
+      const area = document.getElementById("contentArea");
+      const s = survey || {};
+      const isEdit = !!survey;
+
+      const targetLabels = { all: "Tüm Kullanıcılar", group: "Grup", users: "Belirli Kullanıcılar" };
+
+      let questionsHtml = "";
+      const questions = s.questions || [];
+      if (questions.length === 0) {
+        questionsHtml = '<p style="color:#aaa;text-align:center;padding:20px;">Henüz soru eklenmemiş.</p>';
+      } else {
+        questionsHtml = questions.map((q, i) => renderQuestionBlock(q, i)).join("");
+      }
+
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>${isEdit ? "Anket Düzenle" : "Yeni Anket"}</h2>
+            <p>Soruları ekleyin ve hedef kitleyi belirleyin.</p>
+          </div>
+          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminSurveys()">
+            <i class="fa-solid fa-arrow-left"></i> Geri
+          </button>
+        </div>
+        <div class="announcement-item" style="margin-bottom:24px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group" style="grid-column:1/-1;margin-bottom:0;">
+              <label for="svTitle">Anket Başlığı</label>
+              <input type="text" id="svTitle" class="form-control" style="padding-left:16px;" placeholder="Örn: Okul Memnuniyet Anketi" value="${escHtml(s.title || '')}" />
+            </div>
+            <div class="form-group" style="grid-column:1/-1;margin-bottom:0;">
+              <label for="svDesc">Açıklama</label>
+              <textarea id="svDesc" class="form-control" style="padding-left:16px;min-height:60px;resize:vertical;" placeholder="Anket açıklaması">${escHtml(s.description || '')}</textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="svTargetType">Hedef Kitle</label>
+              <select id="svTargetType" class="form-control" style="padding-left:16px;" onchange="toggleTargetFields()">
+                <option value="all" ${s.targetType === "all" ? "selected" : ""}>Tüm Kullanıcılar</option>
+                <option value="group" ${s.targetType === "group" ? "selected" : ""}>Grup</option>
+                <option value="users" ${s.targetType === "users" ? "selected" : ""}>Belirli Kullanıcılar</option>
+              </select>
+            </div>
+            <div class="form-group" id="svTargetGroupWrap" style="margin-bottom:0;${s.targetType !== "group" ? 'display:none;' : ''}">
+              <label for="svTargetGroup">Grup Seçin</label>
+              <select id="svTargetGroup" class="form-control" style="padding-left:16px;">
+                <option value="lise" ${s.targetGroup === "lise" ? "selected" : ""}>Lise</option>
+                <option value="ortaokul" ${s.targetGroup === "ortaokul" ? "selected" : ""}>Ortaokul</option>
+              </select>
+            </div>
+            <div class="form-group" id="svTargetUsersWrap" style="margin-bottom:0;grid-column:1/-1;${s.targetType !== "users" ? 'display:none;' : ''}">
+              <label for="svTargetUsers">Kullanıcı E-postaları (virgülle ayırın)</label>
+              <input type="text" id="svTargetUsers" class="form-control" style="padding-left:16px;" placeholder="ornek1@meb.k12.tr, ornek2@meb.k12.tr" value="${escHtml((s.targetUsers || []).join(', '))}" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="svExpiry">Geçerlilik (gün)</label>
+              <input type="number" id="svExpiry" class="form-control" style="padding-left:16px;" value="${isEdit ? Math.ceil((s.expiresAt - Date.now()) / (24*60*60*1000)) : 7}" min="1" max="365" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="svAllowEdit">Düzenleme İzni</label>
+              <select id="svAllowEdit" class="form-control" style="padding-left:16px;">
+                <option value="true" ${s.allowEdit !== false ? "selected" : ""}>Kullanıcı düzeltebilir</option>
+                <option value="false" ${s.allowEdit === false ? "selected" : ""}>Kullanıcı düzeltemez</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-list"></i> Sorular</div>
+        <div id="questionsContainer" class="announcements-list">${questionsHtml}</div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;margin-bottom:28px;">
+          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="addQuestion()">
+            <i class="fa-solid fa-plus"></i> Soru Ekle
+          </button>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="saveSurvey()">
+            <i class="fa-solid fa-floppy-disk"></i> ${isEdit ? "Güncelle" : "Kaydet"}
+          </button>
+        </div>
+        <div id="surveyMessage" class="message"></div>
+      `;
+    }
+
+    function renderQuestionBlock(q, idx) {
+      const typeLabels = { open_ended: "Açık Uçlu", multiple_choice: "Çoktan Seçmeli", likert: "Dereceli" };
+      const validationLabels = { none: "Yok", number: "Sadece Sayı (örn: 12, 3, 45)", only_text: "Sadece Metin (örn: açıklama, not)", uppercase: "Büyük Harf (örn: İSTANBUL)", email: "E-posta (örn: ornek@mail.com)", phone: "Telefon (örn: 05321234567)" };
+      const options = q.options || [];
+      const optionsHtml = options.length > 0
+        ? options.map((o, oi) => `
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+              <input type="text" class="q-option" value="${escHtml(o)}" style="flex:1;padding:8px 12px;font-size:13px;border:1px solid #e2e4e9;border-radius:6px;outline:none;font-family:inherit;" />
+              <button class="btn-icon btn-icon-danger" onclick="removeOption(this)" style="width:28px;height:28px;font-size:12px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          `).join("")
+        : '<p class="options-placeholder" style="font-size:12px;color:#aaa;margin-top:4px;">Çoktan seçmeli veya dereceli sorularda seçenek ekleyin.</p>';
+
+      return `
+        <div class="announcement-item question-block">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;">
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                <span style="font-size:11px;font-weight:600;color:#888;">Soru ${idx + 1}</span>
+                <select class="q-type" onchange="changeQuestionType(this)" style="padding:4px 8px;font-size:12px;border:1px solid #e2e4e9;border-radius:4px;outline:none;font-family:inherit;">
+                  <option value="open_ended" ${q.type === "open_ended" ? "selected" : ""}>Açık Uçlu</option>
+                  <option value="multiple_choice" ${q.type === "multiple_choice" ? "selected" : ""}>Çoktan Seçmeli</option>
+                  <option value="likert" ${q.type === "likert" ? "selected" : ""}>Dereceli (1-5)</option>
+                </select>
+                <label style="font-size:12px;color:#888;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                  <input type="checkbox" class="q-required" ${q.required !== false ? "checked" : ""} /> Zorunlu
+                </label>
+                <select class="q-validation" onchange="changeValidationType(this)" style="padding:4px 8px;font-size:12px;border:1px solid #e2e4e9;border-radius:4px;outline:none;font-family:inherit;display:${q.type === "open_ended" ? "" : "none"};">
+                  ${Object.entries(validationLabels).map(([v, l]) => `<option value="${v}" ${(q.validation || "none") === v ? "selected" : ""}>${l}</option>`).join("")}
+                </select>
+              </div>
+              <input type="text" class="q-title" value="${escHtml(q.title)}" placeholder="Soruyu yazın..." style="width:100%;padding:8px 12px;font-size:14px;border:1px solid #e2e4e9;border-radius:6px;outline:none;font-family:inherit;font-weight:500;" />
+              <div class="q-options-container" style="${q.type === "open_ended" ? 'display:none;' : 'margin-top:8px;'}">
+                ${optionsHtml}
+                <button class="btn btn-ghost add-option-btn" style="width:auto;padding:6px 12px;font-size:11px;margin-top:6px;" onclick="addOption(this)"><i class="fa-solid fa-plus"></i> Seçenek Ekle</button>
+              </div>
+            </div>
+            <button class="btn-icon btn-icon-danger" onclick="removeQuestion(this)" style="flex-shrink:0;" title="Soruyu Sil"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+        </div>
+      `;
+    }
+
+    function addQuestion() {
+      const container = document.getElementById("questionsContainer");
+      const qCount = container.querySelectorAll(".question-block").length;
+      container.insertAdjacentHTML("beforeend", renderQuestionBlock({ type: "open_ended", title: "", required: true, options: [] }, qCount));
+    }
+
+    function removeQuestion(btn) {
+      const block = btn.closest(".question-block");
+      const container = document.getElementById("questionsContainer");
+      if (container.querySelectorAll(".question-block").length <= 1) return;
+      block.remove();
+      reindexQuestions();
+    }
+
+    function reindexQuestions() {
+      const container = document.getElementById("questionsContainer");
+      container.querySelectorAll(".question-block").forEach((block, i) => {
+        const label = block.querySelector("span:first-child");
+        if (label) label.textContent = "Soru " + (i + 1);
+      });
+    }
+
+    function changeQuestionType(sel) {
+      const block = sel.closest(".question-block");
+      const container = block.querySelector(".q-options-container");
+      const validation = block.querySelector(".q-validation");
+      if (!container) return;
+      const isOpen = sel.value === "open_ended";
+      container.style.display = isOpen ? "none" : "block";
+      if (validation) validation.style.display = isOpen ? "" : "none";
+      if (sel.value === "likert") {
+        const placeholder = container.querySelector(".options-placeholder, p");
+        const addBtn = container.querySelector(".add-option-btn");
+        if (placeholder) placeholder.remove();
+        const existingMsg = container.querySelector(".likert-info");
+        if (!existingMsg) {
+          const info = document.createElement("p");
+          info.className = "likert-info";
+          info.style.cssText = "font-size:12px;color:#aaa;margin-top:4px;";
+          info.textContent = "Dereceli sorular 1 (En Düşük) - 5 (En Yüksek) arası otomatik puanlanır.";
+          container.insertBefore(info, addBtn);
+        }
+        container.querySelectorAll(".q-option").forEach((el) => el.closest("div")?.remove());
+      }
+    }
+
+    function changeValidationType(sel) {
+    }
+
+    function addOption(btn) {
+      const container = btn.closest(".q-options-container");
+      if (!container) return;
+      const placeholder = container.querySelector(".options-placeholder");
+      if (placeholder) placeholder.remove();
+      const optionCount = container.querySelectorAll(".q-option").length;
+      const div = document.createElement("div");
+      div.style.cssText = "display:flex;gap:8px;align-items:center;margin-top:6px;";
+      div.innerHTML = `
+        <input type="text" class="q-option" value="" style="flex:1;padding:8px 12px;font-size:13px;border:1px solid #e2e4e9;border-radius:6px;outline:none;font-family:inherit;" placeholder="Seçenek ${optionCount + 1}" />
+        <button class="btn-icon btn-icon-danger" onclick="removeOption(this)" style="width:28px;height:28px;font-size:12px;"><i class="fa-solid fa-xmark"></i></button>
+      `;
+      container.insertBefore(div, btn);
+      div.querySelector(".q-option").focus();
+    }
+
+    function removeOption(btn) {
+      btn.closest("div").remove();
+    }
+
+    function collectSurveyData() {
+      const questions = [];
+      document.querySelectorAll(".question-block").forEach((block) => {
+        const title = block.querySelector(".q-title")?.value?.trim();
+        if (!title) return;
+        const type = block.querySelector(".q-type")?.value || "open_ended";
+        const required = block.querySelector(".q-required")?.checked !== false;
+        const validation = block.querySelector(".q-validation")?.value || "none";
+        const options = [];
+        if (type !== "open_ended") {
+          block.querySelectorAll(".q-option").forEach((o) => {
+            const v = o.value.trim();
+            if (v) options.push(v);
+          });
+        }
+        questions.push({ title, type, required, validation, options });
+      });
+      return {
+        title: document.getElementById("svTitle")?.value?.trim(),
+        description: document.getElementById("svDesc")?.value?.trim(),
+        targetType: document.getElementById("svTargetType")?.value || "all",
+        targetGroup: document.getElementById("svTargetGroup")?.value || null,
+        targetUsers: (document.getElementById("svTargetUsers")?.value || "").split(",").map((s) => s.trim()).filter(Boolean),
+        expiresInDays: parseInt(document.getElementById("svExpiry")?.value) || 7,
+        allowEdit: document.getElementById("svAllowEdit")?.value === "true",
+        questions,
+      };
+    }
+
+    function toggleTargetFields() {
+      const type = document.getElementById("svTargetType")?.value;
+      document.getElementById("svTargetGroupWrap").style.display = type === "group" ? "" : "none";
+      document.getElementById("svTargetUsersWrap").style.display = type === "users" ? "" : "none";
+    }
+
+    async function saveSurvey() {
+      const data = collectSurveyData();
+      const msg = document.getElementById("surveyMessage");
+      if (!data.title) {
+        msg.textContent = "Anket başlığı gerekli.";
+        msg.className = "message error show";
+        return;
+      }
+      if (data.questions.length === 0) {
+        msg.textContent = "En az bir soru ekleyin.";
+        msg.className = "message error show";
+        return;
+      }
+      for (const q of data.questions) {
+        if (!q.title) {
+          msg.textContent = "Tüm sorulara başlık girin.";
+          msg.className = "message error show";
+          return;
+        }
+        if (q.type !== "open_ended" && q.options.length < 1) {
+          msg.textContent = "Çoktan seçmeli ve dereceli sorulara en az bir seçenek ekleyin.";
+          msg.className = "message error show";
+          return;
+        }
+      }
+
+      try {
+        const method = editSurveyId ? "PUT" : "POST";
+        const url = editSurveyId ? "/api/surveys/" + editSurveyId : "/api/surveys";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          renderAdminSurveys();
+        } else {
+          const err = await res.json();
+          msg.textContent = err.error || "Hata oluştu.";
+          msg.className = "message error show";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+      }
+    }
+
+    // ---- Survey Status (Admin) ----
+
+    async function renderSurveyStatus(id) {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>';
+      try {
+        const [statusRes, responsesRes] = await Promise.all([
+          fetch("/api/surveys/" + id + "/status", { headers: { Authorization: "Bearer " + token } }),
+          fetch("/api/surveys/" + id + "/responses", { headers: { Authorization: "Bearer " + token } }),
+        ]);
+        if (!statusRes.ok || !responsesRes.ok) throw new Error();
+        const status = await statusRes.json();
+        const respData = await responsesRes.json();
+        const survey = respData.survey;
+        const responses = respData.responses;
+
+        area.innerHTML = `
+          <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h2>${escHtml(survey.title)}</h2>
+              <p>${status.submitted} / ${status.total} yanıtlandı — Bitiş: ${new Date(survey.expiresAt).toLocaleDateString("tr-TR")}</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminSurveys()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+              <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportSurveyCSV('${id}')"><i class="fa-solid fa-download"></i> CSV İndir</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+            <div class="stat-card" style="border-color:#22c55e;">
+              <div class="stat-icon" style="background:#22c55e15;color:#22c55e;"><i class="fa-solid fa-check"></i></div>
+              <div class="stat-info">
+                <div class="stat-value" style="color:#22c55e;">${status.submitted}</div>
+                <div class="stat-label">Yanıtlayan</div>
+              </div>
+            </div>
+            <div class="stat-card" style="border-color:#ef4444;">
+              <div class="stat-icon" style="background:#ef444415;color:#ef4444;"><i class="fa-solid fa-clock"></i></div>
+              <div class="stat-info">
+                <div class="stat-value" style="color:#ef4444;">${status.total - status.submitted}</div>
+                <div class="stat-label">Yanıtlamayan</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title"><i class="fa-solid fa-users"></i> Kullanıcı Durumu</div>
+          <div class="users-table-wrapper">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Okul</th>
+                  <th>E-posta</th>
+                  <th>Grup</th>
+                  <th>Durum</th>
+                  <th>Tarih</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${status.users.length === 0
+                  ? '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Henüz kullanıcı yok.</td></tr>'
+                  : status.users.map((u) => `
+                    <tr>
+                      <td class="cell-email">${escHtml(u.schoolName || "-")}</td>
+                      <td class="cell-email">${escHtml(u.email)}</td>
+                      <td><span class="ann-tag ${u.role}" style="font-size:10px;">${roleLabels[u.role] || u.role}</span></td>
+                      <td>${u.submitted
+                        ? '<span style="color:#22c55e;font-size:13px;"><i class="fa-solid fa-check-circle"></i> Yanıtladı</span>'
+                        : '<span style="color:#ef4444;font-size:13px;"><i class="fa-solid fa-circle"></i> Yanıtlamadı</span>'}</td>
+                      <td class="cell-date">${u.submittedAt ? new Date(u.submittedAt).toLocaleDateString("tr-TR") : "-"}</td>
+                    </tr>
+                  `).join("")}
+              </tbody>
+            </table>
+          </div>
+
+          ${responses.length > 0 ? `
+            <div class="section-title"><i class="fa-solid fa-list"></i> Yanıtlar</div>
+            ${responses.map((r) => `
+              <div class="announcement-item" style="margin-bottom:10px;">
+                <div style="font-size:12px;color:#888;margin-bottom:8px;">
+                  <strong>${escHtml(r.schoolName || r.userEmail)}</strong> — ${new Date(r.submittedAt).toLocaleDateString("tr-TR")} ${new Date(r.submittedAt).toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"})}
+                </div>
+                ${(survey.questions || []).map((q) => {
+                  const ans = r.answers?.find((a) => a.questionId === q.id);
+                  return `
+                    <div style="margin-bottom:6px;font-size:13px;">
+                      <span style="color:#555;font-weight:500;">${escHtml(q.title)}</span><br/>
+                      <span style="color:#1a1a2e;">${escHtml(ans ? ans.value : "-")}</span>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `).join("")}
+          ` : ""}
+        `;
+      } catch {
+        area.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Durum yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    async function exportSurveyCSV(id) {
+      try {
+        const res = await fetch("/api/surveys/" + id + "/responses/export", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "anket-" + id + "-" + Date.now() + ".csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert("CSV indirilirken hata oluştu.");
+      }
+    }
+
+    // ---- User Surveys ----
+
+    async function renderUserSurveys() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <h2>Anketler</h2>
+          <p>Size gönderilen anketleri görüntüleyin ve yanıtlayın.</p>
+        </div>
+        <div id="userSurveysContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+      `;
+      try {
+        const res = await fetch("/api/surveys", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const container = document.getElementById("userSurveysContent");
+        if (list.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:60px 0;color:#ccc;"><i class="fa-solid fa-file-circle-question" style="font-size:48px;margin-bottom:16px;display:block;"></i><div style="font-size:14px;">Size atanmış aktif anket bulunmuyor.</div></div>';
+          return;
+        }
+        container.innerHTML = '<div class="announcements-list">' + list.map((s) => {
+          const expires = new Date(s.expiresAt).toLocaleDateString("tr-TR");
+          return `
+            <div class="announcement-item" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+              <div style="flex:1;">
+                <h4>${escHtml(s.title)}</h4>
+                ${s.description ? `<p>${escHtml(s.description)}</p>` : ''}
+                <div class="ann-date" style="margin-top:4px;">Son: ${expires}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+                ${s.submitted
+                  ? `<span style="font-size:12px;color:#22c55e;"><i class="fa-solid fa-check-circle"></i> Yanıtlandı</span>
+                     ${s.canEdit ? `<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;" onclick="renderSurveyFill('${s.id}')"><i class="fa-solid fa-pen"></i> Düzelt</button>` : ''}`
+                  : `<button class="btn btn-primary" style="width:auto;padding:8px 14px;font-size:12px;" onclick="renderSurveyFill('${s.id}')"><i class="fa-solid fa-pen-to-square"></i> Yanıtla</button>`}
+              </div>
+            </div>
+          `;
+        }).join('') + '</div>';
+      } catch {
+        document.getElementById("userSurveysContent").innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Anketler yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    async function renderSurveyFill(id) {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>';
+      try {
+        const [surveyRes, myRespRes] = await Promise.all([
+          fetch("/api/surveys/" + id, { headers: { Authorization: "Bearer " + token } }),
+          fetch("/api/surveys/" + id + "/response", { headers: { Authorization: "Bearer " + token } }).catch(() => ({ ok: false })),
+        ]);
+        if (!surveyRes.ok) throw new Error();
+        const survey = await surveyRes.json();
+        let existingAnswers = [];
+        if (myRespRes.ok) {
+          const myResp = await myRespRes.json();
+          existingAnswers = myResp.answers || [];
+        }
+
+        const questionsHtml = (survey.questions || []).map((q, i) => {
+          const existing = existingAnswers.find((a) => a.questionId === q.id);
+          const val = existing ? existing.value : "";
+          const valLabels = { none: "", number: "Sadece sayı girin (örn: 12, 3, 45)", only_text: "Sadece metin girin (örn: açıklama, not)", uppercase: "Büyük harfle yazın (örn: İSTANBUL)", email: "Geçerli bir e-posta girin (örn: ornek@mail.com)", phone: "Geçerli bir telefon girin (örn: 05321234567)" };
+          return `
+            <div class="announcement-item" style="margin-bottom:12px;" data-qid="${q.id}" data-validation="${q.validation || "none"}" data-required="${q.required ? "true" : "false"}">
+              <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                <span style="font-weight:600;font-size:14px;color:#1a1a2e;">${i + 1}.</span>
+                <div style="flex:1;">
+                  <span style="font-weight:600;font-size:14px;color:#1a1a2e;">${escHtml(q.title)}</span>
+                  ${q.required ? '<span style="color:#ef4444;font-size:12px;">*</span>' : ''}
+                  ${q.validation && q.validation !== "none" ? `<span style="color:#888;font-size:11px;margin-left:8px;">(${valLabels[q.validation] || q.validation})</span>` : ''}
+                </div>
+              </div>
+              ${q.type === "open_ended"
+                ? `<textarea class="survey-answer" data-qid="${q.id}" data-validation="${q.validation || "none"}" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;font-family:inherit;min-height:80px;resize:vertical;" placeholder="${valLabels[q.validation] || "Cevabınız..."}">${escHtml(val)}</textarea>`
+                : q.type === "multiple_choice"
+                  ? `<div style="display:flex;flex-direction:column;gap:6px;">${(q.options || []).map((o, oi) => `
+                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid #e2e4e9;${val === o ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
+                      <input type="radio" name="q_${q.id}" class="survey-answer-radio" data-qid="${q.id}" value="${escHtml(o)}" ${val === o ? "checked" : ""} style="accent-color:#6366f1;" />
+                      ${escHtml(o)}
+                    </label>
+                  `).join("")}</div>`
+                  : `<div style="display:flex;gap:8px;flex-wrap:wrap;">${[1,2,3,4,5].map((n) => `
+                    <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 16px;border-radius:8px;border:1px solid #e2e4e9;cursor:pointer;${val == n ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
+                      <input type="radio" name="q_${q.id}" class="survey-answer-radio" data-qid="${q.id}" value="${n}" ${val == n ? "checked" : ""} style="accent-color:#6366f1;" />
+                      <span style="font-size:12px;color:#888;">${n === 1 ? 'En Düşük' : n === 5 ? 'En Yüksek' : n}</span>
+                    </label>
+                  `).join("")}</div>`}
+            </div>
+          `;
+        }).join("");
+
+        area.innerHTML = `
+          <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h2>${escHtml(survey.title)}</h2>
+              ${survey.description ? `<p>${escHtml(survey.description)}</p>` : ''}
+              <p style="font-size:12px;color:#888;margin-top:4px;">Son: ${new Date(survey.expiresAt).toLocaleDateString("tr-TR")}</p>
+            </div>
+            <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUserSurveys()">
+              <i class="fa-solid fa-arrow-left"></i> Geri
+            </button>
+          </div>
+          <form id="surveyForm" onsubmit="return false;">
+            ${questionsHtml}
+            <div style="display:flex;gap:12px;margin-top:20px;">
+              <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;" onclick="submitSurvey('${id}')">
+                <i class="fa-solid fa-paper-plane"></i> Gönder
+              </button>
+            </div>
+            <div id="surveyFillMessage" class="message"></div>
+          </form>
+        `;
+      } catch {
+        area.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Anket yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    function validateAnswer(value, validation) {
+      if (!value) return "";
+      if (validation === "number" && !/^\d+$/.test(value)) return "Sadece sayı girin.";
+      if (validation === "only_text" && /\d/.test(value)) return "Sadece metin girin, sayı kullanmayın.";
+      if (validation === "uppercase" && value !== value.toUpperCase()) return "Büyük harfle yazın.";
+      if (validation === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Geçerli bir e-posta girin.";
+      if (validation === "phone" && !/^[\d\s\-()+]{7,15}$/.test(value)) return "Geçerli bir telefon numarası girin.";
+      return "";
+    }
+
+    async function submitSurvey(id) {
+      const msg = document.getElementById("surveyFillMessage");
+      if (!msg) { console.error("surveyFillMessage bulunamadi"); return; }
+      const answers = [];
+
+      try {
+        document.querySelectorAll("[data-qid]").forEach((block) => {
+          const qid = block.dataset.qid;
+          const textarea = block.querySelector(".survey-answer");
+          if (textarea) {
+            answers.push({ questionId: qid, value: textarea.value.trim() });
+            return;
+          }
+          const radio = block.querySelector(".survey-answer-radio:checked");
+          if (radio) {
+            answers.push({ questionId: qid, value: radio.value });
+          }
+        });
+
+        const requiredMissing = Array.from(document.querySelectorAll("[data-qid]")).some((block) => {
+          const qid = block.dataset.qid;
+          if (block.dataset.required !== "true") return false;
+          const ans = answers.find((a) => a.questionId === qid);
+          return !ans || !ans.value;
+        });
+
+        if (requiredMissing) {
+          msg.textContent = "Zorunlu soruları yanıtlayın.";
+          msg.className = "message error show";
+          return;
+        }
+
+        for (const block of document.querySelectorAll("[data-qid]")) {
+          const qid = block.dataset.qid;
+          const validation = block.dataset.validation;
+          if (!validation || validation === "none") continue;
+          const ans = answers.find((a) => a.questionId === qid);
+          if (ans && ans.value) {
+            const err = validateAnswer(ans.value, validation);
+            if (err) {
+              msg.textContent = err;
+              msg.className = "message error show";
+              return;
+            }
+          }
+        }
+
+        const res = await fetch("/api/surveys/" + id + "/respond", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ answers }),
+        });
+        if (res.ok) {
+          msg.textContent = "Yanıtlarınız kaydedildi!";
+          msg.className = "message success show";
+          setTimeout(() => renderUserSurveys(), 1000);
+        } else {
+          const err = await res.json();
+          msg.textContent = err.error || "Hata oluştu.";
+          msg.className = "message error show";
+        }
+      } catch (e) {
+        console.error("submitSurvey hatasi:", e);
+        msg.textContent = "Bir hata oluştu: " + (e.message || "bilinmeyen hata");
+        msg.className = "message error show";
       }
     }
 

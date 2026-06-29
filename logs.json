@@ -119,6 +119,198 @@
       "user": "cemburbut@gmail.com",
       "detail": "Okul bilgileri guncellendi.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "876eddfd-a017-4655-817c-04135fd30c08",
+      "timestamp": 1782715314602,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "006cb05f-eb59-4fe6-92f5-912b8abf1a1f",
+      "timestamp": 1782715361881,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "680ce4a4-4a25-4b7b-82b2-4e32bb5c593c",
+      "timestamp": 1782716998128,
+      "action": "survey_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"abes\" ankete olusturuldu.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "81e46a7b-9833-46a4-af81-ec82007f872e",
+      "timestamp": 1782717012074,
+      "action": "otp_request",
+      "user": "cemburbut@gmail.com",
+      "detail": "cemburbut@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "a3b4b30d-c905-4327-8fe3-a11cc367ac7d",
+      "timestamp": 1782717024925,
+      "action": "login",
+      "user": "cemburbut@gmail.com",
+      "detail": "cemburbut@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5f408ff7-56d9-4b83-950d-a03fc4a6acf0",
+      "timestamp": 1782718397213,
+      "action": "otp_request",
+      "user": "cemburbut@gmail.com",
+      "detail": "cemburbut@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f98fb457-9a76-4312-9799-d97ee43cf0d1",
+      "timestamp": 1782718409503,
+      "action": "login",
+      "user": "cemburbut@gmail.com",
+      "detail": "cemburbut@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "60d8dcbd-cd2c-4015-a663-bf3d08617d87",
+      "timestamp": 1782718417618,
+      "action": "survey_respond",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"abes\" ankete yanitlandi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "c2a0d809-389c-4237-8001-8903673d1dad",
+      "timestamp": 1782718526386,
+      "action": "survey_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"bbbbbb\" ankete olusturuldu.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5595decb-d520-4dd0-8487-c781de7c011f",
+      "timestamp": 1782718540980,
+      "action": "survey_respond",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"abes\" ankete yanitlandi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "3fd42db7-4e7a-4d02-b489-bf2ad9103d15",
+      "timestamp": 1782718712797,
+      "action": "survey_respond",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"bbbbbb\" ankete yanitlandi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "42935299-c17c-47a2-a728-424386c4314d",
+      "timestamp": 1782718730368,
+      "action": "survey_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"dsddd\" ankete olusturuldu.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d81e3ada-baa1-412c-b48f-4f2575ad0132",
+      "timestamp": 1782718745210,
+      "action": "survey_respond",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"dsddd\" ankete yanitlandi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "22077f37-5ea5-4f08-9f6c-f489433828e4",
+      "timestamp": 1782719595190,
+      "action": "survey_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"abes\" ankete silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "90e2641b-adae-4c27-a308-0ce1397e292a",
+      "timestamp": 1782720169851,
+      "action": "file_upload",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"sistem-log-1782719637020.zip\" dosyasi yuklendi (882 bayt).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "466677eb-0d79-4201-b13e-a272f9a0e2ab",
+      "timestamp": 1782720206210,
+      "action": "file_download",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"sistem-log-1782719637020.zip\" dosyasi indirildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "0fdaeebb-47b5-4066-a657-b3856a06165f",
+      "timestamp": 1782720470896,
+      "action": "file_upload",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"sistem-log-1782719637020.zip\" dosyasi yuklendi (882 bayt).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "bd5d2419-9f8d-41cc-a107-74e724c12096",
+      "timestamp": 1782720495679,
+      "action": "file_download",
+      "user": "cemburbut@gmail.com",
+      "detail": "\"sistem-log-1782719637020.zip\" dosyasi indirildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "7aa77ae0-2f7d-42c7-9783-4e1321c6fe46",
+      "timestamp": 1782720637625,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "fe6d7f54-e9d2-437f-a4c1-1ee45f870288",
+      "timestamp": 1782720653477,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "42430bdb-db9d-4144-9f30-1773a5090a7d",
+      "timestamp": 1782721684024,
+      "action": "survey_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete olusturuldu.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "2fa4e0a5-31d3-4ad9-8c98-a5cfbd89aed7",
+      "timestamp": 1782721704935,
+      "action": "user_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "cemturker@protonmail.com (ortaokul) kullanici eklendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e005a584-00b5-4f4e-bb1a-7432bb0f5baa",
+      "timestamp": 1782721727288,
+      "action": "otp_request",
+      "user": "cemturker@protonmail.com",
+      "detail": "cemturker@protonmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "69df08fa-2a9f-4beb-ab3d-39c82f74b35a",
+      "timestamp": 1782721761808,
+      "action": "login",
+      "user": "cemturker@protonmail.com",
+      "detail": "cemturker@protonmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
     }
   ]
 }

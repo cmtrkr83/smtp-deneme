@@ -1,0 +1,42 @@
+{
+  "files": [
+    {
+      "id": "4836d0f9-2ead-45fa-8bc2-02bbf61607cd",
+      "storedName": "96a84969-1301-4be0-85bf-c3e6cae8d721.zip",
+      "originalName": "sistem-log-1782719637020.zip",
+      "size": 882,
+      "description": "6. SINIFLAR MATEMATİK SINAVI",
+      "uploadedBy": "forumcemturker@gmail.com",
+      "uploadedAt": 1782720169849,
+      "expiresAt": 1791963000000,
+      "targetType": "group",
+      "targetGroup": "lise",
+      "targetUsers": null,
+      "downloads": [
+        {
+          "userId": "cemburbut@gmail.com",
+          "downloadedAt": 1782720206208
+        }
+      ]
+    },
+    {
+      "id": "1afddeec-f416-47c6-b2d7-275f454bae26",
+      "storedName": "2dc8cbe3-c851-4cbc-8ef3-19afd45e672a.zip",
+      "originalName": "sistem-log-1782719637020.zip",
+      "size": 882,
+      "description": "asdadas",
+      "uploadedBy": "forumcemturker@gmail.com",
+      "uploadedAt": 1782720470893,
+      "expiresAt": 1796110200000,
+      "targetType": "all",
+      "targetGroup": null,
+      "targetUsers": null,
+      "downloads": [
+        {
+          "userId": "cemburbut@gmail.com",
+          "downloadedAt": 1782720495677
+        }
+      ]
+    }
+  ]
+}
