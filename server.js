@@ -422,11 +422,13 @@ app.put("/api/profile", (req, res) => {
     return res.status(403).json({ error: "Kullanici bulunamadi." });
   }
 
-  const { schoolName, schoolCode, principalName, principalPhone, schoolPhone, studentCount, teacherCount, classCount } = req.body;
-  const autoCode = decoded.email.match(/^(\d+)@meb\.(gov\.tr|k12\.tr)$/);
+  const { schoolName, schoolCode, city, district, principalName, principalPhone, schoolPhone, studentCount, teacherCount, classCount } = req.body;
+  const autoCode = decoded.email.split("@")[0];
   users[decoded.email].profile = {
     schoolName: schoolName || "",
-    schoolCode: schoolCode || (autoCode ? autoCode[1] : ""),
+    schoolCode: schoolCode || autoCode,
+    city: city || "",
+    district: district || "",
     principalName: principalName || "",
     principalPhone: principalPhone || "",
     schoolPhone: schoolPhone || "",
@@ -559,6 +561,32 @@ app.delete("/api/users/clear", (req, res) => {
   saveUsers(users);
   appendLog(makeLog("user_delete", decoded.email, `${deleted} kullanici silindi (admin haric).`, req));
   res.json({ deleted });
+});
+
+app.delete("/api/users/by-role/:role", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const { role } = req.params;
+  if (role === "admin") {
+    return res.status(400).json({ error: "Admin grubu silinemez." });
+  }
+  const validRoles = ["lise", "ortaokul", "diger"];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ error: "Geçersiz rol: " + role });
+  }
+
+  const users = loadUsers();
+  let deleted = 0;
+  for (const [email, u] of Object.entries(users)) {
+    if (u.role === role) {
+      delete users[email];
+      deleted++;
+    }
+  }
+  saveUsers(users);
+  appendLog(makeLog("user_delete", decoded.email, deleted + " kullanici silindi (" + role + ").", req));
+  res.json({ deleted, role });
 });
 
 app.delete("/api/users/:email", (req, res) => {

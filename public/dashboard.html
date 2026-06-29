@@ -667,26 +667,75 @@
       div.style.display = "flex";
       div.onclick = function(e) { if (e.target === this) closeClearModal(); };
       div.innerHTML = `
-        <div class="modal" style="max-width:400px;">
+        <div class="modal" style="max-width:440px;">
           <div class="modal-header">
-            <h3><i class="fa-solid fa-trash-can"></i> Tüm Kullanıcıları Sil</h3>
+            <h3><i class="fa-solid fa-trash-can"></i> Kullanıcıları Sil</h3>
             <button class="modal-close" onclick="closeClearModal()"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="modal-body">
-            <p style="font-size:14px;color:#888;margin-bottom:12px;">
+            <p style="font-size:14px;color:#888;margin-bottom:16px;">
               <strong style="color:#ef4444;">Yönetici (admin) grubu hariç</strong> tüm kullanıcılar sistemden silinecektir. Bu işlem geri alınamaz.
             </p>
+            <div style="margin-bottom:16px;padding-top:12px;border-top:1px solid #e5e7eb;">
+              <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Gruba Göre Sil</label>
+              <div style="display:flex;gap:8px;">
+                <select id="clearRoleSelect" class="form-control" style="flex:1;padding-left:16px;">
+                  <option value="">Seçiniz...</option>
+                  <option value="lise">Lise</option>
+                  <option value="ortaokul">Ortaokul</option>
+                  <option value="diger">Diğer</option>
+                </select>
+                <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;white-space:nowrap;" onclick="clearUsersByRole(this)">
+                  <i class="fa-solid fa-trash-can"></i> Sil
+                </button>
+              </div>
+              <div id="clearByRoleMessage" class="message" style="margin-top:8px;"></div>
+            </div>
             <div id="clearMessage" class="message"></div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-ghost" style="width:auto;" onclick="closeClearModal()">İptal</button>
-            <button class="btn btn-danger" style="width:auto;" onclick="clearUsers()">
+            <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;" onclick="clearUsers()">
               <i class="fa-solid fa-trash-can"></i> Tümünü Sil
             </button>
           </div>
         </div>
       `;
       area.appendChild(div);
+    }
+
+    async function clearUsersByRole(btn) {
+      const select = document.getElementById("clearRoleSelect");
+      const msg = document.getElementById("clearByRoleMessage");
+      const role = select.value;
+      if (!role) {
+        msg.className = "message error show";
+        msg.textContent = "Lütfen bir grup seçin.";
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Siliniyor...';
+      try {
+        const res = await fetch("/api/users/by-role/" + role, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msg.className = "message success show";
+          msg.textContent = data.deleted + " kullanıcı silindi.";
+          select.value = "";
+          loadUsersTable();
+        } else {
+          msg.className = "message error show";
+          msg.textContent = data.error || "Hata oluştu.";
+        }
+      } catch {
+        msg.className = "message error show";
+        msg.textContent = "Bağlantı hatası.";
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Sil';
     }
 
     function closeClearModal() {
@@ -1247,10 +1296,16 @@
                 <input type="text" id="spSchoolName" class="form-control" style="padding-left:16px;" placeholder="Örn: Atatürk Lisesi" value="${escHtml(p.schoolName || '')}" />
               </div>
               <div class="form-group">
-                <label for="spSchoolCode">Okul Kodu</label>
-                ${/^\d+@meb\.(gov\.tr|k12\.tr)$/.test(currentUser.email)
-                  ? `<input type="text" id="spSchoolCode" class="form-control" style="padding-left:16px;" value="${escHtml(p.schoolCode || currentUser.email.split('@')[0])}" disabled title="E-posta adresinizden otomatik alınır" />`
-                  : `<input type="text" id="spSchoolCode" class="form-control" style="padding-left:16px;" placeholder="123456" value="${escHtml(p.schoolCode || '')}" />`}
+                <label for="spSchoolCode">Kurum Kodu</label>
+                <input type="text" id="spSchoolCode" class="form-control" style="padding-left:16px;opacity:0.6;" value="${escHtml(currentUser.email.split('@')[0])}" disabled title="E-posta adresinizden otomatik alınır" />
+              </div>
+              <div class="form-group">
+                <label for="spCity">İl</label>
+                <input type="text" id="spCity" class="form-control" style="padding-left:16px;" placeholder="Örn: Ankara" value="${escHtml(p.city || '')}" />
+              </div>
+              <div class="form-group">
+                <label for="spDistrict">İlçe</label>
+                <input type="text" id="spDistrict" class="form-control" style="padding-left:16px;" placeholder="Örn: Çankaya" value="${escHtml(p.district || '')}" />
               </div>
               <div class="form-group">
                 <label for="spSchoolPhone">Okul Telefonu</label>
@@ -1295,10 +1350,11 @@
     }
 
     async function saveSchoolProfile() {
-      const schoolCodeEl = document.getElementById("spSchoolCode");
       const data = {
         schoolName: document.getElementById("spSchoolName").value.trim(),
-        schoolCode: schoolCodeEl ? schoolCodeEl.value.trim() : "",
+        schoolCode: currentUser.email.split("@")[0],
+        city: document.getElementById("spCity").value.trim(),
+        district: document.getElementById("spDistrict").value.trim(),
         principalName: document.getElementById("spPrincipalName").value.trim(),
         principalPhone: document.getElementById("spPrincipalPhone").value.trim(),
         schoolPhone: document.getElementById("spSchoolPhone").value.trim(),

@@ -367,6 +367,14 @@
       "user": "forumcemturker@gmail.com",
       "detail": "903 yeni, 0 guncellendi.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "05e7f7b0-f450-45f2-899c-34bbf5a30b06",
+      "timestamp": 1782734542125,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "450 kullanici silindi (diger).",
+      "ip": "127.0.0.1"
     }
   ]
 }
