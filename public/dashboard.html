@@ -359,6 +359,7 @@
             </tbody>
           </table>
         </div>
+        <div id="usersPagination" style="display:flex;align-items:center;justify-content:center;gap:4px;padding:16px 0;"></div>
         <div class="modal-overlay" id="userModal" style="display:none" onclick="if(event.target===this)closeUserModal()">
           <div class="modal">
             <div class="modal-header">
@@ -418,39 +419,72 @@
     let editEmail = null;
     let deleteTarget = null;
 
-    async function loadUsersTable() {
+    let usersPage = 1;
+    let usersAll = [];
+    const USERS_PAGE_SIZE = 25;
+
+    function goToUsersPage(page) {
+      const total = Math.max(1, Math.ceil(usersAll.length / USERS_PAGE_SIZE));
+      usersPage = Math.max(1, Math.min(total, page));
+      renderUsersTable();
+    }
+
+    function renderUsersPagination() {
+      const totalPages = Math.max(1, Math.ceil(usersAll.length / USERS_PAGE_SIZE));
+      const nav = document.getElementById("usersPagination");
+      if (!nav) return;
+      if (totalPages <= 1) { nav.innerHTML = ""; return; }
+      let html = "";
+      html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(1)" ' + (usersPage === 1 ? 'disabled' : '') + '><i class="fa-solid fa-angles-left"></i></button>';
+      html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage - 1) + ')" ' + (usersPage === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
+      html += '<span style="font-size:13px;color:rgba(255,255,255,0.5);padding:0 8px;">' + usersPage + " / " + totalPages + "</span>";
+      html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage + 1) + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
+      html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + totalPages + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-angles-right"></i></button>';
+      html += '<span style="font-size:12px;color:rgba(255,255,255,0.3);margin-left:12px;">' + usersAll.length + " kullanıcı</span>";
+      nav.innerHTML = html;
+    }
+
+    function renderUsersTable() {
       const tbody = document.getElementById("usersTableBody");
+      const start = (usersPage - 1) * USERS_PAGE_SIZE;
+      const pageUsers = usersAll.slice(start, start + USERS_PAGE_SIZE);
+      tbody.innerHTML = pageUsers.map((u) => {
+        const created = u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-";
+        const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") + " " + new Date(u.lastLogin).toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"}) : "-";
+        const canDelete = u.email !== currentUser.email;
+        return `
+          <tr>
+            <td class="cell-email">${u.email}</td>
+            <td>
+                <select class="role-select" data-email="${u.email}" onchange="updateRole('${u.email}',this.value)">
+                  <option value="admin" ${u.role==="admin"?"selected":""}>Sistem Yöneticisi</option>
+                  <option value="lise" ${u.role==="lise"?"selected":""}>Lise Grubu</option>
+                  <option value="ortaokul" ${u.role==="ortaokul"?"selected":""}>Ortaokul Grubu</option>
+                  <option value="diger" ${u.role==="diger"?"selected":""}>Diğer</option>
+                </select>
+            </td>
+            <td class="cell-date">${created}</td>
+            <td class="cell-date">${lastLogin}</td>
+            <td class="cell-actions">
+              ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:rgba(255,255,255,0.15);font-size:12px;">(siz)</span>'}
+            </td>
+          </tr>
+        `;
+      }).join("");
+      renderUsersPagination();
+    }
+
+    async function loadUsersTable() {
       try {
         const res = await fetch("/api/users", {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
-        const users = await res.json();
-        tbody.innerHTML = users.map((u) => {
-          const roleLabel = roleLabels[u.role] || u.role;
-          const created = u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-";
-          const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") + " " + new Date(u.lastLogin).toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"}) : "-";
-          const canDelete = u.email !== currentUser.email;
-          return `
-            <tr>
-              <td class="cell-email">${u.email}</td>
-              <td>
-                  <select class="role-select" data-email="${u.email}" onchange="updateRole('${u.email}',this.value)">
-                    <option value="admin" ${u.role==="admin"?"selected":""}>Sistem Yöneticisi</option>
-                    <option value="lise" ${u.role==="lise"?"selected":""}>Lise Grubu</option>
-                    <option value="ortaokul" ${u.role==="ortaokul"?"selected":""}>Ortaokul Grubu</option>
-                    <option value="diger" ${u.role==="diger"?"selected":""}>Diğer</option>
-                  </select>
-              </td>
-              <td class="cell-date">${created}</td>
-              <td class="cell-date">${lastLogin}</td>
-              <td class="cell-actions">
-                ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:rgba(255,255,255,0.15);font-size:12px;">(siz)</span>'}
-              </td>
-            </tr>
-          `;
-        }).join("");
+        usersAll = await res.json();
+        usersPage = 1;
+        renderUsersTable();
       } catch {
+        const tbody = document.getElementById("usersTableBody");
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:40px;">Kullanıcılar yüklenirken hata oluştu.</td></tr>';
       }
     }
