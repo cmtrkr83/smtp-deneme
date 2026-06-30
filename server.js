@@ -11,6 +11,7 @@ const multer = require("multer");
 
 const app = express();
 
+app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "public")));

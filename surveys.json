@@ -1,83 +1,19 @@
 {
   "surveys": [
     {
-      "id": "07966566-0a7f-4085-a393-530d6699fa9f",
-      "title": "bbbbbb",
-      "description": "",
-      "createdBy": "forumcemturker@gmail.com",
-      "createdAt": 1782718526384,
-      "expiresAt": 1783323326384,
-      "allowEdit": true,
-      "targetType": "all",
-      "targetGroup": null,
-      "targetUsers": null,
-      "questions": [
-        {
-          "id": "43421e98-2691-4f64-a8d7-e7a85b436a36",
-          "type": "open_ended",
-          "title": "vngjmghjgjgjgjg",
-          "required": true,
-          "order": 0,
-          "options": [],
-          "validation": "number"
-        },
-        {
-          "id": "b995de96-0fdf-40e7-8279-078490f98d9a",
-          "type": "open_ended",
-          "title": "okul",
-          "required": true,
-          "order": 1,
-          "options": [],
-          "validation": "uppercase"
-        },
-        {
-          "id": "6b334c5a-591e-4295-a62b-28961f79b6fa",
-          "type": "open_ended",
-          "title": "tel",
-          "required": true,
-          "order": 2,
-          "options": [],
-          "validation": "phone"
-        }
-      ]
-    },
-    {
-      "id": "17684621-8b97-42af-950e-2af97caaf20b",
-      "title": "dsddd",
-      "description": "adsfafa",
-      "createdBy": "forumcemturker@gmail.com",
-      "createdAt": 1782718730367,
-      "expiresAt": 1783323530367,
-      "allowEdit": false,
-      "targetType": "all",
-      "targetGroup": null,
-      "targetUsers": null,
-      "questions": [
-        {
-          "id": "ec379107-5942-42b7-b2c4-d2e7c30a69a2",
-          "type": "open_ended",
-          "title": "sdadfada",
-          "required": true,
-          "order": 0,
-          "options": [],
-          "validation": "email"
-        }
-      ]
-    },
-    {
       "id": "77759ddb-0f52-4d5b-a115-6397167bf69a",
       "title": "LGS 2026 VERİ TOPLAMA",
       "description": "LGS 2026 VERİ TOPLAMA",
       "createdBy": "forumcemturker@gmail.com",
       "createdAt": 1782721684023,
-      "expiresAt": 1783585684023,
+      "expiresAt": 1783601597365,
       "allowEdit": true,
       "targetType": "group",
       "targetGroup": "ortaokul",
       "targetUsers": null,
       "questions": [
         {
-          "id": "cdbbca09-3817-4b6a-8642-a6c318f9fe21",
+          "id": "faa3baf5-fb14-47d4-8feb-7e089578899b",
           "type": "open_ended",
           "title": "Yüzdelik dilim 0 ila 5 arasında olan öğrenci sayınız? (5 dahil)",
           "required": true,
@@ -86,7 +22,7 @@
           "validation": "number"
         },
         {
-          "id": "11f99288-9476-4303-8575-f6e151fa8a08",
+          "id": "94a346c8-2648-41b6-8d59-5bb46784b671",
           "type": "open_ended",
           "title": "Yüzdelik dilim 5 ila 10 arasında olan öğrenci sayınız? (10 dahil)",
           "required": true,
@@ -95,7 +31,7 @@
           "validation": "number"
         },
         {
-          "id": "2a710a7a-4793-45e6-b318-2b8355dfb1f0",
+          "id": "21400ac0-e7f1-46a4-875c-04473f8033a0",
           "type": "open_ended",
           "title": "Yüzdelik dilim 10 ila 25 arasında olan öğrenci sayınız? (25 dahil)",
           "required": true,
@@ -104,7 +40,7 @@
           "validation": "number"
         },
         {
-          "id": "79706008-e7ff-4038-bc46-0d7a430ec8f7",
+          "id": "ba5c878e-5d56-4fab-8220-f5955364c1c1",
           "type": "open_ended",
           "title": "Yüzdelik dilim 25 ila 50 arasında olan öğrenci sayınız? (50 dahil)",
           "required": true,
@@ -113,7 +49,7 @@
           "validation": "number"
         },
         {
-          "id": "fa7bb0b2-6d0c-4ce8-83f0-e24acde308de",
+          "id": "689a079a-f388-4f15-8047-583a00b58556",
           "type": "open_ended",
           "title": "Yüzdelik dilim 50 ila 100 arasında olan öğrenci sayınız? (100 dahil)",
           "required": true,
@@ -122,7 +58,7 @@
           "validation": "number"
         },
         {
-          "id": "f184f62c-bd24-4596-95b4-b14660085089",
+          "id": "28e58b94-209e-4985-b5a6-a5008e6221ed",
           "type": "open_ended",
           "title": "Sınava giren öğrenci sayınız?",
           "required": true,
@@ -131,11 +67,20 @@
           "validation": "number"
         },
         {
-          "id": "6b990257-568c-4949-a3bd-3a41b14556a9",
+          "id": "443b5263-7147-40d5-970b-84efd4ae0ce3",
           "type": "open_ended",
           "title": "2025-2026 Eğitim öğretim yılındaki 8.sınıflar toplam öğrenci sayınız?",
           "required": true,
           "order": 6,
+          "options": [],
+          "validation": "number"
+        },
+        {
+          "id": "484cdc89-2881-48f0-bc83-462729623747",
+          "type": "open_ended",
+          "title": "Tam puan alan öğrenciniz varsa sayısı? (Yoksa 0 yazınız)",
+          "required": true,
+          "order": 7,
           "options": [],
           "validation": "number"
         }

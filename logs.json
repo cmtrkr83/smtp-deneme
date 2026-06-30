@@ -375,6 +375,62 @@
       "user": "forumcemturker@gmail.com",
       "detail": "450 kullanici silindi (diger).",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "3bbaf7cf-e155-4c46-88cf-f186b297a4bf",
+      "timestamp": 1782737597367,
+      "action": "survey_edit",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "7a8dffb2-293d-4618-8db4-c43af0ebdaeb",
+      "timestamp": 1782737603781,
+      "action": "survey_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"dsddd\" ankete silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "adeb7143-aa07-4dbd-97e5-ac09536a28f4",
+      "timestamp": 1782737608624,
+      "action": "survey_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"bbbbbb\" ankete silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "025257dd-12a7-45fd-a7a1-6c512e8a3cb4",
+      "timestamp": 1782799351995,
+      "action": "file_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"sistem-log-1782719637020.zip\" dosyasi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "0a6a7d81-2ffe-405e-85b0-364502ae5553",
+      "timestamp": 1782799634053,
+      "action": "user_role_change",
+      "user": "forumcemturker@gmail.com",
+      "detail": "trkrcm@gmail.com: admin -> ortaokul",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5d20a6ba-efc4-4bad-85fa-27e93b86288e",
+      "timestamp": 1782799659270,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "17231f41-0ac6-4392-9076-263f9f7d2634",
+      "timestamp": 1782799701050,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
     }
   ]
 }

@@ -3,8 +3,7 @@ services:
     build: .
     container_name: smtp-otp-login
     restart: unless-stopped
-    ports:
-      - "4004:4004"
+    network_mode: host
     environment:
       - PORT=4004
       - DATA_DIR=/app/data
