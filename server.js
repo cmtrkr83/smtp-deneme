@@ -111,7 +111,7 @@ function makeLog(action, user, detail, req) {
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 600,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Çok fazla istek. Lütfen bekleyin." },
@@ -276,7 +276,7 @@ function getDashboardData(role, users, email) {
     const unansweredSurveys = targetedSurveys.filter((s) => !userResp.some((r) => r.surveyId === s.id)).length;
 
     const allFileList = loadFiles();
-    const targetedFiles = allFileList.filter((f) => f.expiresAt > now && isFileTargeted(f, email, role));
+    const targetedFiles = allFileList.filter((f) => (f.startsAt || 0) <= now && f.expiresAt > now && isFileTargeted(f, email, role));
     const undownloadedFiles = targetedFiles.filter((f) => !(f.downloads || []).some((d) => d.userId === email)).length;
 
     if (roleData[role] && roleData[role].links) {
@@ -381,7 +381,8 @@ app.post("/api/verify-otp", otpVerifyLimiter, (req, res) => {
   }
   saveUsers(users);
 
-  const token = jwt.sign({ email: normEmail, role: users[normEmail].role }, JWT_SECRET, { expiresIn: "24h" });
+  const tokenExpiry = users[normEmail].role === "admin" ? "1h" : "30m";
+  const token = jwt.sign({ email: normEmail, role: users[normEmail].role }, JWT_SECRET, { expiresIn: tokenExpiry });
   appendLog(makeLog("login", normEmail, `${normEmail} basariyla giris yapti.`, req));
   res.json({ token, email: normEmail, role: users[normEmail].role });
 });
@@ -838,6 +839,10 @@ const actionLabels = {
   file_upload: "Dosya Yükleme",
   file_delete: "Dosya Silme",
   file_download: "Dosya İndirme",
+  request_create: "Talep Oluşturma",
+  request_edit: "Talep Düzenleme",
+  request_delete: "Talep Silme",
+  request_respond: "Talep Cevaplama",
 };
 
 app.get("/api/logs", (req, res) => {
@@ -850,7 +855,7 @@ app.get("/api/logs", (req, res) => {
   const start = (page - 1) * limit;
   const total = allLogs.length;
 
-  const list = allLogs.slice(start, start + limit).reverse().map((l) => ({
+  const list = allLogs.slice().reverse().slice(start, start + limit).map((l) => ({
     ...l,
     actionLabel: actionLabels[l.action] || l.action,
     date: new Date(l.timestamp).toLocaleDateString("tr-TR"),
@@ -1299,7 +1304,7 @@ app.get("/api/files", (req, res) => {
 
   const list = all.filter((f) => {
     if (user.role === "admin") return true;
-    return isFileTargeted(f, decoded.email, user.role) && f.expiresAt > now;
+    return isFileTargeted(f, decoded.email, user.role) && (f.startsAt || 0) <= now && f.expiresAt > now;
   }).map((f) => {
     const dl = f.downloads || [];
     const myDl = dl.find((d) => d.userId === decoded.email);
@@ -1310,6 +1315,7 @@ app.get("/api/files", (req, res) => {
       description: f.description,
       uploadedBy: f.uploadedBy,
       uploadedAt: f.uploadedAt,
+      startsAt: f.startsAt || f.uploadedAt,
       expiresAt: f.expiresAt,
       downloaded: !!myDl,
       downloadedAt: myDl ? myDl.downloadedAt : null,
@@ -1342,9 +1348,17 @@ app.post("/api/files", (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: "Aciklama zorunlu." });
     }
+    if (!req.body.startsAt) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Indirme baslangic tarihi zorunlu." });
+    }
     if (!req.body.expiresAt) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Indirme suresi zorunlu." });
+      return res.status(400).json({ error: "Indirme bitis tarihi zorunlu." });
+    }
+    if (Number(req.body.startsAt) >= Number(req.body.expiresAt)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Baslangic tarihi bitis tarihinden once olmalidir." });
     }
     if (!req.body.targetType) {
       fs.unlinkSync(req.file.path);
@@ -1359,6 +1373,7 @@ app.post("/api/files", (req, res) => {
       description: req.body.description.trim(),
       uploadedBy: decoded.email,
       uploadedAt: Date.now(),
+      startsAt: Number(req.body.startsAt),
       expiresAt: Number(req.body.expiresAt),
       targetType: req.body.targetType,
       targetGroup: req.body.targetGroup || null,
@@ -1392,7 +1407,11 @@ app.get("/api/files/:id/download", (req, res) => {
     if (!isFileTargeted(file, decoded.email, user.role)) {
       return res.status(403).json({ error: "Bu dosya size ait degil." });
     }
-    if (file.expiresAt <= Date.now()) {
+    const now = Date.now();
+    if (file.startsAt && file.startsAt > now) {
+      return res.status(400).json({ error: "Bu dosyanin indirme suresi henuz baslamadi." });
+    }
+    if (file.expiresAt <= now) {
       return res.status(400).json({ error: "Dosyanin indirme suresi dolmus." });
     }
   }
@@ -1631,6 +1650,276 @@ app.get("/api/reports", (req, res) => {
       avgReadRate: totalAnnTargets > 0 ? Math.round((totalAnnReads / totalAnnTargets) * 100) : 0,
     },
   });
+});
+
+// ---- Requests (Talep/İtiraz) ----
+
+const REQUESTS_FILE = path.join(DATA_DIR, "requests.json");
+const REQUESTS_UPLOADS_DIR = path.join(UPLOADS_DIR, "requests");
+
+if (!fs.existsSync(REQUESTS_UPLOADS_DIR)) {
+  fs.mkdirSync(REQUESTS_UPLOADS_DIR, { recursive: true });
+}
+
+const requestStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, REQUESTS_UPLOADS_DIR),
+  filename: (req, file, cb) => cb(null, crypto.randomUUID() + path.extname(file.originalname)),
+});
+const requestUpload = multer({
+  storage: requestStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+function loadRequests() {
+  try {
+    if (fs.existsSync(REQUESTS_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(REQUESTS_FILE, "utf-8"));
+      return Array.isArray(raw.requests) ? raw.requests : [];
+    }
+  } catch (_) {}
+  return [];
+}
+
+function saveRequests(list) {
+  fs.writeFileSync(REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
+}
+
+const requestTypes = ["talep", "oneri", "sikayet", "itiraz"];
+const requestTypeLabels = { talep: "Talep", oneri: "Öneri", sikayet: "Şikayet", itiraz: "İtiraz" };
+
+app.get("/api/requests", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+
+  const all = loadRequests();
+  const list = all
+    .filter((r) => user.role === "admin" || r.submittedBy === decoded.email)
+    .map((r) => ({
+      id: r.id,
+      type: r.type,
+      typeLabel: requestTypeLabels[r.type] || r.type,
+      title: r.title,
+      description: r.description,
+      officialDocNo: r.officialDocNo || null,
+      hasAttachment: !!r.storedName,
+      originalName: r.originalName || null,
+      submittedBy: r.submittedBy,
+      schoolName: r.schoolName || "",
+      submittedAt: r.submittedAt,
+      status: r.status,
+      responseCount: (r.responses || []).length,
+      lastResponseAt: (r.responses && r.responses.length > 0) ? r.responses[r.responses.length - 1].respondedAt : null,
+    }))
+    .reverse();
+
+  res.json(list);
+});
+
+app.get("/api/requests/:id", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+
+  const all = loadRequests();
+  const reqEntry = all.find((r) => r.id === req.params.id);
+  if (!reqEntry) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  if (user.role !== "admin" && reqEntry.submittedBy !== decoded.email) {
+    return res.status(403).json({ error: "Bu talebe erisim yetkiniz yok." });
+  }
+
+  res.json({
+    ...reqEntry,
+    hasAttachment: !!reqEntry.storedName,
+    typeLabel: requestTypeLabels[reqEntry.type] || reqEntry.type,
+  });
+});
+
+app.post("/api/requests", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (user.role === "admin") return res.status(403).json({ error: "Admin talep gonderemez." });
+
+  requestUpload.single("file")(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "Dosya boyutu 10 MB'i gecmemeli." });
+        return res.status(400).json({ error: "Dosya yuklenirken hata: " + err.message });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+
+    const { type, title, description, officialDocNo } = req.body;
+    if (!type || !requestTypes.includes(type)) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Gecerli bir talep turu secin: talep, oneri, sikayet, itiraz." });
+    }
+    if (!title || !title.trim()) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Baslik zorunlu." });
+    }
+    if (!description || !description.trim()) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Aciklama zorunlu." });
+    }
+
+    const list = loadRequests();
+    const entry = {
+      id: crypto.randomUUID(),
+      type,
+      title: title.trim(),
+      description: description.trim(),
+      officialDocNo: (officialDocNo || "").trim() || null,
+      submittedBy: decoded.email,
+      schoolName: (user.profile?.schoolName) || "",
+      submittedAt: Date.now(),
+      status: "open",
+      responses: [],
+      storedName: req.file ? req.file.filename : null,
+      originalName: req.file ? req.file.originalname : null,
+    };
+    list.push(entry);
+    saveRequests(list);
+    appendLog(makeLog("request_create", decoded.email, `"${entry.title}" talebi olusturuldu (${entry.type}).`, req));
+    res.status(201).json(entry);
+  });
+});
+
+app.put("/api/requests/:id", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (user.role === "admin") return res.status(403).json({ error: "Admin talep duzenleyemez." });
+
+  const all = loadRequests();
+  const idx = all.findIndex((r) => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (all[idx].submittedBy !== decoded.email) return res.status(403).json({ error: "Bu talebi duzenleyemezsiniz." });
+  if (all[idx].status !== "open") return res.status(400).json({ error: "Sadece acik talepler duzenlenebilir." });
+
+  const { title, description, officialDocNo } = req.body;
+  if (title) all[idx].title = title.trim();
+  if (description) all[idx].description = description.trim();
+  if (officialDocNo !== undefined) all[idx].officialDocNo = (officialDocNo || "").trim() || null;
+
+  saveRequests(all);
+  appendLog(makeLog("request_edit", decoded.email, `"${all[idx].title}" talebi duzenlendi.`, req));
+  res.json(all[idx]);
+});
+
+app.delete("/api/requests/:id", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+
+  const all = loadRequests();
+  const idx = all.findIndex((r) => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const entry = all[idx];
+  if (user.role !== "admin" && entry.submittedBy !== decoded.email) {
+    return res.status(403).json({ error: "Bu talebi silemezsiniz." });
+  }
+  if (user.role !== "admin" && entry.status !== "open") {
+    return res.status(400).json({ error: "Sadece acik talepler silinebilir." });
+  }
+
+  if (entry.storedName) {
+    const filePath = path.join(REQUESTS_UPLOADS_DIR, entry.storedName);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+
+  all.splice(idx, 1);
+  saveRequests(all);
+  appendLog(makeLog("request_delete", decoded.email, `"${entry.title}" talebi silindi.`, req));
+  res.json({ success: true });
+});
+
+app.post("/api/requests/:id/respond", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const all = loadRequests();
+  const idx = all.findIndex((r) => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const { message, close } = req.body;
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: "Cevap mesaji zorunlu." });
+  }
+
+  const response = {
+    id: crypto.randomUUID(),
+    adminEmail: decoded.email,
+    message: message.trim(),
+    respondedAt: Date.now(),
+  };
+
+  if (!all[idx].responses) all[idx].responses = [];
+  all[idx].responses.push(response);
+
+  if (close === true || close === "true") {
+    all[idx].status = "closed";
+  }
+
+  saveRequests(all);
+  appendLog(makeLog("request_respond", decoded.email, `"${all[idx].title}" talebine cevap verildi${all[idx].status === "closed" ? " ve kapatildi" : ""}.`, req));
+  res.json({ response, status: all[idx].status });
+});
+
+app.get("/api/requests/:id/attachment", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+
+  const all = loadRequests();
+  const entry = all.find((r) => r.id === req.params.id);
+  if (!entry) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  if (user.role !== "admin" && entry.submittedBy !== decoded.email) {
+    return res.status(403).json({ error: "Bu talebe erisim yetkiniz yok." });
+  }
+
+  if (!entry.storedName) return res.status(404).json({ error: "Bu talebe ek dosya bulunmuyor." });
+
+  const filePath = path.join(REQUESTS_UPLOADS_DIR, entry.storedName);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya diskte bulunamadi." });
+
+  const isPreview = req.query.preview === "1";
+  if (isPreview) {
+    const ext = path.extname(entry.originalName || "").toLowerCase();
+    const mimeMap = {
+      ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+      ".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp",
+      ".pdf": "application/pdf",
+    };
+    const contentType = mimeMap[ext] || "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${entry.originalName}"`);
+  } else {
+    res.setHeader("Content-Disposition", `attachment; filename="${entry.originalName}"`);
+  }
+  res.sendFile(filePath);
 });
 
 app.get("/api/verify-token", (req, res) => {

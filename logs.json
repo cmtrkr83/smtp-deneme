@@ -431,6 +431,302 @@
       "user": "trkrcm@gmail.com",
       "detail": "trkrcm@gmail.com basariyla giris yapti.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "d8306372-8532-410f-a448-f3e77bbb34a2",
+      "timestamp": 1782894438479,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "24779b12-33c8-4eb1-a504-94a85c6d2a0c",
+      "timestamp": 1782894456569,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "ea05d907-6cd9-426d-964b-259fd86e8c8a",
+      "timestamp": 1782895235378,
+      "action": "user_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanici eklendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "de0b3c21-34a9-49d0-8532-2dccb48317b1",
+      "timestamp": 1782895237818,
+      "action": "request_create",
+      "user": "123456@meb.k12.tr",
+      "detail": "\"Test Talebi\" talebi olusturuldu (talep).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e49b80b9-11bf-4868-84fb-f793400dd08c",
+      "timestamp": 1782895237948,
+      "action": "request_respond",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"Test Talebi\" talebine cevap verildi ve kapatildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e9d9b25b-903e-454c-84c0-8e099111b79a",
+      "timestamp": 1782895238028,
+      "action": "request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"Test Talebi\" talebi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "7b4e1981-ee47-4b72-9469-6508410eeedb",
+      "timestamp": 1782895248968,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanıcı silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e569bbb8-3dbf-4c6c-a043-b1fc98c04434",
+      "timestamp": 1782895760961,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "a3d59a2b-ee99-488c-b004-95b7cb1c7469",
+      "timestamp": 1782895778731,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "326bbc60-7395-42f9-8982-2cda75a7b36b",
+      "timestamp": 1782895905390,
+      "action": "request_create",
+      "user": "trkrcm@gmail.com",
+      "detail": "\"6. SINIF MATEMATİK ORTAK SINAV İTİRAZ\" talebi olusturuldu (talep).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5f4145ce-6514-4e9f-9f67-0baa4b379b0c",
+      "timestamp": 1782895974454,
+      "action": "request_respond",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"6. SINIF MATEMATİK ORTAK SINAV İTİRAZ\" talebine cevap verildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f10dd991-1d2a-4125-95b6-bd5a7662a2e8",
+      "timestamp": 1782896003151,
+      "action": "request_respond",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"6. SINIF MATEMATİK ORTAK SINAV İTİRAZ\" talebine cevap verildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "af0ac4ce-3f9d-4537-999d-9e20f03ed839",
+      "timestamp": 1782896229762,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "606283ec-aa92-49dd-a389-57e17a5a54d8",
+      "timestamp": 1782896264787,
+      "action": "user_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanici eklendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "fd70a8be-d7d7-421d-a194-50453f0b13bb",
+      "timestamp": 1782896265077,
+      "action": "request_create",
+      "user": "123456@meb.k12.tr",
+      "detail": "\"Dosyali Talep Testi\" talebi olusturuldu (talep).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "64c75d85-bd7f-49fb-a79e-b59e832494dc",
+      "timestamp": 1782896265513,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanıcı silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "9f58a608-9ad7-4228-89ff-8bd4fcbdb39e",
+      "timestamp": 1782896285411,
+      "action": "user_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanici eklendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "3190e145-a16e-46b5-8958-b147783761a8",
+      "timestamp": 1782896287815,
+      "action": "request_create",
+      "user": "123456@meb.k12.tr",
+      "detail": "\"Dosyali Test\" talebi olusturuldu (talep).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "dc0a9302-67be-4146-a28e-5f3f05854cf3",
+      "timestamp": 1782896288218,
+      "action": "request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"Dosyali Test\" talebi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f7277c9a-57dd-425d-84cb-49186e2509ff",
+      "timestamp": 1782896288243,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanıcı silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "cc604491-3f91-4069-b58b-53d85b6729d1",
+      "timestamp": 1782896308480,
+      "action": "user_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanici eklendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "63efd658-1c14-446b-a473-65a691e281d2",
+      "timestamp": 1782896309000,
+      "action": "user_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "123456@meb.k12.tr (lise) kullanıcı silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "a1076cc2-73c3-419e-b6e6-3fb8c4dfb8e7",
+      "timestamp": 1782896327630,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "4dc03c1a-7491-4700-8449-4f1aeeda0e18",
+      "timestamp": 1782896344076,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "27f19fad-9975-49d0-a58f-2b680cada0ce",
+      "timestamp": 1782896771757,
+      "action": "request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"Dosyali Talep Testi\" talebi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "b38e77f8-cdc9-47a1-b596-a7e7573f0269",
+      "timestamp": 1782896782708,
+      "action": "request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"6. SINIF MATEMATİK ORTAK SINAV İTİRAZ\" talebi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f427fc05-8d7a-4576-9403-f7d94bf82742",
+      "timestamp": 1782896814050,
+      "action": "request_create",
+      "user": "trkrcm@gmail.com",
+      "detail": "\"DENEME\" talebi olusturuldu (oneri).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "c6bba3f4-5b9b-464e-8de3-8aac7c95e8db",
+      "timestamp": 1782896865547,
+      "action": "request_respond",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"DENEME\" talebine cevap verildi ve kapatildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "a4feee28-4ff7-4760-b2d5-ff373e85f887",
+      "timestamp": 1782897136638,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f01cc8e8-7d51-4a4b-9210-c210c236834e",
+      "timestamp": 1782897157265,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "934fdf18-05bf-4895-a59b-e3a8ecb28770",
+      "timestamp": 1782897194172,
+      "action": "request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"DENEME\" talebi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6897d5e9-9127-42e5-a8eb-1d1c74c57f8f",
+      "timestamp": 1782897885103,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "93c3df04-b62d-40f7-a1d6-b5c15ddf1209",
+      "timestamp": 1782897902171,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6fa56e1a-a263-457a-8293-64dbe531763c",
+      "timestamp": 1782898174687,
+      "action": "announcement_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"Lise Kayıt Dönemi\" duyurusu silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "a6ef4ec0-ceec-428f-9461-0e269bdeb174",
+      "timestamp": 1782898176524,
+      "action": "announcement_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"Ortaokul Veli Toplantısı\" duyurusu silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "663a1fe4-390d-4bf5-b92d-6bd6f9c05c5c",
+      "timestamp": 1782906081960,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "a684d912-f921-4c0a-b195-37ba5e318562",
+      "timestamp": 1782906101467,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
     }
   ]
 }

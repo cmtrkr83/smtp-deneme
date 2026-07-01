@@ -174,7 +174,7 @@
         if (res.ok) {
           localStorage.setItem("token", data.token);
           showMessage(msg, "Giriş başarılı! Yönlendiriliyor...", "success");
-          setTimeout(() => (window.location.href = "/dashboard.html"), 800);
+          setTimeout(() => window.location.replace("/dashboard.html"), 800);
         } else {
           if (data.lockout) {
             showMessage(msg, data.lockout + " saniye bekleyin.", "warning");

@@ -12,28 +12,6 @@
         "forumcemturker@gmail.com",
         "cemburbut@gmail.com"
       ]
-    },
-    {
-      "id": "sample-2",
-      "title": "Lise Kayıt Dönemi",
-      "content": "2026-2027 eğitim yılı lise kayıtları başlamıştır.",
-      "target": "lise",
-      "createdBy": "forumcemturker@gmail.com",
-      "createdAt": 1782468020043,
-      "expiresAt": 1785153020043,
-      "readBy": [
-        "cemburbut@gmail.com"
-      ]
-    },
-    {
-      "id": "sample-3",
-      "title": "Ortaokul Veli Toplantısı",
-      "content": "2. dönem veli toplantısı 28 Haziran'da yapılacaktır.",
-      "target": "ortaokul",
-      "createdBy": "forumcemturker@gmail.com",
-      "createdAt": 1782468020043,
-      "expiresAt": 1785153020043,
-      "readBy": []
     }
   ]
 }

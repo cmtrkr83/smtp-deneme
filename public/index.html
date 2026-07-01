@@ -33,18 +33,19 @@
     const buttons = document.getElementById("buttons");
 
     if (token) {
+      statusEl.textContent = "Oturum kontrol ediliyor...";
+      buttons.style.display = "none";
       fetch("/api/verify-token", {
         headers: { Authorization: "Bearer " + token },
       })
         .then((r) => r.json())
         .then((data) => {
           if (data.valid) {
-            statusEl.textContent = "Zaten giriş yapmış durumdasınız.";
-            buttons.innerHTML =
-              '<a href="/dashboard.html" class="btn btn-primary" style="text-decoration:none;max-width:240px;"><i class="fa-solid fa-gauge-high"></i> Panoya Git</a>';
+            window.location.replace("/dashboard.html");
           } else {
             localStorage.removeItem("token");
             statusEl.textContent = "Giriş yaparak devam edin.";
+            buttons.style.display = "flex";
           }
         });
     } else {
