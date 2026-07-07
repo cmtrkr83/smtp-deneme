@@ -382,9 +382,13 @@ app.post("/api/verify-otp", otpVerifyLimiter, (req, res) => {
   saveUsers(users);
 
   const tokenExpiry = users[normEmail].role === "admin" ? "1h" : "30m";
-  const token = jwt.sign({ email: normEmail, role: users[normEmail].role }, JWT_SECRET, { expiresIn: tokenExpiry });
+  const tokenPayload = { email: normEmail, role: users[normEmail].role };
+  if (users[normEmail].crossRoles && users[normEmail].crossRoles.length > 0) {
+    tokenPayload.crossRoles = users[normEmail].crossRoles;
+  }
+  const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: tokenExpiry });
   appendLog(makeLog("login", normEmail, `${normEmail} basariyla giris yapti.`, req));
-  res.json({ token, email: normEmail, role: users[normEmail].role });
+  res.json({ token, email: normEmail, role: users[normEmail].role, crossRoles: users[normEmail].crossRoles || [] });
 });
 
 app.get("/api/me", (req, res) => {
@@ -409,6 +413,7 @@ app.get("/api/profile", (req, res) => {
   res.json({
     email: user.email,
     role: user.role,
+    crossRoles: user.crossRoles || [],
     profile: user.profile || null,
     created: user.created,
     lastLogin: user.lastLogin,
@@ -452,8 +457,9 @@ app.get("/api/dashboard", (req, res) => {
     const decoded = jwt.verify(auth.split(" ")[1], JWT_SECRET);
     const users = loadUsers();
     const user = users[decoded.email] || { email: decoded.email, role: "admin" };
-    const data = getDashboardData(user.role, users, decoded.email);
-    res.json({ role: user.role, ...data });
+    const activeRole = resolveRole(user, req);
+    const data = getDashboardData(activeRole, users, decoded.email);
+    res.json({ role: activeRole, ...data });
   } catch (_) {
     res.status(401).json({ error: "Geçersiz veya süresi dolmuş token." });
   }
@@ -465,6 +471,15 @@ function authUser(req) {
   try {
     return jwt.verify(auth.split(" ")[1], JWT_SECRET);
   } catch { return null; }
+}
+
+function resolveRole(user, req) {
+  const asRole = req.query && req.query.asRole;
+  if (asRole) {
+    const available = [user.role, ...(user.crossRoles || [])];
+    if (available.includes(asRole)) return asRole;
+  }
+  return user.role;
 }
 
 function requireAdmin(req, res) {
@@ -490,11 +505,23 @@ app.get("/api/users", (req, res) => {
   const list = Object.entries(users).map(([email, data]) => ({
     email,
     role: data.role || "admin",
+    crossRoles: data.crossRoles || [],
     profile: data.profile || null,
     created: data.created,
     lastLogin: data.lastLogin,
   }));
   res.json(list);
+});
+
+app.get("/api/users/:email", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const normEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const users = loadUsers();
+  const user = users[normEmail];
+  if (!user) return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+  res.json(user);
 });
 
 app.post("/api/users", (req, res) => {
@@ -537,12 +564,17 @@ app.put("/api/users/:email", (req, res) => {
     return res.status(404).json({ error: "Kullanıcı bulunamadı." });
   }
 
-  const { role } = req.body;
+  const { role, crossRoles } = req.body;
   const validRoles = ["admin", "lise", "ortaokul", "diger"];
-  if (role && validRoles.includes(role)) {
+  const currentRole = role && validRoles.includes(role) ? role : users[normEmail].role;
+  if (role && validRoles.includes(role) && role !== users[normEmail].role) {
     const oldRole = users[normEmail].role;
     users[normEmail].role = role;
     appendLog(makeLog("user_role_change", decoded.email, `${normEmail}: ${oldRole} -> ${role}`, req));
+  }
+  if (crossRoles !== undefined) {
+    const validCross = crossRoles.filter((r) => validRoles.includes(r) && r !== currentRole);
+    users[normEmail].crossRoles = validCross;
   }
   saveUsers(users);
   res.json(users[normEmail]);
@@ -707,6 +739,8 @@ app.get("/api/announcements", (req, res) => {
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
+  const activeRole = resolveRole(user, req);
+
   const allAnn = loadAnnouncements();
   const now = Date.now();
 
@@ -719,7 +753,7 @@ app.get("/api/announcements", (req, res) => {
     }));
   } else {
     list = allAnn
-      .filter((a) => a.expiresAt > now && (a.target === "all" || a.target === user.role))
+      .filter((a) => a.expiresAt > now && (a.target === "all" || a.target === activeRole))
       .map((a) => ({
         id: a.id,
         title: a.title,
@@ -943,6 +977,8 @@ app.get("/api/surveys", (req, res) => {
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
 
+  const activeRole = resolveRole(user, req);
+
   const all = loadSurveys();
   const now = Date.now();
 
@@ -954,7 +990,7 @@ app.get("/api/surveys", (req, res) => {
     }));
   } else {
     list = all
-      .filter((s) => s.expiresAt > now && isSurveyTargeted(s, decoded.email, user.role))
+      .filter((s) => s.expiresAt > now && isSurveyTargeted(s, decoded.email, activeRole))
       .map((s) => {
         const myResp = loadResponses().find((r) => r.surveyId === s.id && r.userId === decoded.email);
         return {
@@ -1299,12 +1335,14 @@ app.get("/api/files", (req, res) => {
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
 
+  const activeRole = resolveRole(user, req);
+
   const all = loadFiles();
   const now = Date.now();
 
   const list = all.filter((f) => {
     if (user.role === "admin") return true;
-    return isFileTargeted(f, decoded.email, user.role) && (f.startsAt || 0) <= now && f.expiresAt > now;
+    return isFileTargeted(f, decoded.email, activeRole) && (f.startsAt || 0) <= now && f.expiresAt > now;
   }).map((f) => {
     const dl = f.downloads || [];
     const myDl = dl.find((d) => d.userId === decoded.email);

@@ -3,17 +3,17 @@
     {
       "id": "77759ddb-0f52-4d5b-a115-6397167bf69a",
       "title": "LGS 2026 VERİ TOPLAMA",
-      "description": "LGS 2026 VERİ TOPLAMA",
+      "description": "LGS 2026 Veri Toplama Anketi kapsamında sizden istenen bilgileri eksiksiz doldurunuz. Lütfen unutmayınız buradaki anketi doldursanız bile sizden istenen diğer öğrenci ve sınav bilgilerini resmi kanallarla iletmeniz gerekmektedir.",
       "createdBy": "forumcemturker@gmail.com",
       "createdAt": 1782721684023,
-      "expiresAt": 1783601597365,
+      "expiresAt": 1783686158958,
       "allowEdit": true,
       "targetType": "group",
       "targetGroup": "ortaokul",
       "targetUsers": null,
       "questions": [
         {
-          "id": "faa3baf5-fb14-47d4-8feb-7e089578899b",
+          "id": "272963b8-6a74-43b2-9742-e8df9ee701b3",
           "type": "open_ended",
           "title": "Yüzdelik dilim 0 ila 5 arasında olan öğrenci sayınız? (5 dahil)",
           "required": true,
@@ -22,7 +22,7 @@
           "validation": "number"
         },
         {
-          "id": "94a346c8-2648-41b6-8d59-5bb46784b671",
+          "id": "4cc17a93-32a5-4b39-af28-1b9cc055254d",
           "type": "open_ended",
           "title": "Yüzdelik dilim 5 ila 10 arasında olan öğrenci sayınız? (10 dahil)",
           "required": true,
@@ -31,7 +31,7 @@
           "validation": "number"
         },
         {
-          "id": "21400ac0-e7f1-46a4-875c-04473f8033a0",
+          "id": "f2e10cbf-7225-4234-8254-7a3c35304c3b",
           "type": "open_ended",
           "title": "Yüzdelik dilim 10 ila 25 arasında olan öğrenci sayınız? (25 dahil)",
           "required": true,
@@ -40,7 +40,7 @@
           "validation": "number"
         },
         {
-          "id": "ba5c878e-5d56-4fab-8220-f5955364c1c1",
+          "id": "e4c2f308-1903-454d-8318-52604085fab8",
           "type": "open_ended",
           "title": "Yüzdelik dilim 25 ila 50 arasında olan öğrenci sayınız? (50 dahil)",
           "required": true,
@@ -49,7 +49,7 @@
           "validation": "number"
         },
         {
-          "id": "689a079a-f388-4f15-8047-583a00b58556",
+          "id": "e6cfa957-deb1-400f-81d1-691cc730ac61",
           "type": "open_ended",
           "title": "Yüzdelik dilim 50 ila 100 arasında olan öğrenci sayınız? (100 dahil)",
           "required": true,
@@ -58,7 +58,7 @@
           "validation": "number"
         },
         {
-          "id": "28e58b94-209e-4985-b5a6-a5008e6221ed",
+          "id": "af907e5a-fd9f-4f1a-907e-f051a7fca88d",
           "type": "open_ended",
           "title": "Sınava giren öğrenci sayınız?",
           "required": true,
@@ -67,7 +67,7 @@
           "validation": "number"
         },
         {
-          "id": "443b5263-7147-40d5-970b-84efd4ae0ce3",
+          "id": "acf57882-65ce-4836-93a4-748ab563519a",
           "type": "open_ended",
           "title": "2025-2026 Eğitim öğretim yılındaki 8.sınıflar toplam öğrenci sayınız?",
           "required": true,
@@ -76,7 +76,7 @@
           "validation": "number"
         },
         {
-          "id": "484cdc89-2881-48f0-bc83-462729623747",
+          "id": "f2b7ce6c-946e-406e-ab32-ff505632c014",
           "type": "open_ended",
           "title": "Tam puan alan öğrenciniz varsa sayısı? (Yoksa 0 yazınız)",
           "required": true,

@@ -49,6 +49,9 @@
             <div class="session-timer" id="sessionTimer" style="font-size:10px;color:#888;margin-top:1px;"></div>
           </div>
         </div>
+        <div class="role-switcher" id="roleSwitcher" style="display:none;margin-right:12px;">
+          <select id="roleSwitcherSelect" onchange="switchActiveRole(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;font-size:13px;cursor:pointer;"></select>
+        </div>
         <button class="btn-logout" id="logoutBtn">
           <i class="fa-solid fa-right-from-bracket"></i> Çıkış
         </button>
@@ -68,7 +71,13 @@
     }
 
     let currentUser = null;
+    let activeRole = null;
     let dashboardData = null;
+
+    function asRoleQuery() {
+      if (!activeRole) return "";
+      return activeRole !== currentUser.role ? "?asRole=" + activeRole : "";
+    }
 
     function buildSidebar(role) {
       const nav = document.getElementById("sidebarNav");
@@ -149,12 +158,33 @@
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("mobileLogoutBtn")?.addEventListener("click", logout);
 
+    window.switchActiveRole = async function (newRole) {
+      activeRole = newRole;
+      const lb = roleLabels;
+      document.getElementById("userRole").textContent = lb[newRole] || newRole;
+      try {
+        const res = await fetch("/api/dashboard" + (newRole !== currentUser.role ? "?asRole=" + newRole : ""), {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (res.ok) dashboardData = await res.json();
+      } catch {}
+      const activePage = document.querySelector(".nav-item.active");
+      if (activePage) {
+        const page = activePage.dataset.page;
+        if (page === "dashboard") renderDashboard();
+        else if (page === "announcements") renderAnnouncements();
+        else if (page === "files") renderFiles();
+        else if (page === "surveys") renderSurveys();
+        else if (page === "requests") renderRequests();
+      }
+    };
+
     // Fetch profile and dashboard data
     async function init() {
       try {
         const [profileRes, dashRes] = await Promise.all([
           fetch("/api/profile", { headers: { Authorization: "Bearer " + token } }),
-          fetch("/api/dashboard", { headers: { Authorization: "Bearer " + token } }),
+          fetch("/api/dashboard" + asRoleQuery(), { headers: { Authorization: "Bearer " + token } }),
         ]);
 
         if (!profileRes.ok || !dashRes.ok) throw new Error("Unauthorized");
@@ -162,11 +192,30 @@
         currentUser = await profileRes.json();
         dashboardData = await dashRes.json();
 
+        activeRole = currentUser.role;
+
         // Update topbar
         const initial = currentUser.email.charAt(0).toUpperCase();
         document.getElementById("userAvatar").textContent = initial;
         document.getElementById("userName").textContent = currentUser.email;
         document.getElementById("userRole").textContent = roleLabels[currentUser.role] || currentUser.role;
+
+        // Role switcher
+        const crossRoles = currentUser.crossRoles || [];
+        if (crossRoles.length > 0) {
+          const sel = document.getElementById("roleSwitcherSelect");
+          const allRoles = [currentUser.role, ...crossRoles];
+          const labels = { admin: "Sistem Yöneticisi", lise: "Lise Grubu", ortaokul: "Ortaokul Grubu", diger: "Diğer" };
+          sel.innerHTML = "";
+          allRoles.forEach((r) => {
+            const opt = document.createElement("option");
+            opt.value = r;
+            opt.textContent = labels[r] || r;
+            if (r === activeRole) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          document.getElementById("roleSwitcher").style.display = "";
+        }
 
         startSessionTimer();
 
@@ -327,7 +376,7 @@
         if (source === "announcements") {
           await renderSchoolAnnouncements();
         } else {
-          const dashRes = await fetch("/api/dashboard", {
+          const dashRes = await fetch("/api/dashboard" + asRoleQuery(), {
             headers: { Authorization: "Bearer " + token },
           });
           if (dashRes.ok) {
@@ -392,13 +441,14 @@
               <tr>
                 <th>E-posta</th>
                 <th>Rol</th>
+                <th>Ek Gruplar</th>
                 <th>Kayıt Tarihi</th>
                 <th>Son Giriş</th>
                 <th style="text-align:right;">İşlemler</th>
               </tr>
             </thead>
             <tbody id="usersTableBody">
-              <tr><td colspan="5" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -506,6 +556,12 @@
                   <option value="diger" ${u.role==="diger"?"selected":""}>Diğer</option>
                 </select>
             </td>
+            <td style="font-size:12px;white-space:nowrap;">
+              ${["lise","ortaokul","diger"].filter(r => r !== u.role).map(r => {
+                const checked = (u.crossRoles||[]).includes(r) ? "checked" : "";
+                return '<label style="margin-right:6px;cursor:pointer;user-select:none;"><input type="checkbox" ' + checked + ' onchange="toggleCrossRole(\'' + u.email + '\',\'' + r + '\',this.checked)" style="margin-right:2px;vertical-align:middle;"> <span style="vertical-align:middle;">' + (r==="lise"?"Lise":r==="ortaokul"?"Ortaokul":"Diğer") + '</span></label>';
+              }).join("")}
+            </td>
             <td class="cell-date">${created}</td>
             <td class="cell-date">${lastLogin}</td>
             <td class="cell-actions">
@@ -528,7 +584,7 @@
         renderUsersTable();
       } catch {
         const tbody = document.getElementById("usersTableBody");
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:40px;">Kullanıcılar yüklenirken hata oluştu.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:40px;">Kullanıcılar yüklenirken hata oluştu.</td></tr>';
       }
     }
 
@@ -596,6 +652,28 @@
         });
       } catch {}
     }
+
+    window.toggleCrossRole = async function (email, role, add) {
+      try {
+        const res = await fetch("/api/users/" + encodeURIComponent(email), {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) return;
+        const user = await res.json();
+        let crossRoles = user.crossRoles || [];
+        if (add) {
+          if (!crossRoles.includes(role)) crossRoles.push(role);
+        } else {
+          crossRoles = crossRoles.filter((r) => r !== role);
+        }
+        await fetch("/api/users/" + encodeURIComponent(email), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ crossRoles }),
+        });
+      } catch {}
+    };
 
     function showDeleteModal(email) {
       deleteTarget = email;
@@ -961,7 +1039,7 @@
     async function loadAnnouncementsTable() {
       const tbody = document.getElementById("annTableBody");
       try {
-        const res = await fetch("/api/announcements", {
+        const res = await fetch("/api/announcements" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
@@ -1001,7 +1079,7 @@
       const container = document.getElementById("schoolAnnouncements");
       container.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px;">Yükleniyor...</p>';
       try {
-        const res = await fetch("/api/announcements", {
+        const res = await fetch("/api/announcements" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
@@ -1073,7 +1151,7 @@
 
     async function editAnn(id) {
       try {
-        const res = await fetch("/api/announcements", {
+        const res = await fetch("/api/announcements" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
@@ -1533,7 +1611,7 @@
     async function loadAdminFilesTable() {
       const tbody = document.getElementById("adminFilesBody");
       try {
-        const res = await fetch("/api/files", {
+        const res = await fetch("/api/files" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
@@ -1760,7 +1838,7 @@
         });
         if (!res.ok) throw new Error();
         const data = await res.json();
-        const fileRes = await fetch("/api/files", {
+        const fileRes = await fetch("/api/files" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         const files = await fileRes.json();
@@ -1824,7 +1902,7 @@
         <div id="userFilesContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
       `;
       try {
-        const res = await fetch("/api/files", {
+        const res = await fetch("/api/files" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
@@ -2578,7 +2656,7 @@
     async function loadSurveyTable() {
       const tbody = document.getElementById("surveyTableBody");
       try {
-        const res = await fetch("/api/surveys", {
+        const res = await fetch("/api/surveys" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
@@ -3043,7 +3121,7 @@
         <div id="userSurveysContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
       `;
       try {
-        const res = await fetch("/api/surveys", {
+        const res = await fetch("/api/surveys" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();

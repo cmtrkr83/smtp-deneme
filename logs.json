@@ -727,6 +727,78 @@
       "user": "forumcemturker@gmail.com",
       "detail": "forumcemturker@gmail.com basariyla giris yapti.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "3e30cb95-5a95-4128-97ae-3bce3a47b419",
+      "timestamp": 1783425922027,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "86e27a09-0b02-4597-b8e9-42280ba10f49",
+      "timestamp": 1783425938691,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "9a0cddfd-23f8-442b-abcd-f0e0058c69a7",
+      "timestamp": 1783426113015,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5984692d-aefb-4a79-8015-5c87d7eb929d",
+      "timestamp": 1783426123730,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6d0ec055-8914-4f6f-8c26-b0dc33d145fb",
+      "timestamp": 1783426857998,
+      "action": "survey_edit",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "79a3bed9-14f8-4e64-b4fb-e5fbd860a6ad",
+      "timestamp": 1783426912391,
+      "action": "survey_edit",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "0070dafe-423f-4de2-b8ea-b9114c8648fe",
+      "timestamp": 1783426936807,
+      "action": "survey_edit",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "51e6b66a-6f35-44c4-8e7b-29847232652a",
+      "timestamp": 1783426950519,
+      "action": "survey_edit",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6ea3d273-2b47-425b-86de-390fe84d9e50",
+      "timestamp": 1783426958959,
+      "action": "survey_edit",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
+      "ip": "127.0.0.1"
     }
   ]
 }
