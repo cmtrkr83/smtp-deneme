@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div class="container">
+    <div class="container">
     <div class="card">
       <div class="card-header">
         <div class="logo">
@@ -27,6 +27,19 @@
           <div class="input-wrapper">
             <i class="fa-solid fa-envelope icon"></i>
             <input type="email" id="email" class="form-control" placeholder="ornek@mail.com" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="captcha">Güvenlik Kodu</label>
+          <div id="captchaContainer" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div id="captchaSvg" style="border:1px solid #d1d5db;border-radius:6px;overflow:hidden;flex-shrink:0;width:160px;height:54px;background:#f9fafb;"></div>
+            <button type="button" class="btn btn-ghost" id="refreshCaptchaBtn" style="width:auto;padding:8px 12px;font-size:16px;" title="Yeni Kod">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-shield icon"></i>
+            <input type="text" id="captcha" class="form-control" placeholder="Kodu girin" maxlength="5" inputmode="numeric" pattern="[0-9]*" required />
           </div>
         </div>
         <button type="submit" class="btn btn-primary" id="sendOtpBtn">
@@ -71,6 +84,7 @@
     }
 
     let currentEmail = "";
+    let captchaId = "";
     let countdownInterval = null;
 
     function showMessage(el, text, type) {
@@ -82,6 +96,18 @@
       el.textContent = "";
       el.className = "message";
     }
+
+    async function loadCaptcha() {
+      try {
+        const res = await fetch("/api/captcha");
+        const data = await res.json();
+        captchaId = data.id;
+        document.getElementById("captchaSvg").innerHTML = data.svg;
+        document.getElementById("captcha").value = "";
+      } catch {}
+    }
+
+    document.getElementById("refreshCaptchaBtn").addEventListener("click", loadCaptcha);
 
     function startCountdown(expiresInMs) {
       const timerEl = document.getElementById("countdown");
@@ -114,8 +140,14 @@
     document.getElementById("emailForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("email").value;
+      const captcha = document.getElementById("captcha").value;
       const btn = document.getElementById("sendOtpBtn");
       const msg = document.getElementById("emailMessage");
+
+      if (!captchaId) {
+        showMessage(msg, "Güvenlik kodu yüklenemedi. Lütfen sayfayı yenileyin.", "error");
+        return;
+      }
 
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
@@ -125,7 +157,7 @@
         const res = await fetch("/api/send-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, captchaId, captcha }),
         });
         const data = await res.json();
         if (res.ok) {
@@ -139,11 +171,15 @@
           document.getElementById("otp").focus();
           startCountdown(data.expiresIn);
         } else {
-          if (data.cooldown) {
+          if (data.captchaExpired) {
+            showMessage(msg, data.error, "error");
+            loadCaptcha();
+          } else if (data.cooldown) {
             showMessage(msg, data.cooldown + " saniye sonra tekrar deneyin.", "warning");
             startCountdown(data.cooldown * 1000);
           } else {
             showMessage(msg, data.error, "error");
+            loadCaptcha();
           }
         }
       } catch {
@@ -207,8 +243,11 @@
       hideMessage(document.getElementById("emailMessage"));
       hideMessage(document.getElementById("otpMessage"));
       document.getElementById("otp").value = "";
+      loadCaptcha();
       document.getElementById("email").focus();
     });
+
+    loadCaptcha();
   </script>
 </body>
 </html>

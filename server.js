@@ -46,13 +46,53 @@ if (!JWT_SECRET || JWT_SECRET === "degistirin-buraya-gizli-anahtar-yazin") {
 }
 
 const OTP_EXPIRY_MS = 3 * 60 * 1000;
-const OTP_COOLDOWN_MS = 3 * 60 * 1000;
+const OTP_COOLDOWN_MS = 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 3 * 60 * 1000;
 
 const otpStore = new Map();
 const lastOtpRequest = new Map();
 const failedAttempts = new Map();
+const captchaStore = new Map();
+
+const CAPTCHA_EXPIRY_MS = 5 * 60 * 1000;
+
+// Captcha cleanup every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, data] of captchaStore) {
+    if (now - data.createdAt > CAPTCHA_EXPIRY_MS) captchaStore.delete(id);
+  }
+}, 10 * 60 * 1000);
+
+function generateCaptchaSvg(text) {
+  const width = 160;
+  const height = 54;
+  const colors = ["#2563eb","#dc2626","#16a34a","#d97706","#7c3aed","#0891b2"];
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+  svg += `<rect width="${width}" height="${height}" fill="#f9fafb" rx="6"/>`;
+  for (let i = 0; i < 6; i++) {
+    const x1 = Math.random() * width;
+    const y1 = Math.random() * height;
+    const x2 = Math.random() * width;
+    const y2 = Math.random() * height;
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d1d5db" stroke-width="1.5" opacity="0.6"/>`;
+  }
+  for (let i = 0; i < 20; i++) {
+    const cx = Math.random() * width;
+    const cy = Math.random() * height;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${1+Math.random()*2}" fill="#9ca3af" opacity="0.4"/>`;
+  }
+  text.split("").forEach((ch, i) => {
+    const x = 14 + i * 30;
+    const y = 34 + (Math.random() - 0.5) * 14;
+    const angle = (Math.random() - 0.5) * 35;
+    const color = colors[i % colors.length];
+    svg += `<text x="${x}" y="${y}" transform="rotate(${angle.toFixed(1)},${x},${y})" font-family="Arial,sans-serif" font-size="30" font-weight="bold" fill="${color}">${ch}</text>`;
+  });
+  svg += "</svg>";
+  return svg;
+}
 
 function loadUsers() {
   try {
@@ -123,7 +163,7 @@ const otpSendLimiter = rateLimit({
   max: 1,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Çok fazla OTP isteği. 3 dakika bekleyin." },
+  message: { error: "Çok fazla OTP isteği. Lütfen bekleyin." },
 });
 
 const otpVerifyLimiter = rateLimit({
@@ -289,12 +329,33 @@ function getDashboardData(role, users, email) {
   return roleData[role] || roleData.admin;
 }
 
-app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
+app.get("/api/captcha", (req, res) => {
+  const code = crypto.randomInt(10000, 99999).toString();
+  const id = crypto.randomUUID();
+  const svg = generateCaptchaSvg(code);
+  captchaStore.set(id, { answer: code, createdAt: Date.now() });
+  res.json({ id, svg });
+});
+
+app.post("/api/send-otp", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, captchaId, captcha } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "Gecerli bir e-posta adresi girin." });
     }
+    if (!captchaId || !captcha) {
+      return res.status(400).json({ error: "Guvenlik kodu gerekli." });
+    }
+
+    const stored = captchaStore.get(captchaId);
+    if (!stored) {
+      return res.status(400).json({ error: "Guvenlik kodunun süresi dolmus. Yeniden yükleyin.", captchaExpired: true });
+    }
+    if (stored.answer !== captcha.trim()) {
+      captchaStore.delete(captchaId);
+      return res.status(400).json({ error: "Guvenlik kodu yanlis.", captchaExpired: true });
+    }
+    captchaStore.delete(captchaId);
 
     const normEmail = email.toLowerCase().trim();
     const now = Date.now();

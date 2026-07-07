@@ -799,6 +799,22 @@
       "user": "forumcemturker@gmail.com",
       "detail": "\"LGS 2026 VERİ TOPLAMA\" ankete duzenlendi.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "60cbd244-7f74-4cfa-a9f2-305c0896ef34",
+      "timestamp": 1783428269127,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6ee84b84-6147-4d64-9ef2-2cc3b443ee4b",
+      "timestamp": 1783428287213,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
     }
   ]
 }
