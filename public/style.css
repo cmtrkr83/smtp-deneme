@@ -87,7 +87,7 @@ body::before {
   font-weight: 600;
   color: #555;
   margin-bottom: 6px;
-  text-transform: uppercase;
+  text-transform: titlecase;
   letter-spacing: 0.5px;
 }
 
