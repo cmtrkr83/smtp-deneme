@@ -185,6 +185,9 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendOtpEmail(email, otp) {
+  const otpChars = otp.split("").map((ch) =>
+    `<td style="width:48px;height:56px;border:2px solid #2563eb;border-radius:8px;text-align:center;font-size:28px;font-weight:bold;color:#2563eb;background:#fff;font-family:monospace;">${ch}</td>`
+  ).join("");
   await transporter.sendMail({
     from: `"OTP Girişi" <${process.env.SMTP_USER}>`,
     to: email,
@@ -193,9 +196,9 @@ async function sendOtpEmail(email, otp) {
       <div style="font-family: Arial; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: #333;">OTP Doğrulama Kodu</h2>
         <p>Aşağıdaki kodu kullanarak sisteme giriş yapabilirsiniz:</p>
-        <div style="font-size: 32px; font-weight: bold; color: #2563eb; text-align: center; padding: 20px; letter-spacing: 8px;">
-          ${otp}
-        </div>
+        <table style="margin:20px auto;border-collapse:separate;border-spacing:8px;">
+          <tr>${otpChars}</tr>
+        </table>
         <p style="color: #666;">Bu kod yalnızca 3 dakika geçerlidir.</p>
         <hr style="border: none; border-top: 1px solid #eee;" />
         <p style="color: #999; font-size: 12px;">Bu mesajı siz talep etmediyseniz dikkate almayın.</p>
@@ -1848,7 +1851,7 @@ app.post("/api/requests", (req, res) => {
   const users = loadUsers();
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
-  if (user.role === "admin") return res.status(403).json({ error: "Admin talep gonderemez." });
+  if (user.role === "admin") return res.status(403).json({ error: "Admin talep gönderemez." });
 
   requestUpload.single("file")(req, res, (err) => {
     if (err) {
@@ -1862,15 +1865,15 @@ app.post("/api/requests", (req, res) => {
     const { type, title, description, officialDocNo } = req.body;
     if (!type || !requestTypes.includes(type)) {
       if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Gecerli bir talep turu secin: talep, oneri, sikayet, itiraz." });
+      return res.status(400).json({ error: "Geçerli bir talep türü seçin: talep, öneri, şikayet, itiraz." });
     }
     if (!title || !title.trim()) {
       if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Baslik zorunlu." });
+      return res.status(400).json({ error: "Başlık zorunlu." });
     }
     if (!description || !description.trim()) {
       if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Aciklama zorunlu." });
+      return res.status(400).json({ error: "Açıklama zorunlu." });
     }
 
     const list = loadRequests();
@@ -1890,7 +1893,7 @@ app.post("/api/requests", (req, res) => {
     };
     list.push(entry);
     saveRequests(list);
-    appendLog(makeLog("request_create", decoded.email, `"${entry.title}" talebi olusturuldu (${entry.type}).`, req));
+    appendLog(makeLog("request_create", decoded.email, `"${entry.title}" talebi oluşturuldu (${entry.type}).`, req));
     res.status(201).json(entry);
   });
 });

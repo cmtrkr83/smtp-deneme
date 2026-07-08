@@ -863,6 +863,22 @@
       "user": "trkrcm@gmail.com",
       "detail": "Okul bilgileri guncellendi.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "17ce7ca4-8bfd-4aa5-873b-930d5d7de168",
+      "timestamp": 1783500786368,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f19dba70-3077-4991-b563-2dfe7a08a88a",
+      "timestamp": 1783501295081,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
     }
   ]
 }
