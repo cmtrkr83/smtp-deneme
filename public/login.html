@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <title>Giriş Yap</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,8 +15,8 @@
     <div class="container">
     <div class="card">
       <div class="card-header">
-        <div class="logo">
-          <i class="fa-solid fa-shield-halved"></i>
+        <div style="width:128px;height:128px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;border:none;background:none;box-shadow:none;border-radius:0;">
+          <img src="/assets/logo-kodm.png" alt="KODM" style="width:128px;height:128px;display:block;" />
         </div>
         <h1>Giriş Yap</h1>
         <p>E-posta adresinize OTP kodu gönderelim</p>
@@ -42,7 +43,7 @@
             <input type="text" id="captcha" class="form-control" placeholder="Kodu girin" maxlength="5" inputmode="numeric" pattern="[0-9]*" required />
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" id="sendOtpBtn">
+        <button type="submit" class="btn btn-primary" id="sendOtpBtn" style="background:#b91c1c;border-color:#b91c1c;">
           <i class="fa-solid fa-paper-plane"></i> OTP Gönder
         </button>
         <div id="emailMessage" class="message"></div>

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <title> KODM PANEL </title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,7 +18,7 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <div class="logo-icon">K</div>
+        <img src="/assets/logo-kodm.png" alt="KODM" style="width:64px;height:64px;flex-shrink:0;border:none;background:none;box-shadow:none;border-radius:0;" />
         <div class="logo-text">
           KOCAELİ ODM
           <small>Yönetim Paneli</small>
@@ -267,12 +268,21 @@
       if (data.links) {
         html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
         html += `<div class="cards-grid" id="quickLinks">`;
-        data.links.forEach((l) => {
+        const cardColors = [
+          { bg: "rgba(59, 130, 246, 0.1)", color: "#2563eb" },
+          { bg: "rgba(16, 185, 129, 0.1)", color: "#059669" },
+          { bg: "rgba(245, 158, 11, 0.1)", color: "#d97706" },
+          { bg: "rgba(139, 92, 246, 0.1)", color: "#7c3aed" },
+          { bg: "rgba(236, 72, 153, 0.1)", color: "#db2777" },
+          { bg: "rgba(14, 165, 233, 0.1)", color: "#0284c7" },
+        ];
+        data.links.forEach((l, i) => {
           const isNav = l.url.startsWith("/navigate/");
           const badge = l.badge > 0 ? `<span class="card-badge">${l.badge}</span>` : "";
+          const c = cardColors[i % cardColors.length];
           html += `
             <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}">
-              <div class="card-icon"><i class="fa-solid ${l.icon}"></i>${badge}</div>
+              <div class="card-icon" style="background:${c.bg};color:${c.color};"><i class="fa-solid ${l.icon}"></i>${badge}</div>
               <h4>${l.title}</h4>
               <p>${l.desc}</p>
             </a>
