@@ -362,7 +362,7 @@ app.post("/api/send-otp", async (req, res) => {
 
     const registered = loadUsers();
     if (!registered[normEmail]) {
-      return res.status(403).json({ error: "Bu e-posta adresi sistemde kayitli degil. Yetkili kisilerle iletisime gecin." });
+      return res.status(403).json({ error: "Bu e-posta adresi sistemde kayıtlı değil. Yetkili kişilerle iletişime geçin." });
     }
 
     const lastReq = lastOtpRequest.get(normEmail);
@@ -381,7 +381,7 @@ app.post("/api/send-otp", async (req, res) => {
     await sendOtpEmail(normEmail, otp);
     appendLog(makeLog("otp_request", normEmail, `${normEmail} adresine OTP gönderildi.`, req));
     res.json({
-      message: "OTP kodu e-posta adresinize gonderildi.",
+      message: "OTP kodu e-posta adresinize gönderildi.",
       expiresIn: OTP_EXPIRY_MS,
     });
   } catch (err) {
@@ -487,7 +487,7 @@ app.put("/api/profile", (req, res) => {
 
   const users = loadUsers();
   if (!users[decoded.email]) {
-    return res.status(403).json({ error: "Kullanici bulunamadi." });
+    return res.status(403).json({ error: "Kullanıcı bulunamadı." });
   }
 
   const { schoolName, schoolCode, city, district, principalName, principalPhone, schoolPhone, studentCount, teacherCount, classCount } = req.body;
@@ -505,7 +505,7 @@ app.put("/api/profile", (req, res) => {
     classCount: classCount || "",
   };
   saveUsers(users);
-  appendLog(makeLog("profile_update", decoded.email, "Okul bilgileri guncellendi.", req));
+  appendLog(makeLog("profile_update", decoded.email, "Okul bilgileri güncellendi.", req));
   res.json(users[decoded.email].profile);
 });
 
@@ -591,7 +591,7 @@ app.post("/api/users", (req, res) => {
 
   const { email, role } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: "Gecerli bir e-posta adresi girin." });
+    return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
   }
   const validRoles = ["admin", "lise", "ortaokul", "diger"];
   const userRole = validRoles.includes(role) ? role : detectRole(email);
@@ -599,7 +599,7 @@ app.post("/api/users", (req, res) => {
   const normEmail = email.toLowerCase().trim();
   const users = loadUsers();
   if (users[normEmail]) {
-    return res.status(409).json({ error: "Bu e-posta adresi zaten kayitli." });
+    return res.status(409).json({ error: "Bu e-posta adresi zaten kayıtlı." });
   }
 
   const schoolMatch = normEmail.match(/^(\d+)@meb\.(gov\.tr|k12\.tr)$/);
@@ -611,7 +611,7 @@ app.post("/api/users", (req, res) => {
     profile: schoolMatch ? { schoolCode: schoolMatch[1] } : undefined,
   };
   saveUsers(users);
-  appendLog(makeLog("user_create", decoded.email, `${normEmail} (${userRole}) kullanici eklendi.`, req));
+  appendLog(makeLog("user_create", decoded.email, `${normEmail} (${userRole}) kullanıcı eklendi.`, req));
   res.status(201).json(users[normEmail]);
 });
 
@@ -654,7 +654,7 @@ app.delete("/api/users/clear", (req, res) => {
     }
   }
   saveUsers(users);
-  appendLog(makeLog("user_delete", decoded.email, `${deleted} kullanici silindi (admin haric).`, req));
+  appendLog(makeLog("user_delete", decoded.email, `${deleted} kullanıcı silindi (admin haric).`, req));
   res.json({ deleted });
 });
 
@@ -680,7 +680,7 @@ app.delete("/api/users/by-role/:role", (req, res) => {
     }
   }
   saveUsers(users);
-  appendLog(makeLog("user_delete", decoded.email, deleted + " kullanici silindi (" + role + ").", req));
+  appendLog(makeLog("user_delete", decoded.email, deleted + " kullanıcı silindi (" + role + ").", req));
   res.json({ deleted, role });
 });
 
@@ -711,7 +711,7 @@ app.post("/api/users/import", (req, res) => {
   const XLSX = require("xlsx");
   const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
   importUpload.single("file")(req, res, (err) => {
-    if (err) return res.status(400).json({ error: "Dosya yuklenirken hata: " + err.message });
+    if (err) return res.status(400).json({ error: "Dosya yüklenirken hata: " + err.message });
     if (!req.file) return res.status(400).json({ error: "Dosya secilmedi." });
 
     try {
@@ -737,7 +737,7 @@ app.post("/api/users/import", (req, res) => {
         else if (k === "kurum" || k.includes("kurumad") || k.includes("adi")) colMap.kurum = key;
       }
       if (!colMap.kurumKodu) {
-        return res.status(400).json({ error: "Excel'de 'Kurum Kodu' sutunu bulunamadi." });
+        return res.status(400).json({ error: "Excel'de 'Kurum Kodu' sutunu bulunamadı." });
       }
 
       for (let i = 0; i < rows.length; i++) {
@@ -782,7 +782,7 @@ app.post("/api/users/import", (req, res) => {
         }
       }
       saveUsers(users);
-      appendLog(makeLog("user_import", decoded.email, `${added} yeni, ${updated} guncellendi.`, req));
+      appendLog(makeLog("user_import", decoded.email, `${added} yeni, ${updated} güncellendi.`, req));
       res.json({ added, updated, errors: errors.length > 0 ? errors.slice(0, 10) : [] });
     } catch (e) {
       res.status(400).json({ error: "Excel okunurken hata: " + e.message });
@@ -855,7 +855,7 @@ app.post("/api/announcements", (req, res) => {
   };
   list.push(ann);
   saveAnnouncements(list);
-  appendLog(makeLog("announcement_create", decoded.email, `"${title}" duyurusu olusturuldu (hedef: ${target}).`, req));
+  appendLog(makeLog("announcement_create", decoded.email, `"${title}" duyurusu oluşturuldu (hedef: ${target}).`, req));
   res.status(201).json(ann);
 });
 
@@ -878,7 +878,7 @@ app.put("/api/announcements/:id", (req, res) => {
     list[idx].expiresAt = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
   }
   saveAnnouncements(list);
-  appendLog(makeLog("announcement_edit", decoded.email, `"${list[idx].title}" duyurusu duzenlendi.`, req));
+  appendLog(makeLog("announcement_edit", decoded.email, `"${list[idx].title}" duyurusu düzenlendi.`, req));
   res.json(list[idx]);
 });
 
@@ -1036,7 +1036,7 @@ app.get("/api/surveys", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const activeRole = resolveRole(user, req);
 
@@ -1080,7 +1080,7 @@ app.post("/api/surveys", (req, res) => {
   }
   const validTargets = ["all", "group", "users"];
   if (!validTargets.includes(targetType)) {
-    return res.status(400).json({ error: "Gecersiz hedef kitle." });
+    return res.status(400).json({ error: "Geçersiz hedef kitle." });
   }
 
   const list = loadSurveys();
@@ -1107,7 +1107,7 @@ app.post("/api/surveys", (req, res) => {
   };
   list.push(survey);
   saveSurveys(list);
-  appendLog(makeLog("survey_create", decoded.email, `"${title}" ankete olusturuldu.`, req));
+  appendLog(makeLog("survey_create", decoded.email, `"${title}" anket oluşturuldu.`, req));
   res.status(201).json(survey);
 });
 
@@ -1117,12 +1117,12 @@ app.get("/api/surveys/:id", (req, res) => {
 
   const all = loadSurveys();
   const survey = all.find((s) => s.id === req.params.id);
-  if (!survey) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const users = loadUsers();
   const user = users[decoded.email];
   if (user.role !== "admin" && !isSurveyTargeted(survey, decoded.email, user.role)) {
-    return res.status(403).json({ error: "Bu ankete erisim yetkiniz yok." });
+    return res.status(403).json({ error: "Bu ankete erişim yetkiniz yok." });
   }
 
   res.json(survey);
@@ -1134,7 +1134,7 @@ app.put("/api/surveys/:id", (req, res) => {
 
   const list = loadSurveys();
   const idx = list.findIndex((s) => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const { title, description, targetType, targetGroup, targetUsers, expiresInDays, allowEdit, questions } = req.body;
   if (title) list[idx].title = title;
@@ -1171,7 +1171,7 @@ app.delete("/api/surveys/:id", (req, res) => {
 
   const list = loadSurveys();
   const idx = list.findIndex((s) => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const deleted = list[idx];
   list.splice(idx, 1);
@@ -1179,7 +1179,7 @@ app.delete("/api/surveys/:id", (req, res) => {
   const respList = loadResponses();
   const filtered = respList.filter((r) => r.surveyId !== req.params.id);
   if (filtered.length !== respList.length) saveResponses(filtered);
-  appendLog(makeLog("survey_delete", decoded.email, `"${deleted.title}" ankete silindi.`, req));
+  appendLog(makeLog("survey_delete", decoded.email, `"${deleted.title}" anket silindi.`, req));
   res.json({ message: "Anket silindi." });
 });
 
@@ -1189,23 +1189,23 @@ app.post("/api/surveys/:id/respond", (req, res) => {
 
   const all = loadSurveys();
   const survey = all.find((s) => s.id === req.params.id);
-  if (!survey) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   if (!isSurveyTargeted(survey, decoded.email, user.role)) {
-    return res.status(403).json({ error: "Bu anket size ait degil." });
+    return res.status(403).json({ error: "Bu anket size ait değil." });
   }
   if (survey.expiresAt <= Date.now()) {
-    return res.status(400).json({ error: "Anketin suresi dolmus." });
+    return res.status(400).json({ error: "Anketin süresi dolmuş." });
   }
 
   const respList = loadResponses();
   const existingIdx = respList.findIndex((r) => r.surveyId === req.params.id && r.userId === decoded.email);
   if (existingIdx !== -1 && !survey.allowEdit) {
-    return res.status(400).json({ error: "Bu anketi tekrar gonderemezsiniz." });
+    return res.status(400).json({ error: "Bu anketi tekrar gönderemezsiniz." });
   }
 
   const { answers } = req.body;
@@ -1218,19 +1218,19 @@ app.post("/api/surveys/:id/respond", (req, res) => {
     if (!q) continue;
     const val = (ans.value || "").toString();
     if (q.validation === "number" && val && !/^\d+$/.test(val)) {
-      return res.status(400).json({ error: `"${q.title}" sorusu icin sadece sayi girin.` });
+      return res.status(400).json({ error: `"${q.title}" sorusu için sadece sayı girin.` });
     }
     if (q.validation === "only_text" && val && /\d/.test(val)) {
-      return res.status(400).json({ error: `"${q.title}" sorusu icin sadece metin girin.` });
+      return res.status(400).json({ error: `"${q.title}" sorusu için sadece metin girin.` });
     }
     if (q.validation === "uppercase" && val && val !== val.toUpperCase()) {
-      return res.status(400).json({ error: `"${q.title}" sorusunu buyuk harfle yazin.` });
+      return res.status(400).json({ error: `"${q.title}" sorusunu büyük harfle yazin.` });
     }
     if (q.validation === "email" && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-      return res.status(400).json({ error: `"${q.title}" gecerli bir e-posta adresi girin.` });
+      return res.status(400).json({ error: `"${q.title}" geçerli bir e-posta adresi girin.` });
     }
     if (q.validation === "phone" && val && !/^[\d\s\-()+]{7,15}$/.test(val)) {
-      return res.status(400).json({ error: `"${q.title}" gecerli bir telefon numarasi girin.` });
+      return res.status(400).json({ error: `"${q.title}" geçerli bir telefon numarası girin.` });
     }
   }
 
@@ -1251,7 +1251,7 @@ app.post("/api/surveys/:id/respond", (req, res) => {
   }
   saveResponses(respList);
   const isEdit = existingIdx !== -1;
-  appendLog(makeLog(isEdit ? "survey_respond_edit" : "survey_respond", decoded.email, `"${survey.title}" ankete ${isEdit ? "yaniti duzenlendi" : "yanitlandi"}.`, req));
+  appendLog(makeLog(isEdit ? "survey_respond_edit" : "survey_respond", decoded.email, `"${survey.title}" anketine ${isEdit ? "yanıtı düzenlendi" : "yanıtı eklendi"}.`, req));
   res.json(entry);
 });
 
@@ -1261,7 +1261,7 @@ app.get("/api/surveys/:id/response", (req, res) => {
 
   const respList = loadResponses();
   const entry = respList.find((r) => r.surveyId === req.params.id && r.userId === decoded.email);
-  if (!entry) return res.status(404).json({ error: "Henuz yanit vermediniz." });
+  if (!entry) return res.status(404).json({ error: "Henüz yanıt vermediniz." });
 
   res.json(entry);
 });
@@ -1272,7 +1272,7 @@ app.get("/api/surveys/:id/responses", (req, res) => {
 
   const all = loadSurveys();
   const survey = all.find((s) => s.id === req.params.id);
-  if (!survey) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const respList = loadResponses().filter((r) => r.surveyId === req.params.id);
   const users = loadUsers();
@@ -1291,12 +1291,12 @@ app.get("/api/surveys/:id/responses/export", (req, res) => {
 
   const all = loadSurveys();
   const survey = all.find((s) => s.id === req.params.id);
-  if (!survey) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const respList = loadResponses().filter((r) => r.surveyId === req.params.id);
   const users = loadUsers();
 
-  const headers = ["Tarih", "Saat", "Kullanici", "Okul"];
+  const headers = ["Tarih", "Saat", "Kullanıcı", "Okul"];
   survey.questions.forEach((q) => headers.push(q.title));
 
   const rows = respList.map((r) => {
@@ -1324,7 +1324,7 @@ app.get("/api/surveys/:id/status", (req, res) => {
 
   const all = loadSurveys();
   const survey = all.find((s) => s.id === req.params.id);
-  if (!survey) return res.status(404).json({ error: "Anket bulunamadi." });
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
 
   const users = loadUsers();
   const respList = loadResponses().filter((r) => r.surveyId === req.params.id);
@@ -1363,7 +1363,7 @@ const fileUpload = multer({
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ext === ".zip") return cb(null, true);
-    cb(new Error("Yalnizca ZIP dosyasi kabul edilir."));
+    cb(new Error("Yalnızca ZIP dosyası kabul edilir."));
   },
 });
 
@@ -1394,7 +1394,7 @@ app.get("/api/files", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const activeRole = resolveRole(user, req);
 
@@ -1496,28 +1496,28 @@ app.get("/api/files/:id/download", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const all = loadFiles();
   const file = all.find((f) => f.id === req.params.id);
-  if (!file) return res.status(404).json({ error: "Dosya bulunamadi." });
+  if (!file) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   if (user.role !== "admin") {
     if (!isFileTargeted(file, decoded.email, user.role)) {
-      return res.status(403).json({ error: "Bu dosya size ait degil." });
+      return res.status(403).json({ error: "Bu dosya size ait değil." });
     }
     const now = Date.now();
     if (file.startsAt && file.startsAt > now) {
-      return res.status(400).json({ error: "Bu dosyanin indirme suresi henuz baslamadi." });
+      return res.status(400).json({ error: "Bu dosyanın indirme süresi henüz başlamadı." });
     }
     if (file.expiresAt <= now) {
-      return res.status(400).json({ error: "Dosyanin indirme suresi dolmus." });
+      return res.status(400).json({ error: "Dosyanın indirme süresi dolmuş." });
     }
   }
 
   const filePath = path.join(UPLOADS_DIR, file.storedName);
   if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: "Dosya diskte bulunamadi." });
+    return res.status(404).json({ error: "Dosya diskte bulunamadı." });
   }
 
   if (!file.downloads) file.downloads = [];
@@ -1538,7 +1538,7 @@ app.delete("/api/files/:id", (req, res) => {
 
   const all = loadFiles();
   const idx = all.findIndex((f) => f.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Dosya bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   const file = all[idx];
   const filePath = path.join(UPLOADS_DIR, file.storedName);
@@ -1556,7 +1556,7 @@ app.get("/api/files/:id/status", (req, res) => {
 
   const all = loadFiles();
   const file = all.find((f) => f.id === req.params.id);
-  if (!file) return res.status(404).json({ error: "Dosya bulunamadi." });
+  if (!file) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   const users = loadUsers();
   const downloads = file.downloads || [];
@@ -1588,7 +1588,7 @@ app.get("/api/files/:id/export", (req, res) => {
 
   const all = loadFiles();
   const file = all.find((f) => f.id === req.params.id);
-  if (!file) return res.status(404).json({ error: "Dosya bulunamadi." });
+  if (!file) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   const users = loadUsers();
   const downloads = file.downloads || [];
@@ -1792,7 +1792,7 @@ app.get("/api/requests", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const all = loadRequests();
   const list = all
@@ -1824,14 +1824,14 @@ app.get("/api/requests/:id", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const all = loadRequests();
   const reqEntry = all.find((r) => r.id === req.params.id);
-  if (!reqEntry) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (!reqEntry) return res.status(404).json({ error: "Talep bulunamadı." });
 
   if (user.role !== "admin" && reqEntry.submittedBy !== decoded.email) {
-    return res.status(403).json({ error: "Bu talebe erisim yetkiniz yok." });
+    return res.status(403).json({ error: "Bu talebe erişim yetkiniz yok." });
   }
 
   res.json({
@@ -1847,7 +1847,7 @@ app.post("/api/requests", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
   if (user.role === "admin") return res.status(403).json({ error: "Admin talep gonderemez." });
 
   requestUpload.single("file")(req, res, (err) => {
@@ -1901,12 +1901,12 @@ app.put("/api/requests/:id", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
   if (user.role === "admin") return res.status(403).json({ error: "Admin talep duzenleyemez." });
 
   const all = loadRequests();
   const idx = all.findIndex((r) => r.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadı." });
   if (all[idx].submittedBy !== decoded.email) return res.status(403).json({ error: "Bu talebi duzenleyemezsiniz." });
   if (all[idx].status !== "open") return res.status(400).json({ error: "Sadece acik talepler duzenlenebilir." });
 
@@ -1926,18 +1926,18 @@ app.delete("/api/requests/:id", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const all = loadRequests();
   const idx = all.findIndex((r) => r.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadı." });
 
   const entry = all[idx];
   if (user.role !== "admin" && entry.submittedBy !== decoded.email) {
     return res.status(403).json({ error: "Bu talebi silemezsiniz." });
   }
   if (user.role !== "admin" && entry.status !== "open") {
-    return res.status(400).json({ error: "Sadece acik talepler silinebilir." });
+    return res.status(400).json({ error: "Sadece açık talepler silinebilir." });
   }
 
   if (entry.storedName) {
@@ -1957,11 +1957,11 @@ app.post("/api/requests/:id/respond", (req, res) => {
 
   const all = loadRequests();
   const idx = all.findIndex((r) => r.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadı." });
 
   const { message, close } = req.body;
   if (!message || !message.trim()) {
-    return res.status(400).json({ error: "Cevap mesaji zorunlu." });
+    return res.status(400).json({ error: "Cevap mesajı zorunlu." });
   }
 
   const response = {
@@ -1989,20 +1989,20 @@ app.get("/api/requests/:id/attachment", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
   const all = loadRequests();
   const entry = all.find((r) => r.id === req.params.id);
-  if (!entry) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (!entry) return res.status(404).json({ error: "Talep bulunamadı." });
 
   if (user.role !== "admin" && entry.submittedBy !== decoded.email) {
-    return res.status(403).json({ error: "Bu talebe erisim yetkiniz yok." });
+    return res.status(403).json({ error: "Bu talebe erişim yetkiniz yok." });
   }
 
   if (!entry.storedName) return res.status(404).json({ error: "Bu talebe ek dosya bulunmuyor." });
 
   const filePath = path.join(REQUESTS_UPLOADS_DIR, entry.storedName);
-  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya diskte bulunamadi." });
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya diskte bulunamadı." });
 
   const isPreview = req.query.preview === "1";
   if (isPreview) {
@@ -2037,5 +2037,5 @@ app.get("/api/verify-token", (req, res) => {
 seedInitialAdmin();
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server http://localhost:${PORT} adresinde calisiyor`);
+  console.log(`Server http://localhost:${PORT} adresinde çalışıyor`);
 });
