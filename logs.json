@@ -879,6 +879,86 @@
       "user": "forumcemturker@gmail.com",
       "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "5d908d1d-fa0d-46e6-99cc-77d02aed5c90",
+      "timestamp": 1783501585715,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "76ae7b35-ad2c-457a-964e-d7e16478ee20",
+      "timestamp": 1783501605960,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "bff481cd-9cf1-4970-8949-5b462bac112f",
+      "timestamp": 1783503065047,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "dfadf9ea-0b5b-47d3-974b-a2ec39f89990",
+      "timestamp": 1783503076098,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "e5e5308f-c3a7-4bb7-93e8-1ee58fe52cc6",
+      "timestamp": 1783503151491,
+      "action": "request_create",
+      "user": "trkrcm@gmail.com",
+      "detail": "\"dededede\" talebi oluşturuldu (itiraz).",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "78246b5d-b80f-4eb2-9677-d71bd613d54f",
+      "timestamp": 1783503200456,
+      "action": "request_respond",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"dededede\" talebine cevap verildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "14e64a91-34fe-4b4e-8d6e-b117afcbe871",
+      "timestamp": 1783503464300,
+      "action": "request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "\"dededede\" talebi silindi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d977e1f7-80ac-43fe-9334-a17513bb0ef7",
+      "timestamp": 1783506407822,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "1296cd61-0cad-4ea2-a2f0-9ac839ee1c93",
+      "timestamp": 1783506432649,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d9947574-938c-400d-a8e7-c366f3acbdc7",
+      "timestamp": 1783506480202,
+      "action": "profile_update",
+      "user": "trkrcm@gmail.com",
+      "detail": "Okul bilgileri güncellendi.",
+      "ip": "127.0.0.1"
     }
   ]
 }

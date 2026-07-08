@@ -22,8 +22,8 @@ body::before {
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(ellipse 600px 400px at 10% 20%, rgba(30, 58, 95, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 500px 400px at 90% 80%, rgba(30, 58, 95, 0.05) 0%, transparent 60%);
+    radial-gradient(ellipse 600px 400px at 10% 20%, rgba(139, 0, 0, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 400px at 90% 80%, rgba(139, 0, 0, 0.05) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -53,14 +53,14 @@ body::before {
   width: 52px;
   height: 52px;
   margin: 0 auto 18px;
-  background: linear-gradient(135deg, #1e3a5f, #2a4a7f);
+  background: linear-gradient(135deg, #8b0000, #a30000);
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(30, 58, 95, 0.2);
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.2);
 }
 
 .card-header h1 {
@@ -107,7 +107,7 @@ body::before {
 }
 
 .input-wrapper:focus-within .icon {
-  color: #1e3a5f;
+  color: #8b0000;
 }
 
 .form-control {
@@ -128,9 +128,9 @@ body::before {
 }
 
 .form-control:focus {
-  border-color: #1e3a5f;
+  border-color: #8b0000;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
 }
 
 select.form-control {
@@ -166,14 +166,14 @@ select.form-control {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #1e3a5f, #2a4a7f);
+  background: linear-gradient(135deg, #8b0000, #a30000);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(30, 58, 95, 0.25);
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(30, 58, 95, 0.35);
+  box-shadow: 0 6px 20px rgba(139, 0, 0, 0.35);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -210,7 +210,7 @@ select.form-control {
 }
 
 .btn-link:hover {
-  color: #1e3a5f;
+  color: #8b0000;
 }
 
 .form-footer {
@@ -273,7 +273,7 @@ select.form-control {
 .timer-value {
   font-size: 30px;
   font-weight: 700;
-  color: #1e3a5f;
+  color: #8b0000;
   letter-spacing: 3px;
   font-variant-numeric: tabular-nums;
   transition: color 0.3s;
@@ -343,7 +343,7 @@ body.dashboard-body::before {
 .sidebar-logo .logo-icon {
   width: 38px;
   height: 38px;
-  background: linear-gradient(135deg, #1e3a5f, #2a4a7f);
+  background: linear-gradient(135deg, #8b0000, #a30000);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -412,12 +412,12 @@ body.dashboard-body::before {
 }
 
 .nav-item.active {
-  background: rgba(30, 58, 95, 0.08);
-  color: #1e3a5f;
+  background: rgba(139, 0, 0, 0.08);
+  color: #8b0000;
 }
 
 .nav-item.active i {
-  color: #1e3a5f;
+  color: #8b0000;
 }
 
 .nav-section-title {
@@ -464,7 +464,7 @@ body.dashboard-body::before {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1e3a5f, #2a4a7f);
+  background: linear-gradient(135deg, #8b0000, #a30000);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -593,7 +593,7 @@ body.dashboard-body::before {
 }
 
 .section-title i {
-  color: #1e3a5f;
+  color: #8b0000;
   font-size: 15px;
 }
 
@@ -627,7 +627,7 @@ body.dashboard-body::before {
 }
 
 .report-card h4 i {
-  color: #1e3a5f;
+  color: #8b0000;
   font-size: 14px;
 }
 
@@ -651,12 +651,12 @@ body.dashboard-body::before {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(30, 58, 95, 0.08);
+  background: rgba(139, 0, 0, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #1e3a5f;
+  color: #8b0000;
   margin-bottom: 14px;
 }
 
@@ -721,8 +721,8 @@ body.dashboard-body::before {
   margin-bottom: 8px;
 }
 
-.ann-tag.admin { background: rgba(30, 58, 95, 0.1); color: #1e3a5f; }
-.ann-tag.all { background: rgba(30, 58, 95, 0.1); color: #1e3a5f; }
+.ann-tag.admin { background: rgba(139, 0, 0, 0.1); color: #8b0000; }
+.ann-tag.all { background: rgba(139, 0, 0, 0.1); color: #8b0000; }
 .ann-tag.lise { background: rgba(245, 158, 11, 0.1); color: #d97706; }
 .ann-tag.ortaokul { background: rgba(13, 148, 136, 0.1); color: #0d9488; }
 
@@ -827,7 +827,7 @@ body.dashboard-body::before {
 }
 
 .role-select:focus {
-  border-color: #1e3a5f;
+  border-color: #8b0000;
 }
 
 .btn-icon {
