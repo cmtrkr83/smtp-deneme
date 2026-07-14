@@ -65,6 +65,55 @@
     </div>
   </div>
 
+  <!-- File Request Modal -->
+  <div class="modal-overlay" id="frModal" style="display:none" onclick="if(event.target===this)closeFrModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="frModalTitle">Dosya Talebi Oluştur</h3>
+        <button class="modal-close" onclick="closeFrModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Başlık</label>
+          <input type="text" id="frTitle" class="form-control" placeholder="Dosya talebi başlığı" />
+        </div>
+        <div class="form-group">
+          <label>Açıklama</label>
+          <textarea id="frDescription" class="form-control" style="resize:vertical;min-height:60px;padding:10px 14px;" placeholder="İsteğe bağlı açıklama"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Hedef</label>
+          <select id="frTargetType" class="form-control">
+            <option value="all">Tüm Kullanıcılar</option>
+            <option value="group">Grup</option>
+            <option value="users">Belirli Kullanıcılar</option>
+          </select>
+        </div>
+        <div class="form-group" id="frTargetGroup" style="display:none;">
+          <label>Grup Seçin</label>
+          <select id="frTargetGroupSelect" class="form-control">
+            <option value="lise">Lise Grubu</option>
+            <option value="ortaokul">Ortaokul Grubu</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+        <div class="form-group" id="frTargetUsers" style="display:none;">
+          <label>Kullanıcı E-postaları (virgülle ayırın)</label>
+          <input type="text" id="frTargetUsersInput" class="form-control" placeholder="ornek1@mail.com, ornek2@mail.com" />
+        </div>
+        <div class="form-group">
+          <label>Teslim Süresi (gün)</label>
+          <input type="number" id="frExpiresDays" class="form-control" value="7" min="1" max="365" />
+        </div>
+        <div id="frMessage" class="message"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" style="width:auto;" onclick="closeFrModal()">İptal</button>
+        <button class="btn btn-primary" style="width:auto;background:#8b0000;border-color:#8b0000;" id="frSaveBtn" onclick="saveFr()">Oluştur</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const token = localStorage.getItem("token");
     if (!token) {
@@ -89,7 +138,8 @@
         { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
         { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "surveys", icon: "fa-square-poll-vertical", label: "Anketler", roles: ["admin", "lise", "ortaokul", "diger"] },
-        { page: "files", icon: "fa-folder-open", label: "Dosyalar", roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "files", icon: "fa-folder-open", label: "Dosya Dağıtım", roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "file-requests", icon: "fa-file-arrow-up", label: "Belge İstekleri", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "requests", icon: "fa-paper-plane", label: "Talep/İtiraz", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
         { separator: true, roles: ["admin", "lise", "ortaokul", "diger"] },
@@ -127,6 +177,7 @@
     else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
     else if (page === "surveys") { renderSurveys(); }
     else if (page === "files") { renderFiles(); }
+    else if (page === "file-requests") { renderFileRequests(); }
     else if (page === "requests") { renderRequests(); }
     else if (page === "reports") { renderReports(); }
     else renderPlaceholder(page);
@@ -175,6 +226,7 @@
         if (page === "dashboard") renderDashboard();
         else if (page === "announcements") renderAnnouncements();
         else if (page === "files") renderFiles();
+        else if (page === "file-requests") renderFileRequests();
         else if (page === "surveys") renderSurveys();
         else if (page === "requests") renderRequests();
       }
@@ -279,12 +331,16 @@
         data.links.forEach((l, i) => {
           const isNav = l.url.startsWith("/navigate/");
           const badge = l.badge > 0 ? `<span class="card-badge">${l.badge}</span>` : "";
-          const c = cardColors[i % cardColors.length];
+          let hlStyle = "", iconBg = cardColors[i % cardColors.length];
+          if (l.highlight) {
+            hlStyle = 'background:#dc2626;border:2px solid #b91c1c;';
+            iconBg = { bg: "#fff", color: "#dc2626" };
+          }
           html += `
-            <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}">
-              <div class="card-icon" style="background:${c.bg};color:${c.color};"><i class="fa-solid ${l.icon}"></i>${badge}</div>
-              <h4>${l.title}</h4>
-              <p>${l.desc}</p>
+            <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card${l.highlight ? ' highlight' : ''}" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}" style="${hlStyle}">
+              <div class="card-icon" style="background:${iconBg.bg};color:${iconBg.color};"><i class="fa-solid ${l.icon}"></i>${badge}</div>
+              ${l.highlight ? '<h4 style="color:#fff;">' + l.title + '</h4>' : '<h4>' + l.title + '</h4>'}
+              ${l.highlight ? '<p style="color:#fca5a5;">' + l.desc + '</p>' : '<p>' + l.desc + '</p>'}
             </a>
           `;
         });
@@ -540,10 +596,10 @@
       let html = "";
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(1)" ' + (usersPage === 1 ? 'disabled' : '') + '><i class="fa-solid fa-angles-left"></i></button>';
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage - 1) + ')" ' + (usersPage === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
-      html += '<span style="font-size:13px;color:rgba(255,255,255,0.5);padding:0 8px;">' + usersPage + " / " + totalPages + "</span>";
+      html += '<span style="font-size:13px;color:#666;padding:0 8px;">' + usersPage + " / " + totalPages + "</span>";
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage + 1) + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + totalPages + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-angles-right"></i></button>';
-      html += '<span style="font-size:12px;color:rgba(255,255,255,0.3);margin-left:12px;">' + usersAll.length + " kullanıcı</span>";
+      html += '<span style="font-size:12px;color:#999;margin-left:12px;">' + usersAll.length + " kullanıcı</span>";
       nav.innerHTML = html;
     }
 
@@ -566,16 +622,18 @@
                   <option value="diger" ${u.role==="diger"?"selected":""}>Diğer</option>
                 </select>
             </td>
-            <td style="font-size:12px;white-space:nowrap;">
+            <td style="font-size:12px;">
+              <div style="display:flex;flex-wrap:wrap;gap:4px 12px;">
               ${["lise","ortaokul","diger"].filter(r => r !== u.role).map(r => {
                 const checked = (u.crossRoles||[]).includes(r) ? "checked" : "";
-                return '<label style="margin-right:6px;cursor:pointer;user-select:none;"><input type="checkbox" ' + checked + ' onchange="toggleCrossRole(\'' + u.email + '\',\'' + r + '\',this.checked)" style="margin-right:2px;vertical-align:middle;"> <span style="vertical-align:middle;">' + (r==="lise"?"Lise":r==="ortaokul"?"Ortaokul":"Diğer") + '</span></label>';
+                return '<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;white-space:nowrap;"><input type="checkbox" ' + checked + ' onchange="toggleCrossRole(\'' + u.email + '\',\'' + r + '\',this.checked)" style="margin:0;vertical-align:middle;"> <span>' + (r==="lise"?"Lise":r==="ortaokul"?"Ortaokul":"Diğer") + '</span></label>';
               }).join("")}
+              </div>
             </td>
             <td class="cell-date">${created}</td>
             <td class="cell-date">${lastLogin}</td>
             <td class="cell-actions">
-              ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:rgba(255,255,255,0.15);font-size:12px;">(siz)</span>'}
+              ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:#aaa;font-size:12px;">(siz)</span>'}
             </td>
           </tr>
         `;
@@ -1906,7 +1964,7 @@
       const area = document.getElementById("contentArea");
       area.innerHTML = `
         <div class="content-header">
-          <h2>Dosyalar</h2>
+          <h2>Dosya Dağıtım</h2>
           <p>Size gönderilen dosyaları indirin.</p>
         </div>
         <div id="userFilesContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
@@ -2247,6 +2305,44 @@
         const cd = res.headers.get("Content-Disposition") || "";
         const match = cd.match(/filename="?(.+?)"?$/);
         const filename = match ? match[1] : "dosya";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert("Hata: " + e.message);
+      }
+    }
+
+    async function downloadAllFrFiles(frId) {
+      try {
+        const res = await fetch(`/api/file-requests/${frId}/download-all`, {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) { const data = await res.json().catch(() => {}); alert(data?.error || "Toplu indirme başarısız."); return; }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        const match = cd.match(/filename="?(.+?)"?$/);
+        const filename = match ? match[1] : "belge_istegi.zip";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert("Hata: " + e.message);
+      }
+    }
+
+    async function downloadFileRequestFile(frId, submissionId, fileIndex) {
+      try {
+        const res = await fetch(`/api/file-requests/${frId}/download/${submissionId}/${fileIndex}`, {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) { const data = await res.json().catch(() => {}); alert(data?.error || "Dosya indirilemedi."); return; }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        const match = cd.match(/filename="?(.+?)"?$/);
+        const filename = match ? match[1] : "dosya.zip";
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a"); a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -3316,6 +3412,327 @@
         msg.className = "message error show";
       }
     }
+
+    // ---- File Requests ----
+
+    function renderFileRequests() {
+      if (currentUser.role === "admin") renderAdminFileRequests();
+      else renderUserFileRequests();
+    }
+
+    async function renderAdminFileRequests() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h2>Belge İstekleri</h2>
+            <p>Kullanıcılardan belge isteyin ve gönderimleri görüntüleyin.</p>
+          </div>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;background:#8b0000;border-color:#8b0000;" onclick="showCreateFrModal()">
+            <i class="fa-solid fa-plus"></i> Talep Oluştur
+          </button>
+        </div>
+        <div id="adminFrList" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+      `;
+      try {
+        const res = await fetch("/api/file-requests", { headers: { Authorization: "Bearer " + token } });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const container = document.getElementById("adminFrList");
+        if (list.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:60px 0;color:#ccc;"><i class="fa-solid fa-file-arrow-up" style="font-size:48px;margin-bottom:16px;display:block;"></i><div style="font-size:14px;">Henüz dosya talebi oluşturulmamış.</div></div>';
+          return;
+        }
+        const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
+        container.innerHTML = list.map((fr) => {
+          const expired = fr.expiresAt < Date.now();
+          const targetStr = fr.targetType === "group" ? (fr.targetGroup === "lise" ? "Lise" : fr.targetGroup === "ortaokul" ? "Ortaokul" : "Diğer") : targetLabels[fr.targetType] || "Tümü";
+          const subCount = fr.submissionCount || 0;
+          return `
+            <div class="announcement-item" style="cursor:pointer;${expired?'opacity:0.5;':''}" onclick="viewFrDetail('${fr.id}')">
+              <span class="ann-tag ${fr.targetType}">${targetStr}</span>
+              <h4>${escHtml(fr.title)}</h4>
+              <p>${escHtml(fr.description) || "Açıklama yok"}</p>
+              <span class="ann-date">${expired ? "Süresi doldu" : new Date(fr.expiresAt).toLocaleDateString("tr-TR")} · ${subCount} gönderi</span>
+            </div>
+          `;
+        }).join("");
+      } catch {
+        document.getElementById("adminFrList").innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    async function renderUserFileRequests() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <h2>Belge İstekleri</h2>
+          <p>Yönetici tarafından istenen belgeleri görüntüleyin ve yükleyin.</p>
+        </div>
+        <div id="userFrList" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+      `;
+      try {
+        const res = await fetch("/api/file-requests" + asRoleQuery(), { headers: { Authorization: "Bearer " + token } });
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const container = document.getElementById("userFrList");
+        if (list.length === 0) {
+          container.innerHTML = '<div style="text-align:center;padding:60px 0;color:#ccc;"><i class="fa-solid fa-file-arrow-up" style="font-size:48px;margin-bottom:16px;display:block;"></i><div style="font-size:14px;">Size gönderilmiş dosya talebi bulunmuyor.</div></div>';
+          return;
+        }
+        container.innerHTML = list.map((fr) => {
+          const expired = fr.expiresAt < Date.now();
+          return `
+            <div class="announcement-item" style="cursor:pointer;${expired?'opacity:0.5;':''}" onclick="viewUserFrDetail('${fr.id}')">
+              <span class="ann-tag ${fr.submitted ? 'all' : 'admin'}" style="${fr.submitted?'background:rgba(22,163,74,0.1);color:#16a34a;':'background:rgba(220,38,38,0.1);color:#dc2626;'}">${fr.submitted ? "Teslim Edildi" : "Bekliyor"}</span>
+              <h4>${escHtml(fr.title)}</h4>
+              <p>${escHtml(fr.description) || "Açıklama yok"}</p>
+              <span class="ann-date">Son teslim: ${new Date(fr.expiresAt).toLocaleDateString("tr-TR")}</span>
+            </div>
+          `;
+        }).join("");
+      } catch {
+        document.getElementById("userFrList").innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Yüklenirken hata oluştu.</div>';
+      }
+    }
+
+    window.showCreateFrModal = function () {
+      document.getElementById("frModalTitle").textContent = "Dosya Talebi Oluştur";
+      document.getElementById("frSaveBtn").textContent = "Oluştur";
+      document.getElementById("frTitle").value = "";
+      document.getElementById("frDescription").value = "";
+      document.getElementById("frTargetType").value = "all";
+      document.getElementById("frTargetGroup").style.display = "none";
+      document.getElementById("frTargetUsers").style.display = "none";
+      document.getElementById("frExpiresDays").value = "7";
+      document.getElementById("frMessage").textContent = "";
+      document.getElementById("frMessage").className = "message";
+      document.getElementById("frModal").style.display = "flex";
+    };
+
+    function closeFrModal() {
+      document.getElementById("frModal").style.display = "none";
+    }
+
+    document.getElementById("frTargetType")?.addEventListener("change", function () {
+      document.getElementById("frTargetGroup").style.display = this.value === "group" ? "" : "none";
+      document.getElementById("frTargetUsers").style.display = this.value === "users" ? "" : "none";
+    });
+
+    async function saveFr() {
+      const title = document.getElementById("frTitle").value.trim();
+      const description = document.getElementById("frDescription").value.trim();
+      const targetType = document.getElementById("frTargetType").value;
+      const targetGroup = document.getElementById("frTargetGroupSelect").value;
+      const targetUsersRaw = document.getElementById("frTargetUsersInput").value;
+      const expiresInDays = parseInt(document.getElementById("frExpiresDays").value) || 7;
+      const msg = document.getElementById("frMessage");
+      const btn = document.getElementById("frSaveBtn");
+
+      if (!title) {
+        msg.textContent = "Başlık gerekli.";
+        msg.className = "message error show";
+        return;
+      }
+
+      const body = { title, description, targetType, expiresInDays };
+      if (targetType === "group") body.targetGroup = targetGroup;
+      if (targetType === "users") body.targetUsers = targetUsersRaw.split(",").map((e) => e.trim()).filter(Boolean);
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
+      try {
+        const res = await fetch("/api/file-requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          closeFrModal();
+          renderAdminFileRequests();
+        } else {
+          msg.textContent = data.error || "Hata oluştu.";
+          msg.className = "message error show";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Oluştur";
+      }
+    }
+
+    window.viewFrDetail = async function (id) {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
+      try {
+        const res = await fetch("/api/file-requests/" + id, { headers: { Authorization: "Bearer " + token } });
+        if (!res.ok) throw new Error();
+        const fr = await res.json();
+        const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
+        const targetStr = fr.targetType === "group" ? (fr.targetGroup === "lise" ? "Lise" : fr.targetGroup === "ortaokul" ? "Ortaokul" : "Diğer") : targetLabels[fr.targetType] || "Tümü";
+        const expired = fr.expiresAt < Date.now();
+
+        let subsHtml = "";
+        if (fr.submissions && fr.submissions.length > 0) {
+          subsHtml = fr.submissions.map((s) => `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f8f9fb;border-radius:8px;margin-bottom:6px;font-size:13px;">
+              <span style="font-weight:600;color:#1a1a2e;white-space:nowrap;min-width:120px;">${escHtml(s.userSchool || s.userEmail.split("@")[0])}</span>
+              <span style="color:#888;font-size:11px;white-space:nowrap;">${new Date(s.submittedAt).toLocaleDateString("tr-TR")} ${new Date(s.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</span>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;flex:1;">
+                ${s.files.map((f, fi) => `
+                  <a href="#" onclick="downloadFileRequestFile('${fr.id}','${s.id}',${fi});return false;" style="color:#6366f1;font-size:12px;text-decoration:none;white-space:nowrap;">
+                    <i class="fa-solid fa-download"></i> ${escHtml(f.originalName)} (${(f.size/1024).toFixed(1)} KB)
+                  </a>
+                `).join("<span style=\"color:#ddd;\"> | </span>")}
+              </div>
+            </div>
+          `).join("");
+        } else {
+          subsHtml = '<div style="text-align:center;padding:20px;color:#aaa;">Henüz gönderi yok.</div>';
+        }
+
+        area.innerHTML = `
+          <div style="margin-bottom:20px;">
+            <button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderAdminFileRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+            <button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:13px;float:right;margin-left:8px;background:#8b0000;border-color:#8b0000;" onclick="downloadAllFrFiles('${fr.id}')"><i class="fa-solid fa-file-zipper"></i> Toplu İndir</button>
+            <button class="btn btn-danger" style="width:auto;padding:10px 18px;font-size:13px;float:right;" onclick="deleteFr('${fr.id}')"><i class="fa-solid fa-trash-can"></i> Talebi Sil</button>
+          </div>
+          <div class="content-header">
+            <h2>${escHtml(fr.title)}</h2>
+            <p>${escHtml(fr.description) || "Açıklama yok"}</p>
+            <div style="margin-top:8px;font-size:13px;color:#888;">
+              <span class="ann-tag ${fr.targetType}" style="font-size:10px;">${targetStr}</span>
+              ${expired ? '<span style="color:#dc2626;margin-left:8px;">Süresi doldu</span>' : '<span style="color:#16a34a;margin-left:8px;">Son teslim: ' + new Date(fr.expiresAt).toLocaleDateString("tr-TR") + '</span>'}
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Gönderiler (${fr.submissions ? fr.submissions.length : 0})</h3>
+            ${subsHtml}
+          </div>
+        `;
+      } catch {
+        area.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Yüklenirken hata oluştu. <button class="btn btn-ghost" style="width:auto;margin-top:12px;" onclick="renderAdminFileRequests()">Geri</button></div>';
+      }
+    };
+
+    window.viewUserFrDetail = async function (id) {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
+      try {
+        const res = await fetch("/api/file-requests/" + id + asRoleQuery(), { headers: { Authorization: "Bearer " + token } });
+        if (!res.ok) throw new Error();
+        const fr = await res.json();
+        const expired = fr.expiresAt < Date.now();
+
+        let mySub = null;
+        if (fr.submissions && fr.submissions.length > 0) {
+          mySub = fr.submissions[0];
+        }
+
+        area.innerHTML = `
+          <div style="margin-bottom:20px;">
+            <button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderUserFileRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+          </div>
+          <div class="content-header">
+            <h2>${escHtml(fr.title)}</h2>
+            <p>${escHtml(fr.description) || "Açıklama yok"}</p>
+            <div style="margin-top:8px;font-size:13px;color:#888;">
+              Son teslim: ${new Date(fr.expiresAt).toLocaleDateString("tr-TR")}
+            </div>
+          </div>
+          ${mySub ? `
+            <div style="background:#f8f9fb;border-radius:14px;padding:24px;">
+              <h3 style="font-size:15px;font-weight:600;color:#16a34a;margin-bottom:12px;"><i class="fa-solid fa-check-circle"></i> Dosyalarınız Teslim Edildi</h3>
+              <p style="font-size:13px;color:#888;margin-bottom:12px;">Teslim tarihi: ${new Date(mySub.submittedAt).toLocaleDateString("tr-TR")} ${new Date(mySub.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${mySub.files.map((f) => `
+                  <div style="padding:8px 14px;background:#fff;border:1px solid #e2e4e9;border-radius:8px;font-size:13px;">
+                    <i class="fa-solid fa-file-zipper"></i> ${escHtml(f.originalName)} (${(f.size/1024).toFixed(1)} KB)
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : (expired ? `
+            <div style="text-align:center;padding:40px;color:#dc2626;">
+              <i class="fa-solid fa-clock" style="font-size:32px;display:block;margin-bottom:8px;"></i>
+              Bu talebin süresi dolmuş.
+            </div>
+          ` : `
+            <div style="background:#f8f9fb;border-radius:14px;padding:24px;">
+              <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Dosya Yükle</h3>
+              <p style="font-size:13px;color:#888;margin-bottom:16px;">Yalnızca ZIP dosyaları (max 10 MB). Birden fazla dosya seçebilirsiniz.</p>
+              <form id="frUploadForm">
+                <input type="file" id="frFileInput" multiple accept=".zip" style="margin-bottom:12px;" />
+                <div id="frUploadMessage" class="message"></div>
+                <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 20px;background:#8b0000;border-color:#8b0000;">
+                  <i class="fa-solid fa-upload"></i> Gönder
+                </button>
+              </form>
+            </div>
+          `)}
+        `;
+
+        if (!mySub && !expired) {
+          document.getElementById("frUploadForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("frFileInput");
+            const msg = document.getElementById("frUploadMessage");
+            const btn = e.target.querySelector("button[type=submit]");
+
+            if (!input.files || input.files.length === 0) {
+              msg.textContent = "En az bir ZIP dosyası seçin.";
+              msg.className = "message error show";
+              return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+
+            const formData = new FormData();
+            for (const f of input.files) formData.append("files", f);
+
+            try {
+              const res = await fetch("/api/file-requests/" + id + "/submit", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + token },
+                body: formData,
+              });
+              const data = await res.json();
+              if (res.ok) {
+                msg.textContent = "Dosyalar başarıyla gönderildi!";
+                msg.className = "message success show";
+                setTimeout(() => viewUserFrDetail(id), 1000);
+              } else {
+                msg.textContent = data.error || "Hata oluştu.";
+                msg.className = "message error show";
+              }
+            } catch {
+              msg.textContent = "Bağlantı hatası.";
+              msg.className = "message error show";
+            } finally {
+              btn.disabled = false;
+              btn.innerHTML = '<i class="fa-solid fa-upload"></i> Gönder';
+            }
+          });
+        }
+      } catch {
+        area.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Yüklenirken hata oluştu. <button class="btn btn-ghost" style="width:auto;margin-top:12px;" onclick="renderUserFileRequests()">Geri</button></div>';
+      }
+    };
+
+    window.deleteFr = async function (id) {
+      if (!confirm("Bu dosya talebini silmek istediğinize emin misiniz?")) return;
+      try {
+        const res = await fetch("/api/file-requests/" + id, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (res.ok) renderAdminFileRequests();
+      } catch {}
+    };
 
     init();
   </script>

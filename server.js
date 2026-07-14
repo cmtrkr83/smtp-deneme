@@ -24,6 +24,7 @@ const USERS_FILE = path.join(DATA_DIR, "users.json");
 const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
 const LOGS_FILE = path.join(DATA_DIR, "logs.json");
 const FILES_FILE = path.join(DATA_DIR, "files.json");
+const FILE_REQUESTS_FILE = path.join(DATA_DIR, "file-requests.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
 function seedInitialAdmin() {
@@ -285,7 +286,8 @@ function getDashboardData(role, users, email) {
       links: [
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
         { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
-        { title: "Dosyalar", url: "/navigate/files", icon: "fa-folder-open", desc: "Gönderilen dosyaları indirin" },
+        { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
+        { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
     },
     ortaokul: {
@@ -294,7 +296,8 @@ function getDashboardData(role, users, email) {
       links: [
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
         { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
-        { title: "Dosyalar", url: "/navigate/files", icon: "fa-folder-open", desc: "Gönderilen dosyaları indirin" },
+        { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
+        { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
     },
     diger: {
@@ -303,7 +306,8 @@ function getDashboardData(role, users, email) {
       links: [
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
         { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
-        { title: "Dosyalar", url: "/navigate/files", icon: "fa-folder-open", desc: "Gönderilen dosyaları indirin" },
+        { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
+        { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
     },
   };
@@ -322,10 +326,21 @@ function getDashboardData(role, users, email) {
     const targetedFiles = allFileList.filter((f) => (f.startsAt || 0) <= now && f.expiresAt > now && isFileTargeted(f, email, role));
     const undownloadedFiles = targetedFiles.filter((f) => !(f.downloads || []).some((d) => d.userId === email)).length;
 
+    const allFr = loadFileRequests();
+    const activeFr = allFr.filter((fr) => fr.expiresAt > now && isFrTargeted(fr, email, role));
+    const pendingFr = activeFr.filter((fr) => !(fr.submissions || []).some((s) => s.userEmail === email)).length;
+
     if (roleData[role] && roleData[role].links) {
       roleData[role].links[0].badge = unreadAnn;
       roleData[role].links[1].badge = unansweredSurveys;
       roleData[role].links[2].badge = undownloadedFiles;
+      const frLink = roleData[role].links[3];
+      if (pendingFr > 0) {
+        frLink.badge = pendingFr;
+        frLink.highlight = true;
+      } else {
+        roleData[role].links.splice(3, 1);
+      }
     }
   }
 
@@ -2023,6 +2038,276 @@ app.get("/api/requests/:id/attachment", (req, res) => {
   }
   res.sendFile(filePath);
 });
+
+// ---- File Requests ----
+
+const FILE_REQUESTS_UPLOADS_DIR = path.join(UPLOADS_DIR, "file-requests");
+
+function loadFileRequests() {
+  try {
+    if (fs.existsSync(FILE_REQUESTS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(FILE_REQUESTS_FILE, "utf-8"));
+      return Array.isArray(data) ? data : (data.requests || []);
+    }
+  } catch (_) {}
+  return [];
+}
+
+function saveFileRequests(list) {
+  fs.writeFileSync(FILE_REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
+}
+
+const frTempDir = path.join(FILE_REQUESTS_UPLOADS_DIR, "temp");
+if (!fs.existsSync(frTempDir)) fs.mkdirSync(frTempDir, { recursive: true });
+const frUpload = multer({
+  dest: frTempDir,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (path.extname(file.originalname).toLowerCase() !== ".zip")
+      return cb(new Error("Yalnızca ZIP dosyalarına izin verilir."));
+    cb(null, true);
+  },
+});
+
+function isFrTargeted(fr, userEmail, userRole) {
+  if (fr.targetType === "all") return true;
+  if (fr.targetType === "group") return fr.targetGroup === userRole;
+  if (fr.targetType === "users") return (fr.targetUsers || []).includes(userEmail);
+  return false;
+}
+
+app.get("/api/file-requests", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+
+  const activeRole = resolveRole(user, req);
+  const all = loadFileRequests();
+  const now = Date.now();
+
+  let list;
+  if (user.role === "admin") {
+    list = all.map((fr) => ({
+      ...fr,
+      submissionCount: (fr.submissions || []).length,
+    }));
+  } else {
+    list = all
+      .filter((fr) => fr.expiresAt > now && isFrTargeted(fr, decoded.email, activeRole))
+      .map((fr) => {
+        const mySub = (fr.submissions || []).find((s) => s.userEmail === decoded.email);
+        return {
+          id: fr.id,
+          title: fr.title,
+          description: fr.description,
+          expiresAt: fr.expiresAt,
+          submitted: !!mySub,
+          submittedAt: mySub ? mySub.submittedAt : null,
+        };
+      });
+  }
+
+  res.json(list);
+});
+
+app.post("/api/file-requests", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const { title, description, targetType, targetGroup, targetUsers, expiresInDays } = req.body;
+  if (!title || !targetType) {
+    return res.status(400).json({ error: "Baslik ve hedef tipi gerekli." });
+  }
+  if (targetType === "group" && !targetGroup) {
+    return res.status(400).json({ error: "Grup secimi gerekli." });
+  }
+
+  const fr = {
+    id: crypto.randomUUID(),
+    title: title.trim(),
+    description: description ? description.trim() : "",
+    targetType,
+    targetGroup: targetType === "group" ? targetGroup : null,
+    targetUsers: targetType === "users" ? (targetUsers || []).map((e) => e.toLowerCase().trim()) : null,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (expiresInDays || 7) * 24 * 60 * 60 * 1000,
+    submissions: [],
+    createdBy: decoded.email,
+  };
+
+  const all = loadFileRequests();
+  all.push(fr);
+  saveFileRequests(all);
+  appendLog(makeLog("file_request_create", decoded.email, `Dosya talebi oluşturuldu: ${fr.title}`, req));
+  res.json(fr);
+});
+
+app.post("/api/file-requests/:id/submit", frUpload.array("files", 10), (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const users = loadUsers();
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+
+  const activeRole = resolveRole(user, req);
+  const all = loadFileRequests();
+  const idx = all.findIndex((fr) => fr.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const fr = all[idx];
+  if (fr.expiresAt < Date.now()) return res.status(400).json({ error: "Bu talebin süresi dolmus." });
+
+  if (!isFrTargeted(fr, decoded.email, activeRole))
+    return res.status(403).json({ error: "Bu talep size ait degil." });
+
+  if ((fr.submissions || []).some((s) => s.userEmail === decoded.email))
+    return res.status(400).json({ error: "Bu talebe zaten dosya gönderdiniz." });
+
+  if (!req.files || req.files.length === 0)
+    return res.status(400).json({ error: "En az bir ZIP dosyasi yükleyin." });
+
+  if (!fs.existsSync(FILE_REQUESTS_UPLOADS_DIR))
+    fs.mkdirSync(FILE_REQUESTS_UPLOADS_DIR, { recursive: true });
+
+  const subId = crypto.randomUUID();
+  const subDir = path.join(FILE_REQUESTS_UPLOADS_DIR, subId);
+  fs.mkdirSync(subDir, { recursive: true });
+
+  const savedFiles = req.files.map((f) => {
+    const ext = path.extname(f.originalname);
+    const safeName = subId + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6) + ext;
+    const dest = path.join(subDir, safeName);
+    fs.renameSync(f.path, dest);
+    return { originalName: f.originalname, storedName: safeName, size: f.size };
+  });
+
+  const submission = {
+    id: subId,
+    userEmail: decoded.email,
+    userRole: user.role,
+    submittedAt: Date.now(),
+    files: savedFiles,
+  };
+
+  if (!fr.submissions) fr.submissions = [];
+  fr.submissions.push(submission);
+  saveFileRequests(all);
+
+  appendLog(makeLog("file_request_submit", decoded.email, `${decoded.email} dosya gönderdi: ${fr.title}`, req));
+  res.json(submission);
+});
+
+app.get("/api/file-requests/:id", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+
+  const all = loadFileRequests();
+  const fr = all.find((fr) => fr.id === req.params.id);
+  if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const allUsers = loadUsers();
+
+  if (decoded.role !== "admin") {
+    const user = allUsers[decoded.email];
+    if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+    const activeRole = resolveRole(user, req);
+    if (!isFrTargeted(fr, decoded.email, activeRole))
+      return res.status(403).json({ error: "Bu talep size ait degil." });
+    fr.submissions = (fr.submissions || []).filter((s) => s.userEmail === decoded.email);
+  }
+
+  if (decoded.role === "admin" && fr.submissions) {
+    fr.submissions = fr.submissions.map((s) => ({
+      ...s,
+      userSchool: allUsers[s.userEmail]?.school || "",
+    }));
+  }
+
+  res.json(fr);
+});
+
+app.delete("/api/file-requests/:id", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const all = loadFileRequests();
+  const idx = all.findIndex((fr) => fr.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const removed = all.splice(idx, 1)[0];
+  saveFileRequests(all);
+
+  (removed.submissions || []).forEach((s) => {
+    const subDir = path.join(FILE_REQUESTS_UPLOADS_DIR, s.id);
+    if (fs.existsSync(subDir)) fs.rmSync(subDir, { recursive: true, force: true });
+  });
+
+  appendLog(makeLog("file_request_delete", decoded.email, `Dosya talebi silindi: ${removed.title}`, req));
+  res.json({ success: true });
+});
+
+app.get("/api/file-requests/:id/download-all", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const all = loadFileRequests();
+  const fr = all.find((fr) => fr.id === req.params.id);
+  if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const submissions = fr.submissions || [];
+  if (submissions.length === 0) return res.status(404).json({ error: "Gönderi yok." });
+
+  const archiver = require("archiver");
+  const archive = archiver("zip", { zlib: { level: 5 } });
+  const sanitized = fr.title.replace(/[^a-zA-Z0-9\- _]/g, "_").substring(0, 50);
+  const zipName = `belge_istegi_${sanitized}.zip`;
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+
+  archive.pipe(res);
+
+  const allUsers = loadUsers();
+  for (const sub of submissions) {
+    const school = allUsers[sub.userEmail]?.school || sub.userEmail;
+    const folder = school.replace(/[^a-zA-Z0-9\- _]/g, "_").substring(0, 40);
+    for (const file of (sub.files || [])) {
+      const filePath = path.join(FILE_REQUESTS_UPLOADS_DIR, sub.id, file.storedName);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: `${folder}/${file.originalName}` });
+      }
+    }
+  }
+
+  archive.finalize();
+});
+
+app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const all = loadFileRequests();
+  const fr = all.find((fr) => fr.id === req.params.id);
+  if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
+
+  const sub = (fr.submissions || []).find((s) => s.id === req.params.submissionId);
+  if (!sub) return res.status(404).json({ error: "Gönderi bulunamadi." });
+
+  const fileIdx = parseInt(req.params.fileIndex, 10);
+  const file = sub.files[fileIdx];
+  if (!file) return res.status(404).json({ error: "Dosya bulunamadi." });
+
+  const filePath = path.join(FILE_REQUESTS_UPLOADS_DIR, sub.id, file.storedName);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya sunucuda bulunamadi." });
+
+  res.download(filePath, file.originalName);
+});
+
+// ---- Verify Token ----
 
 app.get("/api/verify-token", (req, res) => {
   const auth = req.headers.authorization;

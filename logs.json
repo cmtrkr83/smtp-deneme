@@ -959,6 +959,198 @@
       "user": "trkrcm@gmail.com",
       "detail": "Okul bilgileri güncellendi.",
       "ip": "127.0.0.1"
+    },
+    {
+      "id": "8477a8be-b0a9-467b-a83d-b5b25686d75a",
+      "timestamp": 1783601185842,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "3c4978c0-ea81-4db5-baa4-e6dc46d6a3c7",
+      "timestamp": 1783601206887,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "848af10c-6aef-47e4-8583-94cc860e53d2",
+      "timestamp": 1783664933068,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "5b196519-826b-4309-85cb-4f25de80626e",
+      "timestamp": 1783664954743,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "27a59beb-25f8-497f-a2b3-b5a151e2fcd1",
+      "timestamp": 1783682530070,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "50c73153-6c9c-43df-9086-5a894e89d8fb",
+      "timestamp": 1783682550241,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "ff81c7d7-0dfa-42fe-b7ee-c236fa83835e",
+      "timestamp": 1783683180159,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6a911425-2a28-486b-b1a9-c2e3759fc896",
+      "timestamp": 1783683203642,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "d90aa8b9-2f6b-4d9c-a87c-7a59c373ca2d",
+      "timestamp": 1783683848023,
+      "action": "file_request_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "Dosya talebi oluşturuldu: 2026 LGS Veri Talepleri",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "8e4096da-5a13-4837-be03-a91e21004f3f",
+      "timestamp": 1783683868187,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "0b0ee15a-355c-4c5c-8948-218e975227d6",
+      "timestamp": 1783683877738,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "fe2664d7-d94b-4725-8959-965b0a74ab71",
+      "timestamp": 1783683935672,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "58be8263-bfcc-4281-b8df-0fa27755810c",
+      "timestamp": 1783683976655,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "b7c7f5c5-d919-43de-a7d2-4f4dc3ba74fd",
+      "timestamp": 1783684223704,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "4253f2b9-0028-41bf-9824-b83834ae39d7",
+      "timestamp": 1783684349055,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6db8bbf2-85fb-4cd8-a791-d02e811e963c",
+      "timestamp": 1783684362925,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "4b16435e-8053-41bf-bf81-307c6681a205",
+      "timestamp": 1783684447072,
+      "action": "otp_request",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "6faf05e1-7ba5-42f0-9372-da682225ae3e",
+      "timestamp": 1783684462187,
+      "action": "login",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "0aa38161-a632-4acd-96e4-0cb6145ecde9",
+      "timestamp": 1783684521343,
+      "action": "file_request_submit",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com dosya gönderdi: 2026 LGS Veri Talepleri",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "078860c5-f23e-4c97-92ef-cfd4f314452b",
+      "timestamp": 1783684821509,
+      "action": "file_request_delete",
+      "user": "forumcemturker@gmail.com",
+      "detail": "Dosya talebi silindi: 2026 LGS Veri Talepleri",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "f48e57dc-f621-4c88-bbb2-d748a3d6465c",
+      "timestamp": 1783684834016,
+      "action": "file_request_create",
+      "user": "forumcemturker@gmail.com",
+      "detail": "Dosya talebi oluşturuldu: tttt",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "919a7171-80ae-477f-9bde-6b60978e3ec2",
+      "timestamp": 1783685048902,
+      "action": "file_request_submit",
+      "user": "trkrcm@gmail.com",
+      "detail": "trkrcm@gmail.com dosya gönderdi: tttt",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "3879c7e9-d55e-4db8-96c5-c4c351aaebe9",
+      "timestamp": 1784010428153,
+      "action": "otp_request",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com adresine OTP gönderildi.",
+      "ip": "127.0.0.1"
+    },
+    {
+      "id": "eba29e0f-6b3b-4a07-b855-3be4fe4bc259",
+      "timestamp": 1784010456250,
+      "action": "login",
+      "user": "forumcemturker@gmail.com",
+      "detail": "forumcemturker@gmail.com basariyla giris yapti.",
+      "ip": "127.0.0.1"
     }
   ]
 }

@@ -677,6 +677,17 @@ body.dashboard-body::before {
   position: relative;
 }
 
+@keyframes fr-pulse {
+  0%, 100% { opacity:1; box-shadow: 0 0 16px rgba(220,38,38,0.5); transform:scale(1); }
+  25% { opacity:0.7; box-shadow: 0 0 40px rgba(220,38,38,0.9); transform:scale(1.02); }
+  50% { opacity:1; box-shadow: 0 0 16px rgba(220,38,38,0.5); transform:scale(1); }
+  75% { opacity:0.85; box-shadow: 0 0 30px rgba(220,38,38,0.75); transform:scale(1.01); }
+}
+
+.link-card.highlight {
+  animation: fr-pulse 1.2s ease-in-out infinite;
+}
+
 .card-badge {
   position: absolute;
   top: -6px;
