@@ -43,11 +43,17 @@
         .then((data) => {
           if (data.valid) {
             window.location.replace("/dashboard.html");
-          } else {
-            localStorage.removeItem("token");
-            statusEl.textContent = "Giriş yaparak devam edin.";
-            buttons.style.display = "flex";
+            return;
           }
+          if (data.valid === false) {
+            localStorage.removeItem("token");
+          }
+          statusEl.textContent = "Giriş yaparak devam edin.";
+          buttons.style.display = "flex";
+        })
+        .catch(() => {
+          statusEl.textContent = "Bağlantı hatası. Giriş yaparak devam edin.";
+          buttons.style.display = "flex";
         });
     } else {
       statusEl.textContent = "Giriş yaparak devam edin.";

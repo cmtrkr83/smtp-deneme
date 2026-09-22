@@ -160,8 +160,8 @@ const generalLimiter = rateLimit({
 app.use(generalLimiter);
 
 const otpSendLimiter = rateLimit({
-  windowMs: OTP_COOLDOWN_MS,
-  max: 1,
+  windowMs: 15 * 60 * 1000,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Çok fazla OTP isteği. Lütfen bekleyin." },
@@ -269,8 +269,7 @@ function getDashboardData(role, users, email) {
         { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri oluşturun ve sonuçları görüntüleyin" },
         { title: "Log Kayıtları", url: "/navigate/logs", icon: "fa-clipboard-list", desc: "Sistem hareketlerini inceleyin" },
         { title: "Raporlar", url: "/navigate/reports", icon: "fa-chart-bar", desc: "İstatistik ve grafik raporları" },
-        { title: "Sistem Ayarları", url: "#", icon: "fa-sliders", desc: "Genel sistem yapılandırması" },
-        { title: "Diğerleri", url: "#", icon: "fa-ellipsis-h", desc: "Diğer sistem araçları" },
+        { title: "Sistem Ayarları", url: "/navigate/settings", icon: "fa-sliders", desc: "Genel sistem yapılandırması" },
       ],
       stats: [
         { label: "Toplam Kullanıcı", value: String(totalUsers), icon: "fa-users", color: "#6366f1" },
@@ -355,7 +354,19 @@ app.get("/api/captcha", (req, res) => {
   res.json({ id, svg });
 });
 
-app.post("/api/send-otp", async (req, res) => {
+function cleanupUploadedFiles(req) {
+  if (!Array.isArray(req.files)) return;
+  for (const f of req.files) {
+    try { if (f && f.path) fs.unlinkSync(f.path); } catch (_) {}
+  }
+}
+
+function contentDisposition(name, type = "attachment") {
+  const safe = String(name || "dosya").replace(/[\r\n"\\]/g, "_");
+  return `${type}; filename="${safe}"`;
+}
+
+app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
   try {
     const { email, captchaId, captcha } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -393,10 +404,9 @@ app.post("/api/send-otp", async (req, res) => {
     }
 
     const otp = generateOtp();
-    otpStore.set(normEmail, { otp, expires: now + OTP_EXPIRY_MS, sentAt: now });
-    lastOtpRequest.set(normEmail, now);
-
     await sendOtpEmail(normEmail, otp);
+    otpStore.set(normEmail, { otp, expires: Date.now() + OTP_EXPIRY_MS, sentAt: Date.now() });
+    lastOtpRequest.set(normEmail, Date.now());
     appendLog(makeLog("otp_request", normEmail, `${normEmail} adresine OTP gönderildi.`, req));
     res.json({
       message: "OTP kodu e-posta adresinize gönderildi.",
@@ -419,8 +429,9 @@ app.post("/api/verify-otp", otpVerifyLimiter, (req, res) => {
 
   const failData = failedAttempts.get(normEmail);
   if (failData && failData.count >= MAX_FAILED_ATTEMPTS) {
-    if (now - failData.firstAttempt < LOCKOUT_DURATION_MS) {
-      const remaining = Math.ceil((LOCKOUT_DURATION_MS - (now - failData.firstAttempt)) / 1000);
+    const lockBase = failData.lastAttempt || failData.firstAttempt;
+    if (now - lockBase < LOCKOUT_DURATION_MS) {
+      const remaining = Math.ceil((LOCKOUT_DURATION_MS - (now - lockBase)) / 1000);
       return res.status(429).json({
         error: `Çok fazla başarısız deneme. ${remaining} saniye bekleyin.`,
         lockout: remaining,
@@ -437,11 +448,13 @@ app.post("/api/verify-otp", otpVerifyLimiter, (req, res) => {
     otpStore.delete(normEmail);
     return res.status(400).json({ error: "OTP kodunun süresi doldu. Yeni kod isteyin." });
   }
-  if (record.otp !== otp) {
-    if (!failData) {
-      failedAttempts.set(normEmail, { count: 1, firstAttempt: now });
+  if (String(record.otp) !== String(otp)) {
+    const current = failedAttempts.get(normEmail);
+    if (!current) {
+      failedAttempts.set(normEmail, { count: 1, firstAttempt: now, lastAttempt: now });
     } else {
-      failData.count += 1;
+      current.count += 1;
+      current.lastAttempt = now;
     }
     return res.status(400).json({ error: "Geçersiz OTP kodu." });
   }
@@ -488,7 +501,8 @@ app.get("/api/profile", (req, res) => {
   if (!decoded) return res.status(401).json({ error: "Token gerekli." });
 
   const users = loadUsers();
-  const user = users[decoded.email] || { email: decoded.email, role: "admin" };
+  const user = users[decoded.email];
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
   res.json({
     email: user.email,
     role: user.role,
@@ -535,7 +549,8 @@ app.get("/api/dashboard", (req, res) => {
   try {
     const decoded = jwt.verify(auth.split(" ")[1], JWT_SECRET);
     const users = loadUsers();
-    const user = users[decoded.email] || { email: decoded.email, role: "admin" };
+    const user = users[decoded.email];
+    if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
     const activeRole = resolveRole(user, req);
     const data = getDashboardData(activeRole, users, decoded.email);
     res.json({ role: activeRole, ...data });
@@ -577,13 +592,13 @@ function requireAdmin(req, res) {
 }
 
 app.get("/api/users", (req, res) => {
-  const decoded = authUser(req);
-  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
 
   const users = loadUsers();
   const list = Object.entries(users).map(([email, data]) => ({
     email,
-    role: data.role || "admin",
+    role: data.role || "diger",
     crossRoles: data.crossRoles || [],
     profile: data.profile || null,
     created: data.created,
@@ -652,7 +667,8 @@ app.put("/api/users/:email", (req, res) => {
     appendLog(makeLog("user_role_change", decoded.email, `${normEmail}: ${oldRole} -> ${role}`, req));
   }
   if (crossRoles !== undefined) {
-    const validCross = crossRoles.filter((r) => validRoles.includes(r) && r !== currentRole);
+    const crossList = Array.isArray(crossRoles) ? crossRoles : [];
+    const validCross = crossList.filter((r) => validRoles.includes(r) && r !== currentRole);
     users[normEmail].crossRoles = validCross;
   }
   saveUsers(users);
@@ -739,7 +755,7 @@ app.post("/api/users/import", (req, res) => {
       if (rows.length === 0) return res.status(400).json({ error: "Excel dosyasi bos." });
 
       const users = loadUsers();
-      let added = 0, updated = 0, errors = [];
+      let added = 0, updated = 0, skipped = 0, errors = [];
       const colMap = { il: null, ilce: null, genelMudurluk: null, kurumTuru: null, kurumKodu: null, kurum: null };
       function normalizeCol(s) {
         return s.toLowerCase().replace(/[\s\-_]/g, "").replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c");
@@ -801,7 +817,7 @@ app.post("/api/users/import", (req, res) => {
       }
       saveUsers(users);
       appendLog(makeLog("user_import", decoded.email, `${added} yeni, ${updated} güncellendi.`, req));
-      res.json({ added, updated, errors: errors.length > 0 ? errors.slice(0, 10) : [] });
+      res.json({ added, updated, skipped, errors: errors.length > 0 ? errors.slice(0, 10) : [] });
     } catch (e) {
       res.status(400).json({ error: "Excel okunurken hata: " + e.message });
     }
@@ -923,6 +939,7 @@ app.post("/api/announcements/:id/read", (req, res) => {
   const ann = list.find((a) => a.id === req.params.id);
   if (!ann) return res.status(404).json({ error: "Duyuru bulunamadı." });
 
+  if (!Array.isArray(ann.readBy)) ann.readBy = [];
   if (!ann.readBy.includes(decoded.email)) {
     ann.readBy.push(decoded.email);
     saveAnnouncements(list);
@@ -956,6 +973,10 @@ const actionLabels = {
   request_edit: "Talep Düzenleme",
   request_delete: "Talep Silme",
   request_respond: "Talep Cevaplama",
+  profile_update: "Profil Güncelleme",
+  file_request_create: "Belge İstek Oluşturma",
+  file_request_submit: "Belge İstek Yükleme",
+  file_request_delete: "Belge İstek Silme",
 };
 
 app.get("/api/logs", (req, res) => {
@@ -1102,13 +1123,14 @@ app.post("/api/surveys", (req, res) => {
   }
 
   const list = loadSurveys();
+  const surveyDays = Number(expiresInDays);
   const survey = {
     id: crypto.randomUUID(),
     title,
     description: description || "",
     createdBy: decoded.email,
     createdAt: Date.now(),
-    expiresAt: Date.now() + (expiresInDays || 7) * 24 * 60 * 60 * 1000,
+    expiresAt: Date.now() + (Number.isFinite(surveyDays) && surveyDays > 0 ? surveyDays : 7) * 24 * 60 * 60 * 1000,
     allowEdit: allowEdit !== false,
     targetType,
     targetGroup: targetType === "group" ? targetGroup : null,
@@ -1139,7 +1161,9 @@ app.get("/api/surveys/:id", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (user.role !== "admin" && !isSurveyTargeted(survey, decoded.email, user.role)) {
+  if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
+  const activeRole = resolveRole(user, req);
+  if (user.role !== "admin" && !isSurveyTargeted(survey, decoded.email, activeRole)) {
     return res.status(403).json({ error: "Bu ankete erişim yetkiniz yok." });
   }
 
@@ -1165,7 +1189,13 @@ app.put("/api/surveys/:id", (req, res) => {
       list[idx].targetUsers = targetType === "users" ? (targetUsers || []) : null;
     }
   }
-  if (expiresInDays) list[idx].expiresAt = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
+  if (expiresInDays !== undefined && expiresInDays !== null && expiresInDays !== "") {
+    const days = Number(expiresInDays);
+    if (!Number.isFinite(days) || days <= 0) {
+      return res.status(400).json({ error: "Gecersiz son tarih." });
+    }
+    list[idx].expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+  }
   if (allowEdit !== undefined) list[idx].allowEdit = allowEdit;
   if (questions && Array.isArray(questions) && questions.length > 0) {
     list[idx].questions = questions.map((q, i) => ({
@@ -1213,7 +1243,7 @@ app.post("/api/surveys/:id/respond", (req, res) => {
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
-  if (!isSurveyTargeted(survey, decoded.email, user.role)) {
+  if (!isSurveyTargeted(survey, decoded.email, resolveRole(user, req))) {
     return res.status(403).json({ error: "Bu anket size ait değil." });
   }
   if (survey.expiresAt <= Date.now()) {
@@ -1473,13 +1503,17 @@ app.post("/api/files", (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: "Indirme bitis tarihi zorunlu." });
     }
+    if (!Number.isFinite(Number(req.body.startsAt)) || !Number.isFinite(Number(req.body.expiresAt))) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Gecersiz tarih degeri." });
+    }
     if (Number(req.body.startsAt) >= Number(req.body.expiresAt)) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: "Baslangic tarihi bitis tarihinden once olmalidir." });
     }
-    if (!req.body.targetType) {
+    if (!["all", "group", "users"].includes(req.body.targetType)) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Hedef kitle zorunlu." });
+      return res.status(400).json({ error: "Gecersiz hedef kitle." });
     }
 
     const entry = {
@@ -1521,7 +1555,7 @@ app.get("/api/files/:id/download", (req, res) => {
   if (!file) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   if (user.role !== "admin") {
-    if (!isFileTargeted(file, decoded.email, user.role)) {
+    if (!isFileTargeted(file, decoded.email, resolveRole(user, req))) {
       return res.status(403).json({ error: "Bu dosya size ait değil." });
     }
     const now = Date.now();
@@ -1545,7 +1579,7 @@ app.get("/api/files/:id/download", (req, res) => {
     appendLog(makeLog("file_download", decoded.email, `"${file.originalName}" dosyasi indirildi.`, req));
   }
 
-  res.setHeader("Content-Disposition", `attachment; filename="${file.originalName}"`);
+  res.setHeader("Content-Disposition", contentDisposition(file.originalName));
   res.setHeader("Content-Type", "application/zip");
   res.sendFile(filePath);
 });
@@ -2032,9 +2066,9 @@ app.get("/api/requests/:id/attachment", (req, res) => {
     };
     const contentType = mimeMap[ext] || "application/octet-stream";
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Disposition", `inline; filename="${entry.originalName}"`);
+    res.setHeader("Content-Disposition", contentDisposition(entry.originalName, "inline"));
   } else {
-    res.setHeader("Content-Disposition", `attachment; filename="${entry.originalName}"`);
+    res.setHeader("Content-Disposition", contentDisposition(entry.originalName));
   }
   res.sendFile(filePath);
 });
@@ -2121,9 +2155,14 @@ app.post("/api/file-requests", (req, res) => {
   if (!title || !targetType) {
     return res.status(400).json({ error: "Baslik ve hedef tipi gerekli." });
   }
+  if (!["all", "group", "users"].includes(targetType)) {
+    return res.status(400).json({ error: "Gecersiz hedef kitle." });
+  }
   if (targetType === "group" && !targetGroup) {
     return res.status(400).json({ error: "Grup secimi gerekli." });
   }
+  const frDays = Number(expiresInDays);
+  const validFrDays = Number.isFinite(frDays) && frDays > 0 ? frDays : 7;
 
   const fr = {
     id: crypto.randomUUID(),
@@ -2133,7 +2172,7 @@ app.post("/api/file-requests", (req, res) => {
     targetGroup: targetType === "group" ? targetGroup : null,
     targetUsers: targetType === "users" ? (targetUsers || []).map((e) => e.toLowerCase().trim()) : null,
     createdAt: Date.now(),
-    expiresAt: Date.now() + (expiresInDays || 7) * 24 * 60 * 60 * 1000,
+    expiresAt: Date.now() + validFrDays * 24 * 60 * 60 * 1000,
     submissions: [],
     createdBy: decoded.email,
   };
@@ -2147,28 +2186,46 @@ app.post("/api/file-requests", (req, res) => {
 
 app.post("/api/file-requests/:id/submit", frUpload.array("files", 10), (req, res) => {
   const decoded = authUser(req);
-  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+  if (!decoded) {
+    cleanupUploadedFiles(req);
+    return res.status(401).json({ error: "Token gerekli." });
+  }
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) {
+    cleanupUploadedFiles(req);
+    return res.status(403).json({ error: "Kullanici bulunamadi." });
+  }
 
   const activeRole = resolveRole(user, req);
   const all = loadFileRequests();
   const idx = all.findIndex((fr) => fr.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (idx === -1) {
+    cleanupUploadedFiles(req);
+    return res.status(404).json({ error: "Talep bulunamadi." });
+  }
 
   const fr = all[idx];
-  if (fr.expiresAt < Date.now()) return res.status(400).json({ error: "Bu talebin süresi dolmus." });
+  if (fr.expiresAt < Date.now()) {
+    cleanupUploadedFiles(req);
+    return res.status(400).json({ error: "Bu talebin süresi dolmus." });
+  }
 
-  if (!isFrTargeted(fr, decoded.email, activeRole))
+  if (!isFrTargeted(fr, decoded.email, activeRole)) {
+    cleanupUploadedFiles(req);
     return res.status(403).json({ error: "Bu talep size ait degil." });
+  }
 
-  if ((fr.submissions || []).some((s) => s.userEmail === decoded.email))
+  if ((fr.submissions || []).some((s) => s.userEmail === decoded.email)) {
+    cleanupUploadedFiles(req);
     return res.status(400).json({ error: "Bu talebe zaten dosya gönderdiniz." });
+  }
 
-  if (!req.files || req.files.length === 0)
+  if (!req.files || req.files.length === 0) {
+    cleanupUploadedFiles(req);
     return res.status(400).json({ error: "En az bir ZIP dosyasi yükleyin." });
+  }
 
   if (!fs.existsSync(FILE_REQUESTS_UPLOADS_DIR))
     fs.mkdirSync(FILE_REQUESTS_UPLOADS_DIR, { recursive: true });
@@ -2210,20 +2267,20 @@ app.get("/api/file-requests/:id", (req, res) => {
   if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
 
   const allUsers = loadUsers();
+  const liveUser = allUsers[decoded.email];
+  if (!liveUser) return res.status(403).json({ error: "Kullanici bulunamadi." });
 
-  if (decoded.role !== "admin") {
-    const user = allUsers[decoded.email];
-    if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
-    const activeRole = resolveRole(user, req);
+  if (liveUser.role !== "admin") {
+    const activeRole = resolveRole(liveUser, req);
     if (!isFrTargeted(fr, decoded.email, activeRole))
       return res.status(403).json({ error: "Bu talep size ait degil." });
     fr.submissions = (fr.submissions || []).filter((s) => s.userEmail === decoded.email);
   }
 
-  if (decoded.role === "admin" && fr.submissions) {
+  if (liveUser.role === "admin" && fr.submissions) {
     fr.submissions = fr.submissions.map((s) => ({
       ...s,
-      userSchool: allUsers[s.userEmail]?.school || "",
+      userSchool: allUsers[s.userEmail]?.profile?.schoolName || "",
     }));
   }
 
@@ -2273,17 +2330,27 @@ app.get("/api/file-requests/:id/download-all", (req, res) => {
 
   const allUsers = loadUsers();
   for (const sub of submissions) {
-    const school = allUsers[sub.userEmail]?.school || sub.userEmail;
+    const school = allUsers[sub.userEmail]?.profile?.schoolName || sub.userEmail;
     const folder = school.replace(/[^a-zA-Z0-9\- _]/g, "_").substring(0, 40);
     for (const file of (sub.files || [])) {
       const filePath = path.join(FILE_REQUESTS_UPLOADS_DIR, sub.id, file.storedName);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: `${folder}/${file.originalName}` });
+        const entryName = String(file.originalName || "dosya").replace(/[/\\]/g, "_").replace(/\.\./g, "_");
+        archive.file(filePath, { name: `${folder}/${entryName}` });
       }
     }
   }
 
-  archive.finalize();
+  archive.on("error", (err) => {
+    console.error("ZIP olusturma hatasi:", err.message);
+    if (!res.headersSent) res.status(500);
+    res.end();
+  });
+  archive.finalize().catch((err) => {
+    console.error("ZIP finalize hatasi:", err.message);
+    if (!res.headersSent) res.status(500);
+    res.end();
+  });
 });
 
 app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) => {

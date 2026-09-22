@@ -4,15 +4,15 @@
 SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP ile giriş yapar. Admin ve kullanıcı (lise/ortaokul/diger) rolleri var. Cross-role geçiş desteklenir.
 
 ## Stack
-- Backend: Express.js, JWT (jsonwebtoken), Nodemailer, Multer (dosya yükleme), Archiver (ZIP), express-rate-limit
+- Backend: Express.js, JWT (jsonwebtoken), Nodemailer, Multer (dosya yükleme), Archiver (ZIP), express-rate-limit, helmet, xlsx
 - Frontend: Vanilla HTML+JS, CSS (public/style.css)
-- Veri: JSON dosyaları (data/ klasörü altında)
+- Veri: JSON dosyaları (proje kökünde; Docker'da `DATA_DIR=/app/data`)
 
 ## Critical Config
-- JWT secret: `atini-seven-kovboy` (`.env` dosyasında)
+- JWT secret: `.env` içindeki `JWT_SECRET` (repo'ya yazma, değer paylaşılma)
 - PORT: `4004`
-- DATA_DIR: ayarlanmazsa proje kök dizini kullanılır (server.js ve data/ altında users.json var)
-- Rate limiter: 15 dk'da 600 istek
+- DATA_DIR: ayarlanmazsa proje kök dizini; Docker compose'ta `/app/data`
+- Rate limiter: 15 dk'da 600 istek; send-otp için 15 dk'da 20 istek
 - Oturum süresi: admin 1 saat, diğer 30 dk
 
 ## Modules & Page Names
@@ -23,8 +23,8 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 | Dosya Dağıtım | files | /api/files |
 | Belge İstekleri | file-requests | /api/file-requests |
 | Talep/İtiraz | requests | /api/requests |
-| Kullanıcı Yönetimi | users | /api/users |
-| Loglar | logs | /api/logs |
+| Kullanıcılar | users | /api/users |
+| Log Kayıtları | logs | /api/logs |
 
 ## Theme & Colors
 - Ana renk: `#8b0000` (koyu kırmızı, logodan alındı)
@@ -43,7 +43,7 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 2. POST /api/send-otp → captcha doğrular, OTP gönderir (OTP_COOLDOWN_MS=60000)
 3. POST /api/verify-otp → OTP doğrular, JWT döner
 4. `login.html` → giriş sayfası
-5. Geri tuşu `index.html`'e değil genel bakışa yönlendirir (`location.replace` ile)
+5. Geri tuşu OTP formundan e-posta formuna döner
 
 ## File Upload Rules
 - Belge İstekleri: sadece `.zip`, max 10 MB/dosya, max 10 dosya
@@ -51,8 +51,8 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - Talep/İtiraz: max 10 MB ek dosya (opsiyonel)
 
 ## File Requests (Belge İstekleri)
-- Veriler: `data/file-requests.json` (format: `{ requests: [...] }`)
-- Yüklemeler: `data/uploads/file-requests/<submissionId>/`
+- Veriler: `file-requests.json` (format: `{ requests: [...] }`)
+- Yüklemeler: `uploads/file-requests/<submissionId>/`
 - `loadFileRequests()` → array döndürür (hem dizi hem `{requests: [...]}` formatını destekler)
 - `saveFileRequests(list)` → `{ requests: list }` olarak kaydeder
 - Token gerekli endpoint'ler (download dahil) fetch ile Authorization header gönderir
@@ -65,14 +65,14 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - Sidebar'da her sayfa `{ page, icon, label, roles }` ile tanımlı
 
 ## Data Files
-- `data/users.json` - Kullanıcılar
-- `data/announcements.json` - Duyurular
-- `data/surveys.json` - Anketler
-- `data/responses.json` - Anket cevapları
-- `data/file-requests.json` - Belge istekleri
-- `data/requests.json` - Talep/İtiraz
-- `data/logs.json` - Log kayıtları
-- `data/files.json` - Dosya dağıtım (eski dosyalarda `startsAt` olmayabilir, `f.startsAt || 0` ile geriye uyumlu)
+- `users.json` - Kullanıcılar
+- `announcements.json` - Duyurular
+- `surveys.json` - Anketler
+- `responses.json` - Anket cevapları
+- `file-requests.json` - Belge istekleri
+- `requests.json` - Talep/İtiraz
+- `logs.json` - Log kayıtları
+- `files.json` - Dosya dağıtım (eski dosyalarda `startsAt` olmayabilir, `f.startsAt || 0` ile geriye uyumlu)
 
 ## Assets
 - Logo: `public/assets/logo-kodm.png` (sidebar 64x64, login/index 128x128)
@@ -85,11 +85,19 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - Admin file-request detail: email yerine okul adı (userSchool) gösterilir, tek satır kompakt görünüm
 - Kullanıcı kartı: bekleyen belge isteği varsa kırmızı arkaplan + pulse animasyonu, yoksa kart gizlenir
 - Belge İstekleri ZIP adı: `belge_istegi_<title>.zip`
+- Ek önizlemeler Authorization header ile blob olarak yüklenir (`hydrateAttachments`)
+
+## Deploy (Portainer)
+- GitHub → Portainer stack → redeploy canlıya yansır
+- `docker-compose`: `DATA_DIR=/app/data`, volume `smtp-data:/app/data`
+- Dockerfile image içinde root JSON verilerini `/app/data`'ya kopyalar (ilk volume oluşumunda seed)
+- Mevcut boş volume varsa bir kereye mahsus manuel kopya gerekebilir
+- nginx `client_max_body_size 12m` (10 MB upload limiti için)
 
 ## Dosyalar
-- `server.js` (~2300 satır) - Tüm backend
-- `public/dashboard.html` (~3740 satır) - Ana panel (sidebar + tüm sayfalar)
+- `server.js` (~2400 satır) - Tüm backend
+- `public/dashboard.html` (~3800 satır) - Ana panel (sidebar + tüm sayfalar)
 - `public/login.html` - OTP giriş sayfası (captcha)
 - `public/index.html` - Karşılama sayfası
 - `public/style.css` - Tema ve layout
-- `.env` - JWT_SECRET, SMTP ayarları, PORT
+- `.env` - JWT_SECRET, SMTP ayarları, PORT (git'te ignore)

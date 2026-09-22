@@ -177,7 +177,6 @@
             loadCaptcha();
           } else if (data.cooldown) {
             showMessage(msg, data.cooldown + " saniye sonra tekrar deneyin.", "warning");
-            startCountdown(data.cooldown * 1000);
           } else {
             showMessage(msg, data.error, "error");
             loadCaptcha();
