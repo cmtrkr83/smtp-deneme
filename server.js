@@ -1264,6 +1264,21 @@ app.post("/api/surveys/:id/respond", (req, res) => {
   for (const ans of answers) {
     const q = survey.questions.find((x) => x.id === ans.questionId);
     if (!q) continue;
+    // Checkbox (çoklu seçim): değer dizi olarak gelir, seçeneklere uygunluğu denetle
+    if (q.type === "checkbox") {
+      const arr = Array.isArray(ans.value) ? ans.value : ans.value ? [ans.value] : [];
+      ans.value = arr.map((v) => (v ?? "").toString());
+      if (q.required && arr.length === 0) {
+        return res.status(400).json({ error: `"${q.title}" sorusu için en az bir seçenek işaretleyin.` });
+      }
+      if ((q.options || []).length > 0) {
+        const invalid = arr.find((v) => !(q.options || []).includes(v));
+        if (invalid !== undefined && arr.length > 0 && invalid) {
+          return res.status(400).json({ error: `"${q.title}" sorusu için geçersiz seçenek.` });
+        }
+      }
+      continue;
+    }
     const val = (ans.value || "").toString();
     if (q.validation === "number" && val && !/^\d+$/.test(val)) {
       return res.status(400).json({ error: `"${q.title}" sorusu için sadece sayı girin.` });
@@ -1355,7 +1370,8 @@ app.get("/api/surveys/:id/responses/export", (req, res) => {
     const row = [date, time, r.userId, schoolName];
     survey.questions.forEach((q) => {
       const ans = r.answers.find((a) => a.questionId === q.id);
-      row.push(ans ? `"${(ans.value || "").replace(/"/g, '""')}"` : "");
+      const rawVal = ans ? (Array.isArray(ans.value) ? ans.value.join(", ") : (ans.value || "")) : "";
+      row.push(ans ? `"${String(rawVal).replace(/"/g, '""')}"` : "");
     });
     return row.join(";");
   });

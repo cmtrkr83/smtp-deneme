@@ -2956,7 +2956,7 @@
     }
 
     function renderQuestionBlock(q, idx) {
-      const typeLabels = { open_ended: "Açık Uçlu", multiple_choice: "Çoktan Seçmeli", likert: "Dereceli" };
+      const typeLabels = { open_ended: "Açık Uçlu", multiple_choice: "Çoktan Seçmeli", checkbox: "Çoklu Seçim", likert: "Dereceli" };
       const validationLabels = { none: "Yok", number: "Sadece Sayı (örn: 12, 3, 45)", only_text: "Sadece Metin (örn: açıklama, not)", uppercase: "Büyük Harf (örn: İSTANBUL)", email: "E-posta (örn: ornek@mail.com)", phone: "Telefon (örn: 05321234567)" };
       const options = q.options || [];
       const optionsHtml = options.length > 0
@@ -2966,7 +2966,7 @@
               <button class="btn-icon btn-icon-danger" onclick="removeOption(this)" style="width:28px;height:28px;font-size:12px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
           `).join("")
-        : '<p class="options-placeholder" style="font-size:12px;color:#aaa;margin-top:4px;">Çoktan seçmeli veya dereceli sorularda seçenek ekleyin.</p>';
+        : '<p class="options-placeholder" style="font-size:12px;color:#aaa;margin-top:4px;">Çoktan seçmeli veya çoklu seçim sorularında seçenek ekleyin.</p>';
 
       return `
         <div class="announcement-item question-block">
@@ -2976,7 +2976,8 @@
                 <span style="font-size:11px;font-weight:600;color:#888;">Soru ${idx + 1}</span>
                 <select class="q-type" onchange="changeQuestionType(this)" style="padding:4px 8px;font-size:12px;border:1px solid #e2e4e9;border-radius:4px;outline:none;font-family:inherit;">
                   <option value="open_ended" ${q.type === "open_ended" ? "selected" : ""}>Açık Uçlu</option>
-                  <option value="multiple_choice" ${q.type === "multiple_choice" ? "selected" : ""}>Çoktan Seçmeli</option>
+                  <option value="multiple_choice" ${q.type === "multiple_choice" ? "selected" : ""}>Çoktan Seçmeli (tek seçim)</option>
+                  <option value="checkbox" ${q.type === "checkbox" ? "selected" : ""}>Çoklu Seçim (birden fazla)</option>
                   <option value="likert" ${q.type === "likert" ? "selected" : ""}>Dereceli (1-5)</option>
                 </select>
                 <label style="font-size:12px;color:#888;display:flex;align-items:center;gap:4px;cursor:pointer;">
@@ -3024,15 +3025,16 @@
       const block = sel.closest(".question-block");
       const container = block.querySelector(".q-options-container");
       const validation = block.querySelector(".q-validation");
+      const addBtn = block.querySelector(".add-option-btn");
       if (!container) return;
       const isOpen = sel.value === "open_ended";
       container.style.display = isOpen ? "none" : "block";
       if (validation) validation.style.display = isOpen ? "" : "none";
+      // Likert bilgi notunu sadece likert tipinde göster
+      const existingMsg = container.querySelector(".likert-info");
       if (sel.value === "likert") {
-        const placeholder = container.querySelector(".options-placeholder, p");
-        const addBtn = container.querySelector(".add-option-btn");
-        if (placeholder) placeholder.remove();
-        const existingMsg = container.querySelector(".likert-info");
+        const placeholder = container.querySelector(".options-placeholder, p:not(.likert-info)");
+        if (placeholder && !placeholder.classList.contains("likert-info")) placeholder.remove();
         if (!existingMsg) {
           const info = document.createElement("p");
           info.className = "likert-info";
@@ -3041,6 +3043,19 @@
           container.insertBefore(info, addBtn);
         }
         container.querySelectorAll(".q-option").forEach((el) => el.closest("div")?.remove());
+        if (addBtn) addBtn.style.display = "none";
+      } else {
+        if (existingMsg) existingMsg.remove();
+        if (addBtn) addBtn.style.display = "";
+        if (sel.value === "multiple_choice" || sel.value === "checkbox") {
+          if (container.querySelectorAll(".q-option").length === 0 && !container.querySelector(".options-placeholder")) {
+            const p = document.createElement("p");
+            p.className = "options-placeholder";
+            p.style.cssText = "font-size:12px;color:#aaa;margin-top:4px;";
+            p.textContent = "Çoktan seçmeli veya çoklu seçim sorularında seçenek ekleyin.";
+            container.insertBefore(p, addBtn);
+          }
+        }
       }
     }
 
@@ -3073,7 +3088,7 @@
         const required = block.querySelector(".q-required")?.checked !== false;
         const validation = type === "open_ended" ? (block.querySelector(".q-validation")?.value || "none") : "none";
         const options = [];
-        if (type === "multiple_choice") {
+        if (type === "multiple_choice" || type === "checkbox") {
           block.querySelectorAll(".q-option").forEach((o) => {
             const v = o.value.trim();
             if (v) options.push(v);
@@ -3118,8 +3133,8 @@
           msg.className = "message error show";
           return;
         }
-        if (q.type === "multiple_choice" && q.options.length < 1) {
-          msg.textContent = "Çoktan seçmeli sorulara en az bir seçenek ekleyin.";
+        if ((q.type === "multiple_choice" || q.type === "checkbox") && q.options.length < 1) {
+          msg.textContent = "Çoktan seçmeli / çoklu seçim sorularına en az bir seçenek ekleyin.";
           msg.className = "message error show";
           return;
         }
@@ -3235,10 +3250,11 @@
                 </div>
                 ${(survey.questions || []).map((q) => {
                   const ans = r.answers?.find((a) => a.questionId === q.id);
+                  const displayVal = !ans ? "-" : Array.isArray(ans.value) ? (ans.value.length > 0 ? ans.value.join(", ") : "-") : (ans.value || "-");
                   return `
                     <div style="margin-bottom:6px;font-size:13px;">
                       <span style="color:#555;font-weight:500;">${escHtml(q.title)}</span><br/>
-                      <span style="color:#1a1a2e;">${escHtml(ans ? ans.value : "-")}</span>
+                      <span style="color:#1a1a2e;">${escHtml(displayVal)}</span>
                     </div>
                   `;
                 }).join("")}
@@ -3334,16 +3350,19 @@
 
         const questionsHtml = (survey.questions || []).map((q, i) => {
           const existing = existingAnswers.find((a) => a.questionId === q.id);
-          const val = existing ? existing.value : "";
+          const rawVal = existing ? existing.value : "";
+          const val = Array.isArray(rawVal) ? rawVal.join(", ") : (rawVal ?? "");
+          const valArr = Array.isArray(rawVal) ? rawVal : (rawVal ? [rawVal] : []);
           const valLabels = { none: "", number: "Sadece sayı girin (örn: 12, 3, 45)", only_text: "Sadece metin girin (örn: açıklama, not)", uppercase: "Büyük harfle yazın (örn: İSTANBUL)", email: "Geçerli bir e-posta girin (örn: ornek@mail.com)", phone: "Geçerli bir telefon girin (örn: 05321234567)" };
           return `
-            <div class="announcement-item" style="margin-bottom:12px;" data-qid="${q.id}" data-validation="${q.type === "open_ended" ? (q.validation || "none") : "none"}" data-required="${q.required ? "true" : "false"}">
+            <div class="announcement-item" style="margin-bottom:12px;" data-qid="${q.id}" data-qtype="${q.type}" data-validation="${q.type === "open_ended" ? (q.validation || "none") : "none"}" data-required="${q.required ? "true" : "false"}">
               <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
                 <span style="font-weight:600;font-size:14px;color:#1a1a2e;">${i + 1}.</span>
                 <div style="flex:1;">
                   <span style="font-weight:600;font-size:14px;color:#1a1a2e;">${escHtml(q.title)}</span>
                   ${q.required ? '<span style="color:#ef4444;font-size:12px;">*</span>' : ''}
                   ${q.type === "open_ended" && q.validation && q.validation !== "none" ? `<span style="color:#888;font-size:11px;margin-left:8px;">(${valLabels[q.validation] || q.validation})</span>` : ''}
+                  ${q.type === "checkbox" ? `<span style="color:#888;font-size:11px;margin-left:8px;">(birden fazla seçebilirsiniz)</span>` : ''}
                 </div>
               </div>
               ${q.type === "open_ended"
@@ -3352,6 +3371,13 @@
                   ? `<div style="display:flex;flex-direction:column;gap:6px;">${(q.options || []).map((o, oi) => `
                     <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid #e2e4e9;${val === o ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
                       <input type="radio" name="q_${q.id}" class="survey-answer-radio" data-qid="${q.id}" value="${escHtml(o)}" ${val === o ? "checked" : ""} style="accent-color:#6366f1;" />
+                      ${escHtml(o)}
+                    </label>
+                  `).join("")}</div>`
+                  : q.type === "checkbox"
+                  ? `<div style="display:flex;flex-direction:column;gap:6px;">${(q.options || []).map((o, oi) => `
+                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid #e2e4e9;${valArr.includes(o) ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
+                      <input type="checkbox" name="q_${q.id}" class="survey-answer-checkbox" data-qid="${q.id}" value="${escHtml(o)}" ${valArr.includes(o) ? "checked" : ""} style="accent-color:#6366f1;width:16px;height:16px;" />
                       ${escHtml(o)}
                     </label>
                   `).join("")}</div>`
@@ -3409,11 +3435,17 @@
       if (submitBtn) { submitBtn.disabled = true; }
 
       try {
-        document.querySelectorAll("[data-qid]").forEach((block) => {
+        document.querySelectorAll("#surveyForm .announcement-item[data-qid]").forEach((block) => {
           const qid = block.dataset.qid;
           const textarea = block.querySelector(".survey-answer");
           if (textarea) {
             answers.push({ questionId: qid, value: textarea.value.trim() });
+            return;
+          }
+          const checkboxes = block.querySelectorAll(".survey-answer-checkbox");
+          if (checkboxes.length > 0) {
+            const selected = Array.from(checkboxes).filter((c) => c.checked).map((c) => c.value);
+            answers.push({ questionId: qid, value: selected });
             return;
           }
           const radio = block.querySelector(".survey-answer-radio:checked");
@@ -3422,11 +3454,13 @@
           }
         });
 
-        const requiredMissing = Array.from(document.querySelectorAll("[data-qid]")).some((block) => {
+        const requiredMissing = Array.from(document.querySelectorAll("#surveyForm .announcement-item[data-qid]")).some((block) => {
           const qid = block.dataset.qid;
           if (block.dataset.required !== "true") return false;
           const ans = answers.find((a) => a.questionId === qid);
-          return !ans || !ans.value;
+          if (!ans) return true;
+          if (Array.isArray(ans.value)) return ans.value.length === 0;
+          return !ans.value;
         });
 
         if (requiredMissing) {
@@ -3435,7 +3469,7 @@
           return;
         }
 
-        for (const block of document.querySelectorAll("[data-qid]")) {
+        for (const block of document.querySelectorAll("#surveyForm .announcement-item[data-qid]")) {
           const qid = block.dataset.qid;
           const validation = block.dataset.validation;
           if (!validation || validation === "none") continue;
