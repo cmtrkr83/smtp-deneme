@@ -10,6 +10,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
+  <script>
+    try {
+      var savedTheme = localStorage.getItem("kodm-theme");
+      if (!savedTheme && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) savedTheme = "dark";
+      document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+    } catch (e) { document.documentElement.dataset.theme = "light"; }
+  </script>
 </head>
 <body class="dashboard-body">
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -47,12 +54,15 @@
           <div>
             <div class="user-name" id="userName">Yükleniyor...</div>
             <div class="user-role" id="userRole">-</div>
-            <div class="session-timer" id="sessionTimer" style="font-size:10px;color:#888;margin-top:1px;"></div>
+            <div class="session-timer" id="sessionTimer" style="font-size:10px;color:var(--muted);margin-top:1px;"></div>
           </div>
         </div>
         <div class="role-switcher" id="roleSwitcher" style="display:none;margin-right:12px;">
-          <select id="roleSwitcherSelect" onchange="switchActiveRole(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;font-size:13px;cursor:pointer;"></select>
+          <select id="roleSwitcherSelect" onchange="switchActiveRole(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;"></select>
         </div>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Açık/Koyu tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
         <button class="btn-logout" id="logoutBtn">
           <i class="fa-solid fa-right-from-bracket"></i> Çıkış
         </button>
@@ -407,6 +417,22 @@
         .replace(/'/g, "&#39;");
     }
 
+    function applyTheme(t) {
+      const theme = t === "dark" ? "dark" : "light";
+      document.documentElement.dataset.theme = theme;
+      try { localStorage.setItem("kodm-theme", theme); } catch (e) {}
+      const icon = document.querySelector("#themeToggle i");
+      if (icon) icon.className = theme === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+      const btn = document.getElementById("themeToggle");
+      if (btn) btn.title = theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç";
+    }
+
+    function toggleTheme() {
+      applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+    }
+
+    applyTheme(document.documentElement.dataset.theme);
+
     let sessionTimerInterval = null;
 
     function parseJwt(token) {
@@ -599,7 +625,7 @@
       let html = "";
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(1)" ' + (usersPage === 1 ? 'disabled' : '') + '><i class="fa-solid fa-angles-left"></i></button>';
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage - 1) + ')" ' + (usersPage === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
-      html += '<span style="font-size:13px;color:#666;padding:0 8px;">' + usersPage + " / " + totalPages + "</span>";
+      html += '<span style="font-size:13px;color:var(--text-2);padding:0 8px;">' + usersPage + " / " + totalPages + "</span>";
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage + 1) + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + totalPages + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-angles-right"></i></button>';
       html += '<span style="font-size:12px;color:#999;margin-left:12px;">' + usersAll.length + " kullanıcı</span>";
@@ -636,7 +662,7 @@
             <td class="cell-date">${created}</td>
             <td class="cell-date">${lastLogin}</td>
             <td class="cell-actions">
-              ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:#aaa;font-size:12px;">(siz)</span>'}
+              ${canDelete ? `<button class="btn-icon btn-icon-danger" onclick="showDeleteModal('${u.email}')" title="Sil"><i class="fa-solid fa-trash-can"></i></button>` : '<span style="color:var(--muted);font-size:12px;">(siz)</span>'}
             </td>
           </tr>
         `;
@@ -809,13 +835,13 @@
             <button class="modal-close" onclick="closeImportModal()"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="modal-body">
-            <p style="font-size:13px;color:#888;margin-bottom:16px;">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
               Sütun başlıkları: <b>İl</b>, <b>İlçe</b>, <b>Genel Müdürlük</b>, <b>Kurum Türü</b>, <b>Kurum Kodu</b>, <b>Kurum</b>.<br>
               E-posta adresleri <b>kurumkodu@meb.k12.tr</b> şeklinde otomatik oluşturulur.
             </p>
             <div class="form-group">
               <label>Excel Dosyası (.xlsx, .xls)</label>
-              <input type="file" id="importFileInput" accept=".xlsx,.xls" style="width:100%;padding:10px;border:1px solid #e2e4e9;border-radius:8px;font-size:14px;background:#fff;" />
+              <input type="file" id="importFileInput" accept=".xlsx,.xls" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);" />
             </div>
             <div id="importMessage" class="message"></div>
             <div id="importResult" style="display:none;margin-top:12px;padding:16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;"></div>
@@ -867,7 +893,7 @@
           resultDiv.style.display = "block";
           resultDiv.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><i class="fa-solid fa-check-circle" style="font-size:24px;color:#22c55e;"></i>'
             + '<div><div style="font-weight:600;color:#15803d;">' + data.added + ' yeni kullanıcı eklendi</div>'
-            + '<div style="font-size:12px;color:#888;">' + data.updated + ' kullanıcı güncellendi</div></div></div>';
+            + '<div style="font-size:12px;color:var(--muted);">' + data.updated + ' kullanıcı güncellendi</div></div></div>';
           if (data.errors && data.errors.length > 0) {
             resultDiv.innerHTML += '<div style="margin-top:8px;font-size:12px;color:#ef4444;">Hatalar: ' + data.errors.join(", ") + '</div>';
           }
@@ -902,7 +928,7 @@
             <button class="modal-close" onclick="closeClearModal()"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="modal-body">
-            <p style="font-size:14px;color:#888;margin-bottom:16px;">
+            <p style="font-size:14px;color:var(--muted);margin-bottom:16px;">
               <strong style="color:#ef4444;">Yönetici (admin) grubu hariç</strong> tüm kullanıcılar sistemden silinecektir. Bu işlem geri alınamaz.
             </p>
             <div style="margin-bottom:16px;padding-top:12px;border-top:1px solid #e5e7eb;">
@@ -1032,7 +1058,7 @@
                 </tr>
               </thead>
               <tbody id="annTableBody">
-                <tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1088,7 +1114,7 @@
                 <button class="modal-close" onclick="closeReadModal()"><i class="fa-solid fa-xmark"></i></button>
               </div>
               <div class="modal-body">
-                <p id="readModalContent" style="color:#666;font-size:14px;line-height:1.6;"></p>
+                <p id="readModalContent" style="color:var(--text-2);font-size:14px;line-height:1.6;"></p>
               </div>
               <div class="modal-footer">
                 <button class="btn btn-ghost" style="width:auto;" onclick="closeReadModal()">Kapat</button>
@@ -1152,7 +1178,7 @@
 
     async function renderSchoolAnnouncements() {
       const container = document.getElementById("schoolAnnouncements");
-      container.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px;">Yükleniyor...</p>';
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px;">Yükleniyor...</p>';
       try {
         const res = await fetch("/api/announcements" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
@@ -1162,7 +1188,7 @@
         const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
 
         if (list.length === 0) {
-          container.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px;">Henüz duyuru bulunmuyor.</p>';
+          container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px;">Henüz duyuru bulunmuyor.</p>';
           return;
         }
 
@@ -1330,7 +1356,7 @@
               </tr>
             </thead>
             <tbody id="logsTableBody">
-              <tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1356,13 +1382,13 @@
             <td class="cell-date">${l.time}</td>
             <td><span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:500;background:${getActionColor(l.action)}15;color:${getActionColor(l.action)};">${l.actionLabel}</span></td>
             <td class="cell-email" style="font-size:13px;">${l.user}</td>
-            <td style="color:#666;font-size:13px;">${l.detail}</td>
-            <td style="color:#aaa;font-size:12px;font-family:monospace;">${l.ip}</td>
+            <td style="color:var(--text-2);font-size:13px;">${l.detail}</td>
+            <td style="color:var(--muted);font-size:12px;font-family:monospace;">${l.ip}</td>
           </tr>
         `).join("");
 
         let p = `<button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" onclick="changeLogPage(${logPage - 1})" ${logPage <= 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i> Önceki</button>
-                 <span style="font-size:13px;color:#888;">Sayfa ${data.page} / ${data.totalPages}</span>
+                 <span style="font-size:13px;color:var(--muted);">Sayfa ${data.page} / ${data.totalPages}</span>
                  <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" onclick="changeLogPage(${logPage + 1})" ${logPage >= data.totalPages ? 'disabled' : ''}>Sonraki <i class="fa-solid fa-chevron-right"></i></button>`;
         pagination.innerHTML = p;
       } catch {
@@ -1421,7 +1447,7 @@
           <p>Sisteme kayıtlı okulları gruplarına göre görüntüleyin.</p>
         </div>
         <div id="schoolsContent">
-          <div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+          <div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
         </div>
       `;
       try {
@@ -1440,7 +1466,7 @@
             <div style="text-align:center;padding:60px 0;color:#ccc;">
               <i class="fa-solid fa-school" style="font-size:48px;margin-bottom:16px;display:block;"></i>
               <div style="font-size:14px;">Henüz okul eklenmemiş.</div>
-              <div style="font-size:13px;color:#aaa;margin-top:8px;">Kullanıcılar sayfasından lise veya ortaokul rolüyle kullanıcı ekleyebilirsiniz.</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:8px;">Kullanıcılar sayfasından lise veya ortaokul rolüyle kullanıcı ekleyebilirsiniz.</div>
             </div>
           `;
         } else {
@@ -1452,20 +1478,20 @@
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                   <div>
                   <h4 style="color:${color};">${escHtml(p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email))}</h4>
-                    <p style="font-size:12px;color:#aaa;margin-bottom:8px;">${escHtml(u.email)}</p>
+                    <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">${escHtml(u.email)}</p>
                   </div>
                   <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : u.role === "ortaokul" ? "Ortaokul" : "Diğer"}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 20px;font-size:13px;">
-                  <div><span style="color:#888;">Kod:</span> ${escHtml(schoolCode || "-")}</div>
-                  ${p.principalName ? `<div><span style="color:#888;">Müdür:</span> ${escHtml(p.principalName)}</div>` : ""}
-                  ${p.schoolPhone ? `<div><span style="color:#888;">Okul Tel:</span> ${escHtml(p.schoolPhone)}</div>` : ""}
-                  ${p.principalPhone ? `<div><span style="color:#888;">Müdür Tel:</span> ${escHtml(p.principalPhone)}</div>` : ""}
-                  ${p.studentCount ? `<div><span style="color:#888;">Öğrenci:</span> ${escHtml(p.studentCount)}</div>` : ""}
-                  ${p.teacherCount ? `<div><span style="color:#888;">Öğretmen:</span> ${escHtml(p.teacherCount)}</div>` : ""}
-                  ${p.classCount ? `<div><span style="color:#888;">Şube:</span> ${escHtml(p.classCount)}</div>` : ""}
-                  <div><span style="color:#888;">Kayıt:</span> ${u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-"}</div>
-                  <div><span style="color:#888;">Son Giriş:</span> ${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") : "-"}</div>
+                  <div><span style="color:var(--muted);">Kod:</span> ${escHtml(schoolCode || "-")}</div>
+                  ${p.principalName ? `<div><span style="color:var(--muted);">Müdür:</span> ${escHtml(p.principalName)}</div>` : ""}
+                  ${p.schoolPhone ? `<div><span style="color:var(--muted);">Okul Tel:</span> ${escHtml(p.schoolPhone)}</div>` : ""}
+                  ${p.principalPhone ? `<div><span style="color:var(--muted);">Müdür Tel:</span> ${escHtml(p.principalPhone)}</div>` : ""}
+                  ${p.studentCount ? `<div><span style="color:var(--muted);">Öğrenci:</span> ${escHtml(p.studentCount)}</div>` : ""}
+                  ${p.teacherCount ? `<div><span style="color:var(--muted);">Öğretmen:</span> ${escHtml(p.teacherCount)}</div>` : ""}
+                  ${p.classCount ? `<div><span style="color:var(--muted);">Şube:</span> ${escHtml(p.classCount)}</div>` : ""}
+                  <div><span style="color:var(--muted);">Kayıt:</span> ${u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-"}</div>
+                  <div><span style="color:var(--muted);">Son Giriş:</span> ${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") : "-"}</div>
                 </div>
                 ${!p.schoolName ? '<div style="margin-top:8px;"><span style="font-size:12px;color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i> Okul bilgileri henüz girilmemiş</span></div>' : ""}
               </div>
@@ -1675,7 +1701,7 @@
               </tr>
             </thead>
             <tbody id="adminFilesBody">
-              <tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1692,7 +1718,7 @@
         if (!res.ok) throw new Error();
         const list = await res.json();
         if (list.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">Henüz dosya yüklenmemiş.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Henüz dosya yüklenmemiş.</td></tr>';
           return;
         }
         tbody.innerHTML = list.map((f) => {
@@ -1715,7 +1741,7 @@
               <td style="font-weight:600;">
                 <i class="fa-solid fa-file-zipper" style="color:#f59e0b;margin-right:8px;"></i>
                 ${escHtml(f.originalName)}
-                <div style="font-size:11px;color:#888;font-weight:400;">${(f.size / 1024).toFixed(1)} KB - ${uploaded}</div>
+                <div style="font-size:11px;color:var(--muted);font-weight:400;">${(f.size / 1024).toFixed(1)} KB - ${uploaded}</div>
               </td>
               <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(f.description)}</td>
               <td style="font-size:12px;">${escHtml(targetLabel)}</td>
@@ -1747,45 +1773,45 @@
           </div>
           <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminFiles()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
         </div>
-        <div style="max-width:600px;margin:20px auto;background:#f8f9fc;padding:28px;border-radius:12px;">
+        <div style="max-width:600px;margin:20px auto;background:var(--panel);padding:28px;border-radius:12px;">
           <div id="uploadMsg" class="message"></div>
           <form id="uploadForm" style="display:flex;flex-direction:column;gap:16px;" onsubmit="return false;">
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Dosya (ZIP)</label>
-              <input type="file" id="fileInput" accept=".zip" style="width:100%;padding:10px;border:1px solid #e2e4e9;border-radius:8px;font-size:14px;background:#fff;" />
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Dosya (ZIP)</label>
+              <input type="file" id="fileInput" accept=".zip" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);" />
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Açıklama</label>
-              <textarea id="fileDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;font-family:inherit;min-height:60px;resize:vertical;" placeholder="Dosya açıklaması..."></textarea>
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Açıklama</label>
+              <textarea id="fileDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:60px;resize:vertical;" placeholder="Dosya açıklaması..."></textarea>
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Hedef Kitle</label>
-              <select id="fileTargetType" onchange="toggleFileTarget()" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;">
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Hedef Kitle</label>
+              <select id="fileTargetType" onchange="toggleFileTarget()" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);">
                 <option value="all">Tüm Kullanıcılar</option>
                 <option value="group">Grup</option>
                 <option value="users">Belirli Kullanıcılar</option>
               </select>
             </div>
             <div id="fileTargetGroupWrap" style="display:none;">
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Grup</label>
-              <select id="fileTargetGroup" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;">
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Grup</label>
+              <select id="fileTargetGroup" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);">
                 <option value="lise">Lise Grubu</option>
                 <option value="ortaokul">Ortaokul Grubu</option>
                 <option value="diger">Diğer</option>
               </select>
             </div>
             <div id="fileTargetUsersWrap" style="display:none;">
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Kullanıcı E-postaları (virgülle ayırın)</label>
-              <input type="text" id="fileTargetUsers" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" placeholder="ornek1@mail.com, ornek2@mail.com" />
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Kullanıcı E-postaları (virgülle ayırın)</label>
+              <input type="text" id="fileTargetUsers" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" placeholder="ornek1@mail.com, ornek2@mail.com" />
             </div>
             <div style="display:flex;gap:12px;">
               <div style="flex:1;">
-                <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Başlangıç Tarihi</label>
-                <input type="datetime-local" id="fileStartsAt" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" />
+                <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Başlangıç Tarihi</label>
+                <input type="datetime-local" id="fileStartsAt" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" />
               </div>
               <div style="flex:1;">
-                <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Bitiş Tarihi</label>
-                <input type="datetime-local" id="fileExpiresAt" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" />
+                <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Bitiş Tarihi</label>
+                <input type="datetime-local" id="fileExpiresAt" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" />
               </div>
             </div>
             <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;align-self:flex-start;" onclick="uploadFile()">
@@ -1911,7 +1937,7 @@
 
     async function renderFileStatus(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = `<div class="content-header"><h2>Dosya İndirme Durumu</h2><p>Yükleniyor...</p></div><div id="fileStatusContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>`;
+      area.innerHTML = `<div class="content-header"><h2>Dosya İndirme Durumu</h2><p>Yükleniyor...</p></div><div id="fileStatusContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>`;
       try {
         const res = await fetch("/api/files/" + id + "/status", {
           headers: { Authorization: "Bearer " + token },
@@ -1932,7 +1958,7 @@
           + '</div></div>'
           + '<div class="users-table-wrapper"><table class="users-table"><thead><tr><th>Kullanici</th><th>Rol</th><th>Okul</th><th>Durum</th><th>Indirme Tarihi</th></tr></thead><tbody>';
         if (data.users.length === 0) {
-          html += '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Hedef kullanici bulunmuyor.</td></tr>';
+          html += '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">Hedef kullanici bulunmuyor.</td></tr>';
         } else {
           data.users.forEach((u) => {
             const statusClass = u.downloaded ? "ann-tag all" : "ann-tag lise";
@@ -1979,7 +2005,7 @@
           <h2>Dosya Dağıtım</h2>
           <p>Size gönderilen dosyaları indirin.</p>
         </div>
-        <div id="userFilesContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+        <div id="userFilesContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
       try {
         const res = await fetch("/api/files" + asRoleQuery(), {
@@ -2010,11 +2036,11 @@
                   <i class="fa-solid fa-file-zipper" style="font-size:24px;color:#f59e0b;"></i>
                   <div>
                     <h4 style="margin:0;">${escHtml(f.originalName)}</h4>
-                    <div style="font-size:12px;color:#888;">${(f.size / 1024).toFixed(1)} KB</div>
+                    <div style="font-size:12px;color:var(--muted);">${(f.size / 1024).toFixed(1)} KB</div>
                   </div>
                 </div>
-                ${f.description ? `<p style="margin-top:8px;font-size:13px;color:#555;">${escHtml(f.description)}</p>` : ''}
-                <div style="display:flex;gap:16px;margin-top:4px;font-size:12px;color:#888;">
+                ${f.description ? `<p style="margin-top:8px;font-size:13px;color:var(--text-2);">${escHtml(f.description)}</p>` : ''}
+                <div style="display:flex;gap:16px;margin-top:4px;font-size:12px;color:var(--muted);">
                   <span><i class="fa-regular fa-calendar"></i> Yüklenme: ${uploaded}</span>
                   <span><i class="fa-regular fa-play"></i> Başlangıç: ${starts}</span>
                   <span style="color:${statusColor};"><i class="fa-regular fa-clock"></i> Bitiş: ${expires}</span>
@@ -2043,13 +2069,13 @@
       var dlLink = '<a href="#" onclick="downloadRequestAttachment(\'' + r.id + '\');return false;" style="color:#6366f1;font-size:12px;"><i class="fa-solid fa-download"></i> Indir</a>';
       if (isImage) {
         return '<div style="margin-top:8px;">'
-          + '<div style="font-size:12px;color:#888;margin-bottom:6px;"><i class="fa-solid fa-paperclip"></i> ' + name + '</div>'
-          + '<a href="#" onclick="previewAttachment(\'' + r.id + '\',\'image\');return false;" style="display:inline-block;border-radius:8px;overflow:hidden;border:1px solid #e2e4e9;max-width:300px;cursor:zoom-in;min-height:60px;background:#f3f4f6;" class="attach-preview" data-attach-id="' + r.id + '" data-attach-type="image">'
+          + '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;"><i class="fa-solid fa-paperclip"></i> ' + name + '</div>'
+          + '<a href="#" onclick="previewAttachment(\'' + r.id + '\',\'image\');return false;" style="display:inline-block;border-radius:8px;overflow:hidden;border:1px solid var(--border);max-width:300px;cursor:zoom-in;min-height:60px;background:#f3f4f6;" class="attach-preview" data-attach-id="' + r.id + '" data-attach-type="image">'
           + '</a><br>' + dlLink + '</div>';
       } else if (isPdf) {
         return '<div style="margin-top:8px;">'
-          + '<div style="font-size:12px;color:#888;margin-bottom:6px;"><i class="fa-solid fa-paperclip"></i> ' + name + '</div>'
-          + '<div class="attach-preview" data-attach-id="' + r.id + '" data-attach-type="pdf" style="width:100%;max-width:500px;height:300px;border-radius:8px;border:1px solid #e2e4e9;background:#f3f4f6;"></div>'
+          + '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;"><i class="fa-solid fa-paperclip"></i> ' + name + '</div>'
+          + '<div class="attach-preview" data-attach-id="' + r.id + '" data-attach-type="pdf" style="width:100%;max-width:500px;height:300px;border-radius:8px;border:1px solid var(--border);background:#f3f4f6;"></div>'
           + '<br>' + dlLink + '</div>';
       } else {
         return '<div style="margin-top:8px;"><a href="#" onclick="downloadRequestAttachment(\'' + r.id + '\');return false;" style="color:#6366f1;font-size:13px;"><i class="fa-solid fa-paperclip"></i> ' + name + ' (indir)</a></div>';
@@ -2123,7 +2149,7 @@
             <i class="fa-solid fa-plus"></i> Yeni Talep
           </button>
         </div>
-        <div id="userRequestsContent" style="text-align:center;padding:40px;color:#aaa;">Yukleniyor...</div>
+        <div id="userRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yukleniyor...</div>
       `;
       await loadUserRequests();
     }
@@ -2158,7 +2184,7 @@
                     <span class="ann-tag ${r.status === "open" ? "lise" : "all"}" style="font-size:10px;">${r.status === "open" ? "Açık" : "Kapalı"}</span>
                     <span style="font-size:11px;color:${color};font-weight:500;">${r.typeLabel}</span>
                   </div>
-                  <div style="font-size:12px;color:#888;margin-top:4px;">
+                  <div style="font-size:12px;color:var(--muted);margin-top:4px;">
                     ${date}${r.responseCount > 0 ? ' &middot; ' + r.responseCount + ' cevap' : ''}
                     ${r.officialDocNo ? ' &middot; Resmi Yazi No: ' + escHtml(r.officialDocNo) : ''}
                   </div>
@@ -2174,7 +2200,7 @@
 
     async function renderUserRequestDetail(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p>Yükleniyor...</p></div><div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>';
+      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p>Yükleniyor...</p></div><div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
       try {
         const res = await fetch("/api/requests/" + id, {
           headers: { Authorization: "Bearer " + token },
@@ -2200,11 +2226,11 @@
             </div>
           </div>
           <div style="max-width:800px;margin:20px 0;">
-            <div style="background:#f8f9fc;padding:20px;border-radius:12px;margin-bottom:20px;">
-              <p style="font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap;">${escHtml(r.description)}</p>
-              ${r.officialDocNo ? '<div style="margin-top:12px;font-size:13px;color:#555;"><strong>Resmi Yazi No:</strong> ' + escHtml(r.officialDocNo) + '</div>' : ''}
+            <div style="background:var(--panel);padding:20px;border-radius:12px;margin-bottom:20px;">
+              <p style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${escHtml(r.description)}</p>
+              ${r.officialDocNo ? '<div style="margin-top:12px;font-size:13px;color:var(--text-2);"><strong>Resmi Yazi No:</strong> ' + escHtml(r.officialDocNo) + '</div>' : ''}
               ${r.hasAttachment ? '<div style="margin-top:12px;">' + buildAttachmentHtml(r) + '</div>' : ''}
-              <div style="margin-top:12px;font-size:12px;color:#888;">Gonderen: ${escHtml(r.submittedBy)}${r.schoolName ? ' (' + escHtml(r.schoolName) + ')' : ''}</div>
+              <div style="margin-top:12px;font-size:12px;color:var(--muted);">Gonderen: ${escHtml(r.submittedBy)}${r.schoolName ? ' (' + escHtml(r.schoolName) + ')' : ''}</div>
             </div>
         `;
 
@@ -2216,9 +2242,9 @@
               <div style="background:#eef2ff;padding:16px 20px;border-radius:12px;margin-bottom:12px;border-left:3px solid #6366f1;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                   <strong style="font-size:13px;color:#6366f1;"><i class="fa-solid fa-user-shield"></i> Yonetici</strong>
-                  <span style="font-size:11px;color:#888;">${respDate}</span>
+                  <span style="font-size:11px;color:var(--muted);">${respDate}</span>
                 </div>
-                <p style="font-size:13px;color:#333;line-height:1.5;white-space:pre-wrap;margin:0;">${escHtml(resp.message)}</p>
+                <p style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;margin:0;">${escHtml(resp.message)}</p>
               </div>
             `;
           });
@@ -2242,12 +2268,12 @@
           </div>
           <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUserRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
         </div>
-        <div style="max-width:650px;margin:20px auto;background:#f8f9fc;padding:28px;border-radius:12px;">
+        <div style="max-width:650px;margin:20px auto;background:var(--panel);padding:28px;border-radius:12px;">
           <div id="createRequestMsg" class="message"></div>
           <form id="createRequestForm" style="display:flex;flex-direction:column;gap:16px;" onsubmit="return false;">
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Talep Turu</label>
-              <select id="reqType" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;">
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Talep Turu</label>
+              <select id="reqType" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);">
                 <option value="talep">Talep</option>
                 <option value="oneri">Öneri</option>
                 <option value="sikayet">Şikayet</option>
@@ -2255,20 +2281,20 @@
               </select>
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Baslik</label>
-              <input type="text" id="reqTitle" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" placeholder="Talep basligi..." maxlength="200" />
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Baslik</label>
+              <input type="text" id="reqTitle" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" placeholder="Talep basligi..." maxlength="200" />
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Aciklama</label>
-              <textarea id="reqDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;font-family:inherit;min-height:120px;resize:vertical;" placeholder="Detayli aciklama..."></textarea>
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Aciklama</label>
+              <textarea id="reqDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:120px;resize:vertical;" placeholder="Detayli aciklama..."></textarea>
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Resmi Yazi No <span style="font-weight:400;color:#aaa;">(varsa)</span></label>
-              <input type="text" id="reqDocNo" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;" placeholder="E-123456" />
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Resmi Yazi No <span style="font-weight:400;color:var(--muted);">(varsa)</span></label>
+              <input type="text" id="reqDocNo" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" placeholder="E-123456" />
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Ek Dosya <span style="font-weight:400;color:#aaa;">(opsiyonel, max 10 MB)</span></label>
-              <input type="file" id="reqFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" style="width:100%;padding:10px;border:1px solid #e2e4e9;border-radius:8px;font-size:14px;background:#fff;" />
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Ek Dosya <span style="font-weight:400;color:var(--muted);">(opsiyonel, max 10 MB)</span></label>
+              <input type="file" id="reqFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);" />
             </div>
             <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;align-self:flex-start;" onclick="submitRequest()">
               <i class="fa-solid fa-paper-plane"></i> Gonder
@@ -2411,14 +2437,14 @@
             <p>Kurumlardan gelen talepleri görüntüleyin ve cevaplayın.</p>
           </div>
           <div style="display:flex;gap:8px;">
-            <select id="adminReqFilter" onchange="loadAdminRequests()" style="padding:8px 12px;font-size:13px;border:1px solid #e2e4e9;border-radius:8px;outline:none;background:#fff;min-width:130px;">
+            <select id="adminReqFilter" onchange="loadAdminRequests()" style="padding:8px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);min-width:130px;">
               <option value="all">Tümü</option>
               <option value="open">Açık Olanlar</option>
               <option value="closed">Kapalı Olanlar</option>
             </select>
           </div>
         </div>
-        <div id="adminRequestsContent" style="text-align:center;padding:40px;color:#aaa;">Yukleniyor...</div>
+        <div id="adminRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yukleniyor...</div>
       `;
       await loadAdminRequests();
     }
@@ -2456,7 +2482,7 @@
                     <span class="ann-tag ${r.status === "open" ? "lise" : "all"}" style="font-size:10px;">${r.status === "open" ? "Açık" : "Kapalı"}</span>
                     <span style="font-size:11px;color:${color};font-weight:500;">${r.typeLabel}</span>
                   </div>
-                  <div style="font-size:12px;color:#888;margin-top:4px;">
+                  <div style="font-size:12px;color:var(--muted);margin-top:4px;">
                     ${escHtml(r.schoolName || r.submittedBy)} &middot; ${date}
                     ${r.responseCount > 0 ? ' &middot; ' + r.responseCount + ' cevap' : ''}
                   </div>
@@ -2472,7 +2498,7 @@
 
     async function renderAdminRequestDetail(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div class="content-header"><h2>Talep Detayi</h2><p>Yukleniyor...</p></div><div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>';
+      area.innerHTML = '<div class="content-header"><h2>Talep Detayi</h2><p>Yukleniyor...</p></div><div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
       try {
         const res = await fetch("/api/requests/" + id, {
           headers: { Authorization: "Bearer " + token },
@@ -2498,16 +2524,16 @@
             </div>
           </div>
           <div style="max-width:800px;margin:20px 0;">
-              <div style="background:#f8f9fc;padding:20px;border-radius:12px;margin-bottom:20px;">
+              <div style="background:var(--panel);padding:20px;border-radius:12px;margin-bottom:20px;">
               <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
-                <div style="font-size:12px;color:#888;">
+                <div style="font-size:12px;color:var(--muted);">
                   <strong>Gonderen:</strong> ${escHtml(r.submittedBy)}
                   ${r.schoolName ? '<br><strong>Kurum:</strong> ' + escHtml(r.schoolName) : ''}
                   ${r.officialDocNo ? '<br><strong>Resmi Yazi No:</strong> ' + escHtml(r.officialDocNo) : ''}
                 </div>
                 ${r.hasAttachment ? buildAttachmentHtml(r) : ''}
               </div>
-              <p style="font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap;">${escHtml(r.description)}</p>
+              <p style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${escHtml(r.description)}</p>
             </div>
         `;
 
@@ -2519,9 +2545,9 @@
               <div style="background:#eef2ff;padding:16px 20px;border-radius:12px;margin-bottom:12px;border-left:3px solid #6366f1;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                   <strong style="font-size:13px;color:#6366f1;"><i class="fa-solid fa-user-shield"></i> Yonetici</strong>
-                  <span style="font-size:11px;color:#888;">${respDate}</span>
+                  <span style="font-size:11px;color:var(--muted);">${respDate}</span>
                 </div>
-                <p style="font-size:13px;color:#333;line-height:1.5;white-space:pre-wrap;margin:0;">${escHtml(resp.message)}</p>
+                <p style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;margin:0;">${escHtml(resp.message)}</p>
               </div>
             `;
           });
@@ -2532,10 +2558,10 @@
             <div style="background:#f0fdf4;padding:20px;border-radius:12px;margin-top:20px;">
               <h3 style="font-size:15px;margin-bottom:12px;color:#16a34a;"><i class="fa-solid fa-reply"></i> Talebi Cevapla</h3>
               <div id="respondMsg" class="message"></div>
-              <textarea id="respondText" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;font-family:inherit;min-height:100px;resize:vertical;margin-bottom:12px;" placeholder="Cevabinizi yazin..."></textarea>
+              <textarea id="respondText" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:100px;resize:vertical;margin-bottom:12px;" placeholder="Cevabinizi yazin..."></textarea>
               <div style="display:flex;gap:12px;align-items:center;">
                 <button class="btn btn-primary" style="width:auto;padding:10px 24px;font-size:13px;" onclick="respondToRequest('${r.id}')"><i class="fa-solid fa-paper-plane"></i> Cevapla</button>
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#555;cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;">
                   <input type="checkbox" id="respondClose" checked /> Cevapla ve Kapat
                 </label>
               </div>
@@ -2591,7 +2617,7 @@
           <h2><i class="fa-solid fa-chart-bar"></i> Raporlar</h2>
           <p>Sistem istatistikleri ve kullanım analizleri.</p>
         </div>
-        <div id="reportsContent" style="text-align:center;padding:60px;color:#aaa;">Yükleniyor...</div>
+        <div id="reportsContent" style="text-align:center;padding:60px;color:var(--muted);">Yükleniyor...</div>
       `;
       try {
         const res = await fetch("/api/reports", {
@@ -2618,9 +2644,9 @@
         { label: "Ort. Okunma", value: "%" + d.totals.avgReadRate, icon: "fa-eye", color: "#ec4899" },
       ];
       cards.forEach((c) => {
-        html += '<div style="background:#fff;border:1px solid #e8eaee;border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;">'
+        html += '<div style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;">'
           + '<div style="width:44px;height:44px;border-radius:10px;background:' + c.color + '15;display:flex;align-items:center;justify-content:center;font-size:18px;color:' + c.color + ';flex-shrink:0;"><i class="fa-solid ' + c.icon + '"></i></div>'
-          + '<div><div style="font-size:20px;font-weight:700;color:#1a1a2e;">' + c.value + '</div><div style="font-size:11px;color:#888;margin-top:2px;">' + c.label + '</div></div>'
+          + '<div><div style="font-size:20px;font-weight:700;color:var(--text);">' + c.value + '</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">' + c.label + '</div></div>'
           + '</div>';
       });
       html += '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
@@ -2638,9 +2664,9 @@
         const pct = d.users.total > 0 ? Math.round((r.count / d.users.total) * 100) : 0;
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
           + '<span style="width:12px;height:12px;border-radius:3px;background:' + r.color + ';flex-shrink:0;"></span>'
-          + '<span style="flex:1;font-size:13px;color:#555;">' + r.label + '</span>'
-          + '<span style="font-weight:600;font-size:13px;color:#1a1a2e;">' + r.count + '</span>'
-          + '<span style="font-size:12px;color:#888;">(' + pct + '%)</span></div>';
+          + '<span style="flex:1;font-size:13px;color:var(--text-2);">' + r.label + '</span>'
+          + '<span style="font-weight:600;font-size:13px;color:var(--text);">' + r.count + '</span>'
+          + '<span style="font-size:12px;color:var(--muted);">(' + pct + '%)</span></div>';
       });
       html += '</div></div></div>';
 
@@ -2650,10 +2676,10 @@
       d.dailyActivity.forEach((a) => {
         const pct = (a.count / maxDaily) * 100;
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-          + '<span style="width:80px;font-size:11px;color:#888;text-align:right;flex-shrink:0;">' + a.day + '</span>'
+          + '<span style="width:80px;font-size:11px;color:var(--muted);text-align:right;flex-shrink:0;">' + a.day + '</span>'
           + '<div style="flex:1;height:22px;background:#f0f0f5;border-radius:6px;overflow:hidden;">'
           + '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:6px;"></div></div>'
-          + '<span style="width:30px;font-size:12px;font-weight:600;color:#1a1a2e;">' + a.count + '</span></div>';
+          + '<span style="width:30px;font-size:12px;font-weight:600;color:var(--text);">' + a.count + '</span></div>';
       });
       html += '</div></div></div>';
 
@@ -2666,9 +2692,9 @@
       d.monthlyActivity.forEach((a) => {
         const pct = (a.count / maxMonth) * 100;
         html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;">'
-          + '<span style="font-size:10px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">' + a.count + '</span>'
+          + '<span style="font-size:10px;font-weight:600;color:var(--text);margin-bottom:4px;">' + a.count + '</span>'
           + '<div style="width:100%;height:' + pct + '%;background:linear-gradient(180deg,#6366f1,#818cf8);border-radius:4px 4px 0 0;min-height:4px;"></div>'
-          + '<span style="font-size:9px;color:#888;margin-top:4px;transform:rotate(-45deg);white-space:nowrap;">' + a.month.slice(-2) + '</span></div>';
+          + '<span style="font-size:9px;color:var(--muted);margin-top:4px;transform:rotate(-45deg);white-space:nowrap;">' + a.month.slice(-2) + '</span></div>';
       });
       html += '</div></div>';
 
@@ -2680,10 +2706,10 @@
       topActions.forEach((a, i) => {
         const pct = (a.count / maxAction) * 100;
         html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">'
-          + '<span style="flex:1;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + a.label + '</span>'
+          + '<span style="flex:1;font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + a.label + '</span>'
           + '<div style="width:120px;height:18px;background:#f0f0f5;border-radius:4px;overflow:hidden;flex-shrink:0;">'
           + '<div style="height:100%;width:' + pct + '%;background:' + actionColors[i % actionColors.length] + ';border-radius:4px;"></div></div>'
-          + '<span style="width:40px;font-size:12px;font-weight:600;color:#1a1a2e;text-align:right;">' + a.count + '</span></div>';
+          + '<span style="width:40px;font-size:12px;font-weight:600;color:var(--text);text-align:right;">' + a.count + '</span></div>';
       });
       html += '</div></div></div>';
 
@@ -2698,8 +2724,8 @@
         d.surveyStats.forEach((s) => {
           const barColor = s.rate >= 70 ? "#22c55e" : s.rate >= 40 ? "#f59e0b" : "#ef4444";
           html += '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">'
-            + '<span style="color:#555;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(s.title) + '</span>'
-            + '<span style="color:#888;">' + s.respCount + '/' + s.targetCount + '</span></div>'
+            + '<span style="color:var(--text-2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(s.title) + '</span>'
+            + '<span style="color:var(--muted);">' + s.respCount + '/' + s.targetCount + '</span></div>'
             + '<div style="height:20px;background:#f0f0f5;border-radius:6px;overflow:hidden;">'
             + '<div style="height:100%;width:' + s.rate + '%;background:' + barColor + ';border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600;min-width:fit-content;padding:0 6px;">' + s.rate + '%</div></div></div>';
         });
@@ -2716,10 +2742,10 @@
           const pct = (f.downloads / maxDl) * 100;
           html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
             + '<i class="fa-solid fa-file-zipper" style="color:#f59e0b;font-size:14px;flex-shrink:0;"></i>'
-            + '<span style="flex:1;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(f.name) + '</span>'
+            + '<span style="flex:1;font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(f.name) + '</span>'
             + '<div style="width:80px;height:18px;background:#f0f0f5;border-radius:4px;overflow:hidden;flex-shrink:0;">'
             + '<div style="height:100%;width:' + pct + '%;background:#f59e0b;border-radius:4px;"></div></div>'
-            + '<span style="width:30px;font-size:12px;font-weight:600;color:#1a1a2e;text-align:right;">' + f.downloads + '</span></div>';
+            + '<span style="width:30px;font-size:12px;font-weight:600;color:var(--text);text-align:right;">' + f.downloads + '</span></div>';
         });
       }
       html += '</div></div></div>';
@@ -2760,19 +2786,20 @@
       });
 
       // Center hole (donut)
+      const isDarkChart = document.documentElement.dataset.theme === "dark";
       ctx.beginPath();
       ctx.arc(cx, cy, 36, 0, 2 * Math.PI);
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = isDarkChart ? "#1a2233" : "#fff";
       ctx.fill();
 
       // Center text
-      ctx.fillStyle = "#1a1a2e";
+      ctx.fillStyle = isDarkChart ? "#e9edf5" : "#1a1a2e";
       ctx.font = "bold 18px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(total, cx, cy - 6);
       ctx.font = "10px sans-serif";
-      ctx.fillStyle = "#888";
+      ctx.fillStyle = isDarkChart ? "#8d96a9" : "#888";
       ctx.fillText("Kullanıcı", cx, cy + 14);
     }
 
@@ -2800,7 +2827,7 @@
               </tr>
             </thead>
             <tbody id="surveyTableBody">
-              <tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -2881,7 +2908,7 @@
       let questionsHtml = "";
       const questions = s.questions || [];
       if (questions.length === 0) {
-        questionsHtml = '<p style="color:#aaa;text-align:center;padding:20px;">Henüz soru eklenmemiş.</p>';
+        questionsHtml = '<p style="color:var(--muted);text-align:center;padding:20px;">Henüz soru eklenmemiş.</p>';
       } else {
         questionsHtml = questions.map((q, i) => renderQuestionBlock(q, i)).join("");
       }
@@ -2962,32 +2989,32 @@
       const optionsHtml = options.length > 0
         ? options.map((o, oi) => `
             <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-              <input type="text" class="q-option" value="${escHtml(o)}" style="flex:1;padding:8px 12px;font-size:13px;border:1px solid #e2e4e9;border-radius:6px;outline:none;font-family:inherit;" />
+              <input type="text" class="q-option" value="${escHtml(o)}" style="flex:1;padding:8px 12px;font-size:13px;border:1px solid var(--border);border-radius:6px;outline:none;font-family:inherit;" />
               <button class="btn-icon btn-icon-danger" onclick="removeOption(this)" style="width:28px;height:28px;font-size:12px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
           `).join("")
-        : '<p class="options-placeholder" style="font-size:12px;color:#aaa;margin-top:4px;">Çoktan seçmeli veya çoklu seçim sorularında seçenek ekleyin.</p>';
+        : '<p class="options-placeholder" style="font-size:12px;color:var(--muted);margin-top:4px;">Çoktan seçmeli veya çoklu seçim sorularında seçenek ekleyin.</p>';
 
       return `
         <div class="announcement-item question-block">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
             <div style="flex:1;">
               <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
-                <span style="font-size:11px;font-weight:600;color:#888;">Soru ${idx + 1}</span>
-                <select class="q-type" onchange="changeQuestionType(this)" style="padding:4px 8px;font-size:12px;border:1px solid #e2e4e9;border-radius:4px;outline:none;font-family:inherit;">
+                <span style="font-size:11px;font-weight:600;color:var(--muted);">Soru ${idx + 1}</span>
+                <select class="q-type" onchange="changeQuestionType(this)" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;outline:none;font-family:inherit;">
                   <option value="open_ended" ${q.type === "open_ended" ? "selected" : ""}>Açık Uçlu</option>
                   <option value="multiple_choice" ${q.type === "multiple_choice" ? "selected" : ""}>Çoktan Seçmeli (tek seçim)</option>
                   <option value="checkbox" ${q.type === "checkbox" ? "selected" : ""}>Çoklu Seçim (birden fazla)</option>
                   <option value="likert" ${q.type === "likert" ? "selected" : ""}>Dereceli (1-5)</option>
                 </select>
-                <label style="font-size:12px;color:#888;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
                   <input type="checkbox" class="q-required" ${q.required !== false ? "checked" : ""} /> Zorunlu
                 </label>
-                <select class="q-validation" style="padding:4px 8px;font-size:12px;border:1px solid #e2e4e9;border-radius:4px;outline:none;font-family:inherit;display:${q.type === "open_ended" ? "" : "none"};">
+                <select class="q-validation" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;outline:none;font-family:inherit;display:${q.type === "open_ended" ? "" : "none"};">
                   ${Object.entries(validationLabels).map(([v, l]) => `<option value="${v}" ${(q.validation || "none") === v ? "selected" : ""}>${l}</option>`).join("")}
                 </select>
               </div>
-              <input type="text" class="q-title" value="${escHtml(q.title)}" placeholder="Soruyu yazın..." style="width:100%;padding:8px 12px;font-size:14px;border:1px solid #e2e4e9;border-radius:6px;outline:none;font-family:inherit;font-weight:500;" />
+              <input type="text" class="q-title" value="${escHtml(q.title)}" placeholder="Soruyu yazın..." style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--border);border-radius:6px;outline:none;font-family:inherit;font-weight:500;" />
               <div class="q-options-container" style="${q.type === "open_ended" ? 'display:none;' : 'margin-top:8px;'}">
                 ${optionsHtml}
                 <button class="btn btn-ghost add-option-btn" style="width:auto;padding:6px 12px;font-size:11px;margin-top:6px;" onclick="addOption(this)"><i class="fa-solid fa-plus"></i> Seçenek Ekle</button>
@@ -3038,7 +3065,7 @@
         if (!existingMsg) {
           const info = document.createElement("p");
           info.className = "likert-info";
-          info.style.cssText = "font-size:12px;color:#aaa;margin-top:4px;";
+          info.style.cssText = "font-size:12px;color:var(--muted);margin-top:4px;";
           info.textContent = "Dereceli sorular 1 (En Düşük) - 5 (En Yüksek) arası otomatik puanlanır.";
           container.insertBefore(info, addBtn);
         }
@@ -3051,7 +3078,7 @@
           if (container.querySelectorAll(".q-option").length === 0 && !container.querySelector(".options-placeholder")) {
             const p = document.createElement("p");
             p.className = "options-placeholder";
-            p.style.cssText = "font-size:12px;color:#aaa;margin-top:4px;";
+            p.style.cssText = "font-size:12px;color:var(--muted);margin-top:4px;";
             p.textContent = "Çoktan seçmeli veya çoklu seçim sorularında seçenek ekleyin.";
             container.insertBefore(p, addBtn);
           }
@@ -3068,7 +3095,7 @@
       const div = document.createElement("div");
       div.style.cssText = "display:flex;gap:8px;align-items:center;margin-top:6px;";
       div.innerHTML = `
-        <input type="text" class="q-option" value="" style="flex:1;padding:8px 12px;font-size:13px;border:1px solid #e2e4e9;border-radius:6px;outline:none;font-family:inherit;" placeholder="Seçenek ${optionCount + 1}" />
+        <input type="text" class="q-option" value="" style="flex:1;padding:8px 12px;font-size:13px;border:1px solid var(--border);border-radius:6px;outline:none;font-family:inherit;" placeholder="Seçenek ${optionCount + 1}" />
         <button class="btn-icon btn-icon-danger" onclick="removeOption(this)" style="width:28px;height:28px;font-size:12px;"><i class="fa-solid fa-xmark"></i></button>
       `;
       container.insertBefore(div, btn);
@@ -3170,7 +3197,7 @@
 
     async function renderSurveyStatus(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>';
+      area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
       try {
         const [statusRes, responsesRes] = await Promise.all([
           fetch("/api/surveys/" + id + "/status", { headers: { Authorization: "Bearer " + token } }),
@@ -3225,7 +3252,7 @@
               </thead>
               <tbody>
                 ${status.users.length === 0
-                  ? '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">Henüz kullanıcı yok.</td></tr>'
+                  ? '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">Henüz kullanıcı yok.</td></tr>'
                   : status.users.map((u) => `
                     <tr>
                       <td class="cell-email">${escHtml(u.schoolName || "-")}</td>
@@ -3245,7 +3272,7 @@
             <div class="section-title"><i class="fa-solid fa-list"></i> Yanıtlar</div>
             ${responses.map((r) => `
               <div class="announcement-item" style="margin-bottom:10px;">
-                <div style="font-size:12px;color:#888;margin-bottom:8px;">
+                <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
                   <strong>${escHtml(r.schoolName || r.userEmail)}</strong> — ${new Date(r.submittedAt).toLocaleDateString("tr-TR")} ${new Date(r.submittedAt).toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"})}
                 </div>
                 ${(survey.questions || []).map((q) => {
@@ -3253,8 +3280,8 @@
                   const displayVal = !ans ? "-" : Array.isArray(ans.value) ? (ans.value.length > 0 ? ans.value.join(", ") : "-") : (ans.value || "-");
                   return `
                     <div style="margin-bottom:6px;font-size:13px;">
-                      <span style="color:#555;font-weight:500;">${escHtml(q.title)}</span><br/>
-                      <span style="color:#1a1a2e;">${escHtml(displayVal)}</span>
+                      <span style="color:var(--text-2);font-weight:500;">${escHtml(q.title)}</span><br/>
+                      <span style="color:var(--text);">${escHtml(displayVal)}</span>
                     </div>
                   `;
                 }).join("")}
@@ -3296,7 +3323,7 @@
           <h2>Anketler</h2>
           <p>Size gönderilen anketleri görüntüleyin ve yanıtlayın.</p>
         </div>
-        <div id="userSurveysContent" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+        <div id="userSurveysContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
       try {
         const res = await fetch("/api/surveys" + asRoleQuery(), {
@@ -3334,7 +3361,7 @@
 
     async function renderSurveyFill(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>';
+      area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
       try {
         const [surveyRes, myRespRes] = await Promise.all([
           fetch("/api/surveys/" + id, { headers: { Authorization: "Bearer " + token } }),
@@ -3357,34 +3384,34 @@
           return `
             <div class="announcement-item" style="margin-bottom:12px;" data-qid="${q.id}" data-qtype="${q.type}" data-validation="${q.type === "open_ended" ? (q.validation || "none") : "none"}" data-required="${q.required ? "true" : "false"}">
               <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
-                <span style="font-weight:600;font-size:14px;color:#1a1a2e;">${i + 1}.</span>
+                <span style="font-weight:600;font-size:14px;color:var(--text);">${i + 1}.</span>
                 <div style="flex:1;">
-                  <span style="font-weight:600;font-size:14px;color:#1a1a2e;">${escHtml(q.title)}</span>
+                  <span style="font-weight:600;font-size:14px;color:var(--text);">${escHtml(q.title)}</span>
                   ${q.required ? '<span style="color:#ef4444;font-size:12px;">*</span>' : ''}
-                  ${q.type === "open_ended" && q.validation && q.validation !== "none" ? `<span style="color:#888;font-size:11px;margin-left:8px;">(${valLabels[q.validation] || q.validation})</span>` : ''}
-                  ${q.type === "checkbox" ? `<span style="color:#888;font-size:11px;margin-left:8px;">(birden fazla seçebilirsiniz)</span>` : ''}
+                  ${q.type === "open_ended" && q.validation && q.validation !== "none" ? `<span style="color:var(--muted);font-size:11px;margin-left:8px;">(${valLabels[q.validation] || q.validation})</span>` : ''}
+                  ${q.type === "checkbox" ? `<span style="color:var(--muted);font-size:11px;margin-left:8px;">(birden fazla seçebilirsiniz)</span>` : ''}
                 </div>
               </div>
               ${q.type === "open_ended"
-                ? `<textarea class="survey-answer" data-qid="${q.id}" data-validation="${q.validation || "none"}" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid #e2e4e9;border-radius:8px;outline:none;font-family:inherit;min-height:80px;resize:vertical;" placeholder="${valLabels[q.validation] || "Cevabınız..."}">${escHtml(val)}</textarea>`
+                ? `<textarea class="survey-answer" data-qid="${q.id}" data-validation="${q.validation || "none"}" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:80px;resize:vertical;" placeholder="${valLabels[q.validation] || "Cevabınız..."}">${escHtml(val)}</textarea>`
                 : q.type === "multiple_choice"
                   ? `<div style="display:flex;flex-direction:column;gap:6px;">${(q.options || []).map((o, oi) => `
-                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid #e2e4e9;${val === o ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid var(--border);${val === o ? 'background:var(--opt-sel);border-color:#6366f1;' : ''}">
                       <input type="radio" name="q_${q.id}" class="survey-answer-radio" data-qid="${q.id}" value="${escHtml(o)}" ${val === o ? "checked" : ""} style="accent-color:#6366f1;" />
                       ${escHtml(o)}
                     </label>
                   `).join("")}</div>`
                   : q.type === "checkbox"
                   ? `<div style="display:flex;flex-direction:column;gap:6px;">${(q.options || []).map((o, oi) => `
-                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid #e2e4e9;${valArr.includes(o) ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid var(--border);${valArr.includes(o) ? 'background:var(--opt-sel);border-color:#6366f1;' : ''}">
                       <input type="checkbox" name="q_${q.id}" class="survey-answer-checkbox" data-qid="${q.id}" value="${escHtml(o)}" ${valArr.includes(o) ? "checked" : ""} style="accent-color:#6366f1;width:16px;height:16px;" />
                       ${escHtml(o)}
                     </label>
                   `).join("")}</div>`
                   : `<div style="display:flex;gap:8px;flex-wrap:wrap;">${[1,2,3,4,5].map((n) => `
-                    <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 16px;border-radius:8px;border:1px solid #e2e4e9;cursor:pointer;${val == n ? 'background:#f0f0ff;border-color:#6366f1;' : ''}">
+                    <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);cursor:pointer;${val == n ? 'background:var(--opt-sel);border-color:#6366f1;' : ''}">
                       <input type="radio" name="q_${q.id}" class="survey-answer-radio" data-qid="${q.id}" value="${n}" ${val == n ? "checked" : ""} style="accent-color:#6366f1;" />
-                      <span style="font-size:12px;color:#888;">${n === 1 ? 'En Düşük' : n === 5 ? 'En Yüksek' : n}</span>
+                      <span style="font-size:12px;color:var(--muted);">${n === 1 ? 'En Düşük' : n === 5 ? 'En Yüksek' : n}</span>
                     </label>
                   `).join("")}</div>`}
             </div>
@@ -3396,7 +3423,7 @@
             <div>
               <h2>${escHtml(survey.title)}</h2>
               ${survey.description ? `<p>${escHtml(survey.description)}</p>` : ''}
-              <p style="font-size:12px;color:#888;margin-top:4px;">Son: ${new Date(survey.expiresAt).toLocaleDateString("tr-TR")}</p>
+              <p style="font-size:12px;color:var(--muted);margin-top:4px;">Son: ${new Date(survey.expiresAt).toLocaleDateString("tr-TR")}</p>
             </div>
             <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUserSurveys()">
               <i class="fa-solid fa-arrow-left"></i> Geri
@@ -3526,7 +3553,7 @@
             <i class="fa-solid fa-plus"></i> Talep Oluştur
           </button>
         </div>
-        <div id="adminFrList" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+        <div id="adminFrList" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
       try {
         const res = await fetch("/api/file-requests", { headers: { Authorization: "Bearer " + token } });
@@ -3563,7 +3590,7 @@
           <h2>Belge İstekleri</h2>
           <p>Yönetici tarafından istenen belgeleri görüntüleyin ve yükleyin.</p>
         </div>
-        <div id="userFrList" style="text-align:center;padding:40px;color:#aaa;">Yükleniyor...</div>
+        <div id="userFrList" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
       try {
         const res = await fetch("/api/file-requests" + asRoleQuery(), { headers: { Authorization: "Bearer " + token } });
@@ -3660,7 +3687,7 @@
 
     window.viewFrDetail = async function (id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
+      area.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
       try {
         const res = await fetch("/api/file-requests/" + id, { headers: { Authorization: "Bearer " + token } });
         if (!res.ok) throw new Error();
@@ -3673,8 +3700,8 @@
         if (fr.submissions && fr.submissions.length > 0) {
           subsHtml = fr.submissions.map((s) => `
             <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f8f9fb;border-radius:8px;margin-bottom:6px;font-size:13px;">
-              <span style="font-weight:600;color:#1a1a2e;white-space:nowrap;min-width:120px;">${escHtml(s.userSchool || s.userEmail.split("@")[0])}</span>
-              <span style="color:#888;font-size:11px;white-space:nowrap;">${new Date(s.submittedAt).toLocaleDateString("tr-TR")} ${new Date(s.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</span>
+              <span style="font-weight:600;color:var(--text);white-space:nowrap;min-width:120px;">${escHtml(s.userSchool || s.userEmail.split("@")[0])}</span>
+              <span style="color:var(--muted);font-size:11px;white-space:nowrap;">${new Date(s.submittedAt).toLocaleDateString("tr-TR")} ${new Date(s.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</span>
               <div style="display:flex;flex-wrap:wrap;gap:4px;flex:1;">
                 ${s.files.map((f, fi) => `
                   <a href="#" onclick="downloadFileRequestFile('${fr.id}','${s.id}',${fi});return false;" style="color:#6366f1;font-size:12px;text-decoration:none;white-space:nowrap;">
@@ -3685,7 +3712,7 @@
             </div>
           `).join("");
         } else {
-          subsHtml = '<div style="text-align:center;padding:20px;color:#aaa;">Henüz gönderi yok.</div>';
+          subsHtml = '<div style="text-align:center;padding:20px;color:var(--muted);">Henüz gönderi yok.</div>';
         }
 
         area.innerHTML = `
@@ -3697,7 +3724,7 @@
           <div class="content-header">
             <h2>${escHtml(fr.title)}</h2>
             <p>${escHtml(fr.description) || "Açıklama yok"}</p>
-            <div style="margin-top:8px;font-size:13px;color:#888;">
+            <div style="margin-top:8px;font-size:13px;color:var(--muted);">
               <span class="ann-tag ${fr.targetType}" style="font-size:10px;">${targetStr}</span>
               ${expired ? '<span style="color:#dc2626;margin-left:8px;">Süresi doldu</span>' : '<span style="color:#16a34a;margin-left:8px;">Son teslim: ' + new Date(fr.expiresAt).toLocaleDateString("tr-TR") + '</span>'}
             </div>
@@ -3714,7 +3741,7 @@
 
     window.viewUserFrDetail = async function (id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
+      area.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
       try {
         const res = await fetch("/api/file-requests/" + id + asRoleQuery(), { headers: { Authorization: "Bearer " + token } });
         if (!res.ok) throw new Error();
@@ -3733,17 +3760,17 @@
           <div class="content-header">
             <h2>${escHtml(fr.title)}</h2>
             <p>${escHtml(fr.description) || "Açıklama yok"}</p>
-            <div style="margin-top:8px;font-size:13px;color:#888;">
+            <div style="margin-top:8px;font-size:13px;color:var(--muted);">
               Son teslim: ${new Date(fr.expiresAt).toLocaleDateString("tr-TR")}
             </div>
           </div>
           ${mySub ? `
             <div style="background:#f8f9fb;border-radius:14px;padding:24px;">
               <h3 style="font-size:15px;font-weight:600;color:#16a34a;margin-bottom:12px;"><i class="fa-solid fa-check-circle"></i> Dosyalarınız Teslim Edildi</h3>
-              <p style="font-size:13px;color:#888;margin-bottom:12px;">Teslim tarihi: ${new Date(mySub.submittedAt).toLocaleDateString("tr-TR")} ${new Date(mySub.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</p>
+              <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Teslim tarihi: ${new Date(mySub.submittedAt).toLocaleDateString("tr-TR")} ${new Date(mySub.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</p>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 ${mySub.files.map((f) => `
-                  <div style="padding:8px 14px;background:#fff;border:1px solid #e2e4e9;border-radius:8px;font-size:13px;">
+                  <div style="padding:8px 14px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;">
                     <i class="fa-solid fa-file-zipper"></i> ${escHtml(f.originalName)} (${(f.size/1024).toFixed(1)} KB)
                   </div>
                 `).join("")}
@@ -3757,7 +3784,7 @@
           ` : `
             <div style="background:#f8f9fb;border-radius:14px;padding:24px;">
               <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Dosya Yükle</h3>
-              <p style="font-size:13px;color:#888;margin-bottom:16px;">Yalnızca ZIP dosyaları (max 10 MB). Birden fazla dosya seçebilirsiniz.</p>
+              <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Yalnızca ZIP dosyaları (max 10 MB). Birden fazla dosya seçebilirsiniz.</p>
               <form id="frUploadForm">
                 <input type="file" id="frFileInput" multiple accept=".zip" style="margin-bottom:12px;" />
                 <div id="frUploadMessage" class="message"></div>

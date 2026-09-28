@@ -30,6 +30,10 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - Ana renk: `#8b0000` (koyu kırmızı, logodan alındı)
 - Buton/badge kırmızı: `#b91c1c`, `#dc2626`, `#ef4444`
 - Hızlı erişim kart renkleri sırasıyla: mavi, yeşil, sarı, mor, pembe, gök mavisi
+- Açık/koyu tema: `style.css` içinde `:root` (light) + `html[data-theme="dark"]` CSS değişkenleri (`--bg,--surface,--panel,--border,--text,--text-2,--muted,--btn-bg,--brand-ink`)
+- Tema seçimi `localStorage["kodm-theme"]` içinde saklanır (`light`/`dark`, ilk ziyarette `prefers-color-scheme`), `<head>` içindeki erken script FOUC'u engeller
+- Dashboard topbar'daki ay/güneş butonu (`toggleTheme()`) temayı değiştirir; login/index kayıtlı temayı otomatik uygular
+- Yeni renk eklerken hardcoded hex yerine `var(--...)` kullan; beyaz yazı gerektiren marka butonlarında `#fff` sabit kalır
 
 ## Auth & Cross-Roles
 - `authUser(req)` → JWT decode eder, null dönerse yetkisiz
