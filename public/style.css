@@ -425,6 +425,31 @@ body.dashboard-body::before {
   gap: 2px;
 }
 
+/* Sidebar link grupları: her grup ayrı kart gibi görünür */
+.nav-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.nav-card:last-child {
+  margin-bottom: 0;
+}
+
+.nav-card .nav-item:hover {
+  background: var(--surface);
+}
+
+.nav-card .nav-section-title {
+  padding: 4px 10px 6px;
+}
+
+.nav-card .nav-section-title:first-child {
+  padding-top: 0;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/style.css?v=2" />
+  <link rel="stylesheet" href="/style.css?v=3" />
   <script>
     try {
       var savedTheme = localStorage.getItem("kodm-theme");
@@ -141,9 +141,7 @@
 
     function buildSidebar(role) {
       const nav = document.getElementById("sidebarNav");
-      const items = [];
-
-      const allItems = [
+      const mainItems = [
         { page: "dashboard", icon: "fa-gauge-high", label: "Genel Bakış", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
         { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul", "diger"] },
@@ -152,23 +150,23 @@
         { page: "file-requests", icon: "fa-file-arrow-up", label: "Belge İstekleri", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "requests", icon: "fa-paper-plane", label: "Talep/İtiraz", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
-        { separator: true, roles: ["admin", "lise", "ortaokul", "diger"] },
+      ];
+
+      const opsItems = [
         { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul", "diger"] },
         { page: "schools", icon: "fa-school", label: "Okullar", roles: ["admin"] },
         { page: "reports", icon: "fa-chart-bar", label: "Raporlar", roles: ["admin"] },
         { page: "settings", icon: "fa-sliders", label: "Ayarlar", roles: ["admin"] },
       ];
 
-      allItems.forEach((item) => {
-        if (!item.roles.includes(role)) return;
-        if (item.separator) {
-          items.push('<div class="nav-section-title">İşlemler</div>');
-          return;
-        }
-        items.push(`<button class="nav-item" data-page="${item.page}"><i class="fa-solid ${item.icon}"></i> ${item.label}</button>`);
-      });
+      const btn = (item) => `<button class="nav-item" data-page="${item.page}"><i class="fa-solid ${item.icon}"></i> ${item.label}</button>`;
+      const cards = [];
+      const main = mainItems.filter((item) => item.roles.includes(role));
+      const ops = opsItems.filter((item) => item.roles.includes(role));
+      if (main.length) cards.push(`<div class="nav-card">${main.map(btn).join("")}</div>`);
+      if (ops.length) cards.push(`<div class="nav-card"><div class="nav-section-title">İşlemler</div>${ops.map(btn).join("")}</div>`);
 
-      nav.innerHTML = items.join("");
+      nav.innerHTML = cards.join("");
 
       // Re-bind click events
       nav.querySelectorAll(".nav-item").forEach((item) => {
