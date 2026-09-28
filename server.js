@@ -366,6 +366,13 @@ function contentDisposition(name, type = "attachment") {
   return `${type}; filename="${safe}"`;
 }
 
+// CSV formül enjeksiyon koruması: = + - @ tab CR ile başlayan hücreleri metne zorla
+function csvCell(v) {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
   try {
     const { email, captchaId, captcha } = req.body;
@@ -391,7 +398,12 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
 
     const registered = loadUsers();
     if (!registered[normEmail]) {
-      return res.status(403).json({ error: "Bu e-posta adresi sistemde kayıtlı değil. Yetkili kişilerle iletişime geçin." });
+      // Güvenlik: kayıtsız e-postalarda da aynı yanıt + cooldown uygulanır (kullanıcı sayımı engeli)
+      lastOtpRequest.set(normEmail, Date.now());
+      return res.json({
+        message: "OTP kodu e-posta adresinize gönderildi.",
+        expiresIn: OTP_EXPIRY_MS,
+      });
     }
 
     const lastReq = lastOtpRequest.get(normEmail);
@@ -871,6 +883,9 @@ app.post("/api/announcements", (req, res) => {
   if (!title || !content || !target) {
     return res.status(400).json({ error: "Başlık, içerik ve hedef kitle gerekli." });
   }
+  if (String(title).length > 200 || String(content).length > 5000) {
+    return res.status(400).json({ error: "Başlık en fazla 200, içerik en fazla 5000 karakter olabilir." });
+  }
   const validTargets = ["all", "lise", "ortaokul", "diger"];
   if (!validTargets.includes(target)) {
     return res.status(400).json({ error: "Geçersiz hedef kitle." });
@@ -902,6 +917,12 @@ app.put("/api/announcements/:id", (req, res) => {
   if (idx === -1) return res.status(404).json({ error: "Duyuru bulunamadı." });
 
   const { title, content, target, expiresInDays } = req.body;
+  if (title && String(title).length > 200) {
+    return res.status(400).json({ error: "Başlık en fazla 200 karakter olabilir." });
+  }
+  if (content && String(content).length > 5000) {
+    return res.status(400).json({ error: "İçerik en fazla 5000 karakter olabilir." });
+  }
   if (title) list[idx].title = title;
   if (content) list[idx].content = content;
   if (target) {
@@ -1371,12 +1392,12 @@ app.get("/api/surveys/:id/responses/export", (req, res) => {
     survey.questions.forEach((q) => {
       const ans = r.answers.find((a) => a.questionId === q.id);
       const rawVal = ans ? (Array.isArray(ans.value) ? ans.value.join(", ") : (ans.value || "")) : "";
-      row.push(ans ? `"${String(rawVal).replace(/"/g, '""')}"` : "");
+      row.push(ans ? String(rawVal) : "");
     });
-    return row.join(";");
+    return row.map(csvCell).join(";");
   });
 
-  const csv = "\uFEFF" + headers.join(";") + "\r\n" + rows.join("\r\n");
+  const csv = "\uFEFF" + headers.map(csvCell).join(";") + "\r\n" + rows.join("\r\n");
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="anket-${survey.id}-${Date.now()}.csv"`);
   res.send(csv);
@@ -1683,7 +1704,7 @@ app.get("/api/files/:id/export", (req, res) => {
     + targetUsers.map((u) => {
       const status = u.downloaded ? "Indirdi" : "Indirmedi";
       const date = u.downloadedAt ? new Date(u.downloadedAt).toLocaleDateString("tr-TR") + " " + new Date(u.downloadedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "";
-      return [u.email, u.role, `"${(u.schoolName || "").replace(/"/g, '""')}"`, status, date].join(";");
+      return [u.email, u.role, u.schoolName || "", status, date].map(csvCell).join(";");
     }).join("\r\n");
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -1835,6 +1856,12 @@ const requestStorage = multer.diskStorage({
 const requestUpload = multer({
   storage: requestStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".zip"];
+    if (allowed.includes(ext)) return cb(null, true);
+    cb(new Error("Desteklenmeyen dosya türü. İzin verilen: PDF, Word, Excel, JPG, PNG, ZIP."));
+  },
 });
 
 function loadRequests() {

@@ -373,8 +373,8 @@
                     ? '<span style="font-size:11px;color:#16a34a;"><i class="fa-solid fa-check"></i> Okundu</span>'
                     : '<span style="font-size:11px;color:#d97706;"><i class="fa-solid fa-circle"></i> Okunmadı</span>'}
                 </div>
-                <h4>${a.title}</h4>
-                <p>${a.content}</p>
+                <h4>${escHtml(a.title)}</h4>
+                <p>${escHtml(a.content)}</p>
                 <div class="ann-date">${date}</div>
               </div>
               ${!isRead ? `<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;flex-shrink:0;" onclick="markAsRead('${a.id}')"><i class="fa-solid fa-check"></i> Okundu İşaretle</button>` : ''}
@@ -1130,7 +1130,7 @@
             : "Henüz okunmadı";
           return `
             <tr style="${expired ? 'opacity:0.4;' : ''}">
-              <td class="cell-email">${a.title}</td>
+              <td class="cell-email">${escHtml(a.title)}</td>
               <td><span class="ann-tag ${a.target === 'all' ? 'admin' : a.target}" style="font-size:11px;">${targetLabels[a.target] || a.target}</span></td>
               <td class="cell-date">${expired ? 'Süresi doldu' : expires}</td>
               <td class="cell-date">
@@ -1178,8 +1178,8 @@
                     ? '<span style="font-size:11px;color:#16a34a;"><i class="fa-solid fa-check"></i> Okundu</span>'
                     : '<span style="font-size:11px;color:#d97706;"><i class="fa-solid fa-circle"></i> Okunmadı</span>'}
                 </div>
-                <h4>${a.title}</h4>
-                <p>${a.content}</p>
+                <h4>${escHtml(a.title)}</h4>
+                <p>${escHtml(a.content)}</p>
                 <div class="ann-date">${date}</div>
               </div>
               ${!isRead ? `<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;flex-shrink:0;" onclick="markAsRead('${a.id}', 'announcements')"><i class="fa-solid fa-check"></i> Okundu İşaretle</button>` : ''}
