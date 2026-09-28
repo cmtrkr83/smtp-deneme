@@ -1686,7 +1686,7 @@
             <i class="fa-solid fa-upload"></i> Dosya Yükle
           </button>
         </div>
-        <div class="users-table-wrapper">
+        <div class="users-table-wrapper" id="adminFilesWrap">
           <table class="users-table">
             <thead>
               <tr>
@@ -1716,7 +1716,7 @@
         if (!res.ok) throw new Error();
         const list = await res.json();
         if (list.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Henüz dosya yüklenmemiş.</td></tr>';
+          document.getElementById("adminFilesWrap").innerHTML = '<div style="text-align:center;padding:60px 0;color:#ccc;"><i class="fa-solid fa-folder-open" style="font-size:48px;margin-bottom:16px;display:block;"></i><div style="font-size:14px;">Henüz dosya yüklenmemiş.</div></div>';
           return;
         }
         tbody.innerHTML = list.map((f) => {
