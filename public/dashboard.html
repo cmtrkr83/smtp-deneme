@@ -11,10 +11,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="/style.css?v=3" />
   <script>
+    // Varsayılan her zaman açık tema; kullanıcı koyu temaya geçerse tercihi hatırlanır.
     try {
-      var savedTheme = localStorage.getItem("kodm-theme");
-      if (!savedTheme && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) savedTheme = "dark";
-      document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+      document.documentElement.dataset.theme = localStorage.getItem("kodm-theme") === "dark" ? "dark" : "light";
     } catch (e) { document.documentElement.dataset.theme = "light"; }
   </script>
 </head>
