@@ -1364,6 +1364,8 @@ app.get("/api/surveys/:id/responses", (req, res) => {
     ...r,
     userEmail: r.userId,
     schoolName: (users[r.userId]?.profile?.schoolName) || "",
+    district: (users[r.userId]?.profile?.district) || "",
+    city: (users[r.userId]?.profile?.city) || "",
   }));
 
   res.json({ survey, responses: enriched });
@@ -1380,7 +1382,7 @@ app.get("/api/surveys/:id/responses/export", (req, res) => {
   const respList = loadResponses().filter((r) => r.surveyId === req.params.id);
   const users = loadUsers();
 
-  const headers = ["Tarih", "Saat", "Kullanıcı", "Okul"];
+  const headers = ["Tarih", "Saat", "Kullanıcı", "Okul", "İlçe"];
   survey.questions.forEach((q) => headers.push(q.title));
 
   const rows = respList.map((r) => {
@@ -1388,7 +1390,8 @@ app.get("/api/surveys/:id/responses/export", (req, res) => {
     const date = d.toLocaleDateString("tr-TR");
     const time = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
     const schoolName = (users[r.userId]?.profile?.schoolName) || "";
-    const row = [date, time, r.userId, schoolName];
+    const district = (users[r.userId]?.profile?.district) || "";
+    const row = [date, time, r.userId, schoolName, district];
     survey.questions.forEach((q) => {
       const ans = r.answers.find((a) => a.questionId === q.id);
       const rawVal = ans ? (Array.isArray(ans.value) ? ans.value.join(", ") : (ans.value || "")) : "";
@@ -1425,6 +1428,8 @@ app.get("/api/surveys/:id/status", (req, res) => {
       email,
       role: u.role,
       schoolName: (u.profile?.schoolName) || "",
+      district: (u.profile?.district) || "",
+      city: (u.profile?.city) || "",
       submitted: respList.some((r) => r.userId === email),
       submittedAt: respList.find((r) => r.userId === email)?.submittedAt || null,
     }));
@@ -1663,6 +1668,8 @@ app.get("/api/files/:id/status", (req, res) => {
         email,
         role: u.role,
         schoolName: (u.profile?.schoolName) || "",
+        district: (u.profile?.district) || "",
+        city: (u.profile?.city) || "",
         downloaded: !!dl,
         downloadedAt: dl ? dl.downloadedAt : null,
       };
@@ -1695,16 +1702,18 @@ app.get("/api/files/:id/export", (req, res) => {
         email,
         role: u.role,
         schoolName: (u.profile?.schoolName) || "",
+        district: (u.profile?.district) || "",
+        city: (u.profile?.city) || "",
         downloaded: !!dl,
         downloadedAt: dl ? dl.downloadedAt : null,
       };
     });
 
-  const csv = "\uFEFF" + ["Kullanici", "Rol", "Okul", "Indirme Durumu", "Indirme Tarihi"].join(";") + "\r\n"
+  const csv = "\uFEFF" + ["Kullanici", "Rol", "Okul", "İlçe", "Indirme Durumu", "Indirme Tarihi"].join(";") + "\r\n"
     + targetUsers.map((u) => {
       const status = u.downloaded ? "Indirdi" : "Indirmedi";
       const date = u.downloadedAt ? new Date(u.downloadedAt).toLocaleDateString("tr-TR") + " " + new Date(u.downloadedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "";
-      return [u.email, u.role, u.schoolName || "", status, date].map(csvCell).join(";");
+      return [u.email, u.role, u.schoolName || "", u.district || "", status, date].map(csvCell).join(";");
     }).join("\r\n");
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -1903,6 +1912,8 @@ app.get("/api/requests", (req, res) => {
       originalName: r.originalName || null,
       submittedBy: r.submittedBy,
       schoolName: r.schoolName || "",
+      district: (users[r.submittedBy]?.profile?.district) || r.district || "",
+      city: (users[r.submittedBy]?.profile?.city) || r.city || "",
       submittedAt: r.submittedAt,
       status: r.status,
       responseCount: (r.responses || []).length,
@@ -1931,6 +1942,8 @@ app.get("/api/requests/:id", (req, res) => {
 
   res.json({
     ...reqEntry,
+    district: (users[reqEntry.submittedBy]?.profile?.district) || reqEntry.district || "",
+    city: (users[reqEntry.submittedBy]?.profile?.city) || reqEntry.city || "",
     hasAttachment: !!reqEntry.storedName,
     typeLabel: requestTypeLabels[reqEntry.type] || reqEntry.type,
   });
@@ -1977,6 +1990,8 @@ app.post("/api/requests", (req, res) => {
       officialDocNo: (officialDocNo || "").trim() || null,
       submittedBy: decoded.email,
       schoolName: (user.profile?.schoolName) || "",
+      district: (user.profile?.district) || "",
+      city: (user.profile?.city) || "",
       submittedAt: Date.now(),
       status: "open",
       responses: [],
@@ -2324,6 +2339,8 @@ app.get("/api/file-requests/:id", (req, res) => {
     fr.submissions = fr.submissions.map((s) => ({
       ...s,
       userSchool: allUsers[s.userEmail]?.profile?.schoolName || "",
+      userDistrict: allUsers[s.userEmail]?.profile?.district || "",
+      userCity: allUsers[s.userEmail]?.profile?.city || "",
     }));
   }
 
