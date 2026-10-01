@@ -538,14 +538,14 @@
           <table class="users-table">
             <thead>
               <tr>
-                <th>E-posta</th>
-                <th>Rol</th>
-                <th>Okul</th>
-                <th>İlçe</th>
-                <th>Tür</th>
+                <th onclick="sortUsers('email')" style="cursor:pointer;user-select:none;">E-posta <span id="usSort-email"></span></th>
+                <th onclick="sortUsers('role')" style="cursor:pointer;user-select:none;">Rol <span id="usSort-role"></span></th>
+                <th onclick="sortUsers('schoolName')" style="cursor:pointer;user-select:none;">Okul <span id="usSort-schoolName"></span></th>
+                <th onclick="sortUsers('district')" style="cursor:pointer;user-select:none;">İlçe <span id="usSort-district"></span></th>
+                <th onclick="sortUsers('ownership')" style="cursor:pointer;user-select:none;">Tür <span id="usSort-ownership"></span></th>
                 <th>Ek Gruplar</th>
-                <th>Kayıt Tarihi</th>
-                <th>Son Giriş</th>
+                <th onclick="sortUsers('created')" style="cursor:pointer;user-select:none;white-space:nowrap;">Kayıt Tarihi <span id="usSort-created"></span></th>
+                <th onclick="sortUsers('lastLogin')" style="cursor:pointer;user-select:none;white-space:nowrap;">Son Giriş <span id="usSort-lastLogin"></span></th>
                 <th style="text-align:right;">İşlemler</th>
               </tr>
             </thead>
@@ -617,12 +617,44 @@
     let usersPage = 1;
     let usersAll = [];
     let usersOwnershipFilter = "";
+    let usersSort = { key: null, dir: 1 };
     const USERS_PAGE_SIZE = 25;
 
     function getFilteredUsers() {
-      if (!usersOwnershipFilter) return usersAll;
-      if (usersOwnershipFilter === "bos") return usersAll.filter((u) => !((u.profile || {}).ownership));
-      return usersAll.filter((u) => ((u.profile || {}).ownership || "") === usersOwnershipFilter);
+      let list;
+      if (!usersOwnershipFilter) list = [...usersAll];
+      else if (usersOwnershipFilter === "bos") list = usersAll.filter((u) => !((u.profile || {}).ownership));
+      else list = usersAll.filter((u) => ((u.profile || {}).ownership || "") === usersOwnershipFilter);
+      const { key, dir } = usersSort;
+      if (key) {
+        const trLow = (s) => (s || "").toString().toLocaleLowerCase("tr");
+        const roleOrder = { admin: "sistem yoneticisi", lise: "lise grubu", ortaokul: "ortaokul grubu", diger: "diger" };
+        const val = (u) => {
+          if (key === "schoolName" || key === "district") return trLow((u.profile || {})[key]);
+          if (key === "ownership") return trLow((u.profile || {}).ownership);
+          if (key === "role") return roleOrder[u.role] || u.role;
+          if (key === "created" || key === "lastLogin") return u[key] || 0;
+          return trLow(u[key]);
+        };
+        list.sort((a, b) => {
+          const va = val(a), vb = val(b);
+          const cmp = (typeof va === "number" && typeof vb === "number")
+            ? (va - vb)
+            : String(va).localeCompare(String(vb), "tr");
+          return (cmp === 0 ? 0 : (cmp > 0 ? 1 : -1)) * dir;
+        });
+      }
+      return list;
+    }
+
+    function sortUsers(key) {
+      if (usersSort.key === key) {
+        usersSort.dir = usersSort.dir === 1 ? -1 : 1;
+      } else {
+        usersSort = { key, dir: 1 };
+      }
+      usersPage = 1;
+      renderUsersTable();
     }
 
     function setOwnershipFilter(val) {
@@ -658,6 +690,10 @@
       const tbody = document.getElementById("usersTableBody");
       if (!tbody) return;
       const filtered = getFilteredUsers();
+      ["email", "role", "schoolName", "district", "ownership", "created", "lastLogin"].forEach((k) => {
+        const el = document.getElementById("usSort-" + k);
+        if (el) el.textContent = (usersSort.key === k) ? (usersSort.dir === 1 ? " ▲" : " ▼") : "";
+      });
       const start = (usersPage - 1) * USERS_PAGE_SIZE;
       const pageUsers = filtered.slice(start, start + USERS_PAGE_SIZE);
       tbody.innerHTML = pageUsers.map((u) => {
