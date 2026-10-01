@@ -104,6 +104,8 @@
             <option value="lise">Lise Grubu</option>
             <option value="ortaokul">Ortaokul Grubu</option>
             <option value="diger">Diğer</option>
+            <option value="resmi">Resmi Okullar (tümü)</option>
+            <option value="ozel">Özel Okullar (tümü)</option>
           </select>
         </div>
         <div class="form-group" id="frTargetUsers" style="display:none;">
@@ -198,6 +200,17 @@
       ortaokul: "Ortaokul Grubu",
       diger: "Diğer",
     };
+
+    // Grup hedef etiketi: rol gruplari + resmi/ozel ownership gruplari
+    function groupLabel(g) {
+      if (g === "lise") return "Lise";
+      if (g === "ortaokul") return "Ortaokul";
+      if (g === "diger") return "Diğer";
+      if (g === "resmi") return "Resmi Okullar";
+      if (g === "ozel") return "Özel Okullar";
+      if (g === "all") return "Tümü";
+      return g || "-";
+    }
 
     // Sidebar toggle
     document.getElementById("sidebarToggle").addEventListener("click", () => {
@@ -367,7 +380,7 @@
       if (currentUser.role === "admin" && data.announcements && data.announcements.length > 0) {
         html += `<div class="section-title"><i class="fa-solid fa-bullhorn"></i> Duyurular</div>`;
         html += `<div class="announcements-list">`;
-        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer", resmi: "Resmi Okullar", ozel: "Özel Okullar" };
         data.announcements.forEach((a) => {
           const isRead = a.read;
           const date = new Date(a.createdAt).toLocaleDateString("tr-TR");
@@ -1175,6 +1188,8 @@
                       <option value="lise">Lise Grubu</option>
                       <option value="ortaokul">Ortaokul Grubu</option>
                       <option value="diger">Diğer</option>
+                      <option value="resmi">Resmi Okullar (tümü)</option>
+                      <option value="ozel">Özel Okullar (tümü)</option>
                     </select>
                   </div>
                 </div>
@@ -1232,7 +1247,7 @@
         if (!res.ok) throw new Error();
         const list = await res.json();
         readData = list;
-        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer", resmi: "Resmi Okullar", ozel: "Özel Okullar" };
         tbody.innerHTML = list.map((a) => {
           const expires = new Date(a.expiresAt).toLocaleDateString("tr-TR");
           const expired = a.expiresAt < Date.now();
@@ -1271,7 +1286,7 @@
         });
         if (!res.ok) throw new Error();
         const list = await res.json();
-        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
+        const targetLabels = { all: "Tümü", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer", resmi: "Resmi Okullar", ozel: "Özel Okullar" };
 
         if (list.length === 0) {
           container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px;">Henüz duyuru bulunmuyor.</p>';
@@ -1849,9 +1864,8 @@
           if (notStarted) { statusLabel = "Henüz Başlamadı"; statusColor = "#f59e0b"; }
           else if (expired) { statusLabel = "Süresi Doldu"; statusColor = "#ef4444"; }
           else { statusLabel = "Aktif"; statusColor = "#22c55e"; }
-          const groupLabel = f.targetGroup === "lise" ? "Lise Grubu" : f.targetGroup === "ortaokul" ? "Ortaokul Grubu" : "Diğer";
           const targetLabel = f.targetType === "all" ? "Tüm Kullanıcılar"
-            : f.targetType === "group" ? groupLabel
+            : f.targetType === "group" ? groupLabel(f.targetGroup)
             : (f.targetUsers || []).join(", ");
           return `
             <tr>
@@ -1915,6 +1929,8 @@
                 <option value="lise">Lise Grubu</option>
                 <option value="ortaokul">Ortaokul Grubu</option>
                 <option value="diger">Diğer</option>
+                <option value="resmi">Resmi Okullar (tümü)</option>
+                <option value="ozel">Özel Okullar (tümü)</option>
               </select>
             </div>
             <div id="fileTargetUsersWrap" style="display:none;">
@@ -2965,7 +2981,7 @@
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
         tbody.innerHTML = list.map((s) => {
           const expired = s.expiresAt < Date.now();
-          const targetStr = s.targetType === "group" ? (s.targetGroup === "lise" ? "Lise" : s.targetGroup === "ortaokul" ? "Ortaokul" : "Diğer") : targetLabels[s.targetType] || "Tümü";
+          const targetStr = s.targetType === "group" ? groupLabel(s.targetGroup) : targetLabels[s.targetType] || "Tümü";
           return `
             <tr style="${expired ? 'opacity:0.4;' : ''}">
               <td class="cell-email">${escHtml(s.title)}</td>
@@ -3066,6 +3082,8 @@
                 <option value="lise" ${s.targetGroup === "lise" ? "selected" : ""}>Lise</option>
                 <option value="ortaokul" ${s.targetGroup === "ortaokul" ? "selected" : ""}>Ortaokul</option>
                 <option value="diger" ${s.targetGroup === "diger" ? "selected" : ""}>Diğer</option>
+                <option value="resmi" ${s.targetGroup === "resmi" ? "selected" : ""}>Resmi Okullar (tümü)</option>
+                <option value="ozel" ${s.targetGroup === "ozel" ? "selected" : ""}>Özel Okullar (tümü)</option>
               </select>
             </div>
             <div class="form-group" id="svTargetUsersWrap" style="margin-bottom:0;grid-column:1/-1;${s.targetType !== "users" ? 'display:none;' : ''}">
@@ -3704,7 +3722,7 @@
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
         container.innerHTML = list.map((fr) => {
           const expired = fr.expiresAt < Date.now();
-          const targetStr = fr.targetType === "group" ? (fr.targetGroup === "lise" ? "Lise" : fr.targetGroup === "ortaokul" ? "Ortaokul" : "Diğer") : targetLabels[fr.targetType] || "Tümü";
+          const targetStr = fr.targetType === "group" ? groupLabel(fr.targetGroup) : targetLabels[fr.targetType] || "Tümü";
           const subCount = fr.submissionCount || 0;
           return `
             <div class="announcement-item" style="cursor:pointer;${expired?'opacity:0.5;':''}" onclick="viewFrDetail('${fr.id}')">
@@ -3830,7 +3848,7 @@
         if (!res.ok) throw new Error();
         const fr = await res.json();
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
-        const targetStr = fr.targetType === "group" ? (fr.targetGroup === "lise" ? "Lise" : fr.targetGroup === "ortaokul" ? "Ortaokul" : "Diğer") : targetLabels[fr.targetType] || "Tümü";
+        const targetStr = fr.targetType === "group" ? groupLabel(fr.targetGroup) : targetLabels[fr.targetType] || "Tümü";
         const expired = fr.expiresAt < Date.now();
 
         let subsHtml = "";

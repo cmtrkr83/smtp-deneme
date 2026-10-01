@@ -825,6 +825,9 @@ body.dashboard-body::before {
 .ann-tag.all { background: rgba(139, 0, 0, 0.1); color: #8b0000; }
 .ann-tag.lise { background: rgba(245, 158, 11, 0.1); color: var(--tag-amber); }
 .ann-tag.ortaokul { background: rgba(13, 148, 136, 0.1); color: var(--tag-teal); }
+.ann-tag.diger { background: rgba(236, 72, 153, 0.1); color: #ec4899; }
+.ann-tag.resmi { background: rgba(34, 197, 94, 0.12); color: #166534; }
+.ann-tag.ozel { background: rgba(245, 158, 11, 0.14); color: #92400e; }
 
 .announcement-item h4 {
   font-size: 14px;

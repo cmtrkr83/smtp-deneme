@@ -247,7 +247,7 @@ function getDashboardData(role, users, email) {
   const now = Date.now();
   const activeAnn = allAnn.filter((a) => a.expiresAt > now);
   const filteredAnn = activeAnn.filter(
-    (a) => a.target === "all" || a.target === role || (role === "diger" && a.target === "diger")
+    (a) => a.target === "all" || groupTargetMatches(a.target, role, getUserOwnership(users, email))
   ).map((a) => ({
     id: a.id,
     title: a.title,
@@ -316,17 +316,17 @@ function getDashboardData(role, users, email) {
 
     const allSurveyList = loadSurveys();
     const activeSurveys = allSurveyList.filter((s) => s.expiresAt > now);
-    const targetedSurveys = activeSurveys.filter((s) => isSurveyTargeted(s, email, role));
+    const targetedSurveys = activeSurveys.filter((s) => isSurveyTargeted(s, email, role, getUserOwnership(users, email)));
     const allResp = loadResponses();
     const userResp = allResp.filter((r) => r.userId === email);
     const unansweredSurveys = targetedSurveys.filter((s) => !userResp.some((r) => r.surveyId === s.id)).length;
 
     const allFileList = loadFiles();
-    const targetedFiles = allFileList.filter((f) => (f.startsAt || 0) <= now && f.expiresAt > now && isFileTargeted(f, email, role));
+    const targetedFiles = allFileList.filter((f) => (f.startsAt || 0) <= now && f.expiresAt > now && isFileTargeted(f, email, role, getUserOwnership(users, email)));
     const undownloadedFiles = targetedFiles.filter((f) => !(f.downloads || []).some((d) => d.userId === email)).length;
 
     const allFr = loadFileRequests();
-    const activeFr = allFr.filter((fr) => fr.expiresAt > now && isFrTargeted(fr, email, role));
+    const activeFr = allFr.filter((fr) => fr.expiresAt > now && isFrTargeted(fr, email, role, getUserOwnership(users, email)));
     const pendingFr = activeFr.filter((fr) => !(fr.submissions || []).some((s) => s.userEmail === email)).length;
 
     if (roleData[role] && roleData[role].links) {
@@ -765,6 +765,24 @@ function detectOwnership(val) {
   return "";
 }
 
+// Grup hedefleme: rol (lise/ortaokul/diger) veya ownership (resmi/ozel).
+// "resmi" secimi tum resmi okullara (lise+ortaokul+diger) gider, rolden bagimsizdir.
+const OWNERSHIP_GROUPS = ["resmi", "ozel"];
+function getUserOwnership(users, email) {
+  return ((users || {})[email]?.profile?.ownership) || "";
+}
+function groupTargetMatches(targetGroup, userRole, userOwnership) {
+  if (!targetGroup) return false;
+  if (targetGroup === userRole) return true;
+  if (OWNERSHIP_GROUPS.includes(targetGroup) && userOwnership === targetGroup) return true;
+  return false;
+}
+function countGroupTargets(userList, targetGroup) {
+  return (userList || []).filter(
+    (u) => u.role !== "admin" && groupTargetMatches(targetGroup, u.role, (u.profile || {}).ownership || "")
+  ).length;
+}
+
 app.post("/api/users/import", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
@@ -877,7 +895,7 @@ app.get("/api/announcements", (req, res) => {
     }));
   } else {
     list = allAnn
-      .filter((a) => a.expiresAt > now && (a.target === "all" || a.target === activeRole))
+      .filter((a) => a.expiresAt > now && (a.target === "all" || groupTargetMatches(a.target, activeRole, getUserOwnership(users, decoded.email))))
       .map((a) => ({
         id: a.id,
         title: a.title,
@@ -903,7 +921,7 @@ app.post("/api/announcements", (req, res) => {
   if (String(title).length > 200 || String(content).length > 5000) {
     return res.status(400).json({ error: "Başlık en fazla 200, içerik en fazla 5000 karakter olabilir." });
   }
-  const validTargets = ["all", "lise", "ortaokul", "diger"];
+  const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
   if (!validTargets.includes(target)) {
     return res.status(400).json({ error: "Geçersiz hedef kitle." });
   }
@@ -943,7 +961,7 @@ app.put("/api/announcements/:id", (req, res) => {
   if (title) list[idx].title = title;
   if (content) list[idx].content = content;
   if (target) {
-    const validTargets = ["all", "lise", "ortaokul", "diger"];
+    const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
     if (validTargets.includes(target)) list[idx].target = target;
   }
   if (expiresInDays) {
@@ -1100,9 +1118,9 @@ function saveResponses(list) {
   fs.writeFileSync(RESPONSES_FILE, JSON.stringify({ responses: list }, null, 2));
 }
 
-function isSurveyTargeted(survey, userEmail, userRole) {
+function isSurveyTargeted(survey, userEmail, userRole, userOwnership) {
   if (survey.targetType === "all") return true;
-  if (survey.targetType === "group") return survey.targetGroup === userRole;
+  if (survey.targetType === "group") return groupTargetMatches(survey.targetGroup, userRole, userOwnership);
   if (survey.targetType === "users") return (survey.targetUsers || []).includes(userEmail);
   return false;
 }
@@ -1128,7 +1146,7 @@ app.get("/api/surveys", (req, res) => {
     }));
   } else {
     list = all
-      .filter((s) => s.expiresAt > now && isSurveyTargeted(s, decoded.email, activeRole))
+      .filter((s) => s.expiresAt > now && isSurveyTargeted(s, decoded.email, activeRole, getUserOwnership(users, decoded.email)))
       .map((s) => {
         const myResp = loadResponses().find((r) => r.surveyId === s.id && r.userId === decoded.email);
         return {
@@ -1201,7 +1219,7 @@ app.get("/api/surveys/:id", (req, res) => {
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
   const activeRole = resolveRole(user, req);
-  if (user.role !== "admin" && !isSurveyTargeted(survey, decoded.email, activeRole)) {
+  if (user.role !== "admin" && !isSurveyTargeted(survey, decoded.email, activeRole, getUserOwnership(users, decoded.email))) {
     return res.status(403).json({ error: "Bu ankete erişim yetkiniz yok." });
   }
 
@@ -1281,7 +1299,7 @@ app.post("/api/surveys/:id/respond", (req, res) => {
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
 
-  if (!isSurveyTargeted(survey, decoded.email, resolveRole(user, req))) {
+  if (!isSurveyTargeted(survey, decoded.email, resolveRole(user, req), getUserOwnership(users, decoded.email))) {
     return res.status(403).json({ error: "Bu anket size ait değil." });
   }
   if (survey.expiresAt <= Date.now()) {
@@ -1437,7 +1455,7 @@ app.get("/api/surveys/:id/status", (req, res) => {
   const targetUsers = Object.entries(users)
     .filter(([, u]) => {
       if (survey.targetType === "all") return u.role !== "admin";
-      if (survey.targetType === "group") return u.role === survey.targetGroup;
+      if (survey.targetType === "group") return u.role !== "admin" && groupTargetMatches(survey.targetGroup, u.role, (u.profile || {}).ownership || "");
       if (survey.targetType === "users") return survey.targetUsers.includes(u.email);
       return false;
     })
@@ -1488,9 +1506,9 @@ function saveFiles(list) {
   fs.writeFileSync(FILES_FILE, JSON.stringify({ files: list }, null, 2));
 }
 
-function isFileTargeted(file, userEmail, userRole) {
+function isFileTargeted(file, userEmail, userRole, userOwnership) {
   if (file.targetType === "all") return true;
-  if (file.targetType === "group") return file.targetGroup === userRole;
+  if (file.targetType === "group") return groupTargetMatches(file.targetGroup, userRole, userOwnership);
   if (file.targetType === "users") return (file.targetUsers || []).includes(userEmail);
   return false;
 }
@@ -1510,7 +1528,7 @@ app.get("/api/files", (req, res) => {
 
   const list = all.filter((f) => {
     if (user.role === "admin") return true;
-    return isFileTargeted(f, decoded.email, activeRole) && (f.startsAt || 0) <= now && f.expiresAt > now;
+    return isFileTargeted(f, decoded.email, activeRole, getUserOwnership(users, decoded.email)) && (f.startsAt || 0) <= now && f.expiresAt > now;
   }).map((f) => {
     const dl = f.downloads || [];
     const myDl = dl.find((d) => d.userId === decoded.email);
@@ -1614,7 +1632,7 @@ app.get("/api/files/:id/download", (req, res) => {
   if (!file) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   if (user.role !== "admin") {
-    if (!isFileTargeted(file, decoded.email, resolveRole(user, req))) {
+    if (!isFileTargeted(file, decoded.email, resolveRole(user, req), getUserOwnership(users, decoded.email))) {
       return res.status(403).json({ error: "Bu dosya size ait değil." });
     }
     const now = Date.now();
@@ -1782,7 +1800,7 @@ app.get("/api/reports", (req, res) => {
     const respCount = allResponses.filter((r) => r.surveyId === s.id).length;
     let targetCount = 0;
     if (s.targetType === "all") targetCount = userList.filter((u) => u.role !== "admin").length;
-    else if (s.targetType === "group") targetCount = userList.filter((u) => u.role === s.targetGroup).length;
+    else if (s.targetType === "group") targetCount = countGroupTargets(userList, s.targetGroup);
     else if (s.targetType === "users") targetCount = (s.targetUsers || []).length;
     return {
       title: s.title,
@@ -1805,7 +1823,7 @@ app.get("/api/reports", (req, res) => {
     const readCount = (a.readBy || []).length;
     const targetUserCount = (() => {
       if (a.target === "all") return userList.filter((u) => u.role !== "admin").length;
-      return userList.filter((u) => u.role === a.target).length;
+      return countGroupTargets(userList, a.target);
     })();
     return {
       title: a.title,
@@ -2178,9 +2196,9 @@ const frUpload = multer({
   },
 });
 
-function isFrTargeted(fr, userEmail, userRole) {
+function isFrTargeted(fr, userEmail, userRole, userOwnership) {
   if (fr.targetType === "all") return true;
-  if (fr.targetType === "group") return fr.targetGroup === userRole;
+  if (fr.targetType === "group") return groupTargetMatches(fr.targetGroup, userRole, userOwnership);
   if (fr.targetType === "users") return (fr.targetUsers || []).includes(userEmail);
   return false;
 }
@@ -2205,7 +2223,7 @@ app.get("/api/file-requests", (req, res) => {
     }));
   } else {
     list = all
-      .filter((fr) => fr.expiresAt > now && isFrTargeted(fr, decoded.email, activeRole))
+      .filter((fr) => fr.expiresAt > now && isFrTargeted(fr, decoded.email, activeRole, getUserOwnership(users, decoded.email)))
       .map((fr) => {
         const mySub = (fr.submissions || []).find((s) => s.userEmail === decoded.email);
         return {
@@ -2287,7 +2305,7 @@ app.post("/api/file-requests/:id/submit", frUpload.array("files", 10), (req, res
     return res.status(400).json({ error: "Bu talebin süresi dolmus." });
   }
 
-  if (!isFrTargeted(fr, decoded.email, activeRole)) {
+  if (!isFrTargeted(fr, decoded.email, activeRole, getUserOwnership(users, decoded.email))) {
     cleanupUploadedFiles(req);
     return res.status(403).json({ error: "Bu talep size ait degil." });
   }
@@ -2347,7 +2365,7 @@ app.get("/api/file-requests/:id", (req, res) => {
 
   if (liveUser.role !== "admin") {
     const activeRole = resolveRole(liveUser, req);
-    if (!isFrTargeted(fr, decoded.email, activeRole))
+    if (!isFrTargeted(fr, decoded.email, activeRole, getUserOwnership(allUsers, decoded.email)))
       return res.status(403).json({ error: "Bu talep size ait degil." });
     fr.submissions = (fr.submissions || []).filter((s) => s.userEmail === decoded.email);
   }
