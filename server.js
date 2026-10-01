@@ -670,13 +670,21 @@ app.put("/api/users/:email", (req, res) => {
     return res.status(404).json({ error: "Kullanıcı bulunamadı." });
   }
 
-  const { role, crossRoles } = req.body;
+  const { role, crossRoles, ownership } = req.body;
   const validRoles = ["admin", "lise", "ortaokul", "diger"];
   const currentRole = role && validRoles.includes(role) ? role : users[normEmail].role;
   if (role && validRoles.includes(role) && role !== users[normEmail].role) {
     const oldRole = users[normEmail].role;
     users[normEmail].role = role;
     appendLog(makeLog("user_role_change", decoded.email, `${normEmail}: ${oldRole} -> ${role}`, req));
+  }
+  if (ownership !== undefined) {
+    const normOwn = detectOwnership(ownership);
+    const oldOwn = (users[normEmail].profile || {}).ownership || "";
+    if (normOwn !== oldOwn) {
+      users[normEmail].profile = { ...(users[normEmail].profile || {}), ownership: normOwn };
+      appendLog(makeLog("user_ownership_change", decoded.email, `${normEmail}: ${oldOwn || "-"} -> ${normOwn || "-"}`, req));
+    }
   }
   if (crossRoles !== undefined) {
     const crossList = Array.isArray(crossRoles) ? crossRoles : [];
@@ -750,6 +758,13 @@ app.delete("/api/users/:email", (req, res) => {
   res.json({ message: "Kullanıcı silindi." });
 });
 
+function detectOwnership(val) {
+  const v = String(val || "").toLowerCase().replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c").trim();
+  if (v.includes("ozel")) return "ozel";
+  if (v.includes("resmi")) return "resmi";
+  return "";
+}
+
 app.post("/api/users/import", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
@@ -768,15 +783,16 @@ app.post("/api/users/import", (req, res) => {
 
       const users = loadUsers();
       let added = 0, updated = 0, skipped = 0, errors = [];
-      const colMap = { il: null, ilce: null, genelMudurluk: null, kurumTuru: null, kurumKodu: null, kurum: null };
+      const colMap = { il: null, ilce: null, genelMudurluk: null, kurumTuru: null, kurumKodu: null, kurum: null, resmiOzel: null };
       function normalizeCol(s) {
-        return s.toLowerCase().replace(/[\s\-_]/g, "").replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c");
+        return s.replace(/İ/g, "i").toLowerCase().replace(/[\s\-_]/g, "").replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c");
       }
       const firstRow = rows[0];
       for (const key of Object.keys(firstRow)) {
         const k = normalizeCol(key);
         if (k.includes("ilce")) colMap.ilce = key;
         else if (k === "il") colMap.il = key;
+        else if (k.includes("resmi") || k.includes("ozel") || k.includes("mulkiyet")) colMap.resmiOzel = key;
         else if (k.includes("genel") || k.includes("mudurluk")) colMap.genelMudurluk = key;
         else if (k.includes("tur") || k.includes("turu")) colMap.kurumTuru = key;
         else if (k.includes("kod") || k.includes("kodu")) colMap.kurumKodu = key;
@@ -817,6 +833,7 @@ app.post("/api/users/import", (req, res) => {
           schoolCode: kurumKodu,
           institutionType: rawKurumTuru,
           directorate: colMap.genelMudurluk ? String(row[colMap.genelMudurluk] || "").trim() : "",
+          ownership: detectOwnership(colMap.resmiOzel ? String(row[colMap.resmiOzel] || "").trim() : ""),
         };
         if (users[email]) {
           users[email].profile = { ...(users[email].profile || {}), ...profile };

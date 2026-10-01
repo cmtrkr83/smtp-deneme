@@ -789,6 +789,20 @@ body.dashboard-body::before {
   margin-bottom: 28px;
 }
 
+/* Schools: 2 sütunlu kart ızgarası (mobilde tek sütun) */
+.schools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .schools-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .announcement-item {
   background: var(--surface);
   border: 1px solid var(--border);

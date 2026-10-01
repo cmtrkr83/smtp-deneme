@@ -515,7 +515,14 @@
             <h2>Kullanıcı Yönetimi</h2>
             <p>Sisteme erişebilecek kullanıcıları yönetin.</p>
           </div>
-          <div style="display:flex;gap:10px;">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <select id="ownershipFilter" class="form-control" onchange="setOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
+              style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+              <option value="">Tümü (Resmi+Özel)</option>
+              <option value="resmi">Sadece Resmi</option>
+              <option value="ozel">Sadece Özel</option>
+              <option value="bos">Tür Belirsiz</option>
+            </select>
             <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAddUserModal()">
               <i class="fa-solid fa-plus"></i> Kullanıcı Ekle
             </button>
@@ -535,6 +542,7 @@
                 <th>Rol</th>
                 <th>Okul</th>
                 <th>İlçe</th>
+                <th>Tür</th>
                 <th>Ek Gruplar</th>
                 <th>Kayıt Tarihi</th>
                 <th>Son Giriş</th>
@@ -542,7 +550,7 @@
               </tr>
             </thead>
             <tbody id="usersTableBody">
-              <tr><td colspan="8" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>
@@ -608,16 +616,31 @@
 
     let usersPage = 1;
     let usersAll = [];
+    let usersOwnershipFilter = "";
     const USERS_PAGE_SIZE = 25;
 
+    function getFilteredUsers() {
+      if (!usersOwnershipFilter) return usersAll;
+      if (usersOwnershipFilter === "bos") return usersAll.filter((u) => !((u.profile || {}).ownership));
+      return usersAll.filter((u) => ((u.profile || {}).ownership || "") === usersOwnershipFilter);
+    }
+
+    function setOwnershipFilter(val) {
+      usersOwnershipFilter = val || "";
+      usersPage = 1;
+      renderUsersTable();
+    }
+
     function goToUsersPage(page) {
-      const total = Math.max(1, Math.ceil(usersAll.length / USERS_PAGE_SIZE));
+      const filtered = getFilteredUsers();
+      const total = Math.max(1, Math.ceil(filtered.length / USERS_PAGE_SIZE));
       usersPage = Math.max(1, Math.min(total, page));
       renderUsersTable();
     }
 
     function renderUsersPagination() {
-      const totalPages = Math.max(1, Math.ceil(usersAll.length / USERS_PAGE_SIZE));
+      const filtered = getFilteredUsers();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / USERS_PAGE_SIZE));
       const nav = document.getElementById("usersPagination");
       if (!nav) return;
       if (totalPages <= 1) { nav.innerHTML = ""; return; }
@@ -627,14 +650,16 @@
       html += '<span style="font-size:13px;color:var(--text-2);padding:0 8px;">' + usersPage + " / " + totalPages + "</span>";
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + (usersPage + 1) + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
       html += '<button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" onclick="goToUsersPage(' + totalPages + ')" ' + (usersPage === totalPages ? 'disabled' : '') + '><i class="fa-solid fa-angles-right"></i></button>';
-      html += '<span style="font-size:12px;color:#999;margin-left:12px;">' + usersAll.length + " kullanıcı</span>";
+      html += '<span style="font-size:12px;color:#999;margin-left:12px;">' + filtered.length + " kullanıcı</span>";
       nav.innerHTML = html;
     }
 
     function renderUsersTable() {
       const tbody = document.getElementById("usersTableBody");
+      if (!tbody) return;
+      const filtered = getFilteredUsers();
       const start = (usersPage - 1) * USERS_PAGE_SIZE;
-      const pageUsers = usersAll.slice(start, start + USERS_PAGE_SIZE);
+      const pageUsers = filtered.slice(start, start + USERS_PAGE_SIZE);
       tbody.innerHTML = pageUsers.map((u) => {
         const created = u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-";
         const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") + " " + new Date(u.lastLogin).toLocaleTimeString("tr-TR", {hour:"2-digit",minute:"2-digit"}) : "-";
@@ -652,6 +677,13 @@
             </td>
             <td class="cell-email" style="font-size:12px;">${escHtml((u.profile||{}).schoolName || "-")}</td>
             <td style="font-size:12px;">${escHtml((u.profile||{}).district || "-")}</td>
+            <td>
+                <select class="role-select" data-email="${u.email}" onchange="updateOwnership('${u.email}',this.value)" title="Resmi / Özel">
+                  <option value="" ${!((u.profile||{}).ownership)?"selected":""}>-</option>
+                  <option value="resmi" ${((u.profile||{}).ownership)==="resmi"?"selected":""}>Resmi</option>
+                  <option value="ozel" ${((u.profile||{}).ownership)==="ozel"?"selected":""}>Özel</option>
+                </select>
+            </td>
             <td style="font-size:12px;">
               <div style="display:flex;flex-wrap:wrap;gap:4px 12px;">
               ${["lise","ortaokul","diger"].filter(r => r !== u.role).map(r => {
@@ -682,7 +714,7 @@
         renderUsersTable();
       } catch {
         const tbody = document.getElementById("usersTableBody");
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#ef4444;padding:40px;">Kullanıcılar yüklenirken hata oluştu.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#ef4444;padding:40px;">Kullanıcılar yüklenirken hata oluştu.</td></tr>';
       }
     }
 
@@ -748,6 +780,23 @@
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
           body: JSON.stringify({ role }),
         });
+      } catch {}
+    }
+
+    async function updateOwnership(email, ownership) {
+      try {
+        const res = await fetch("/api/users/" + encodeURIComponent(email), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ ownership }),
+        });
+        if (res.ok) {
+          const u = usersAll.find((x) => x.email === email);
+          if (u) {
+            u.profile = { ...(u.profile || {}), ownership: ownership || "" };
+            renderUsersTable();
+          }
+        }
       } catch {}
     }
 
@@ -837,7 +886,7 @@
           </div>
           <div class="modal-body">
             <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
-              Sütun başlıkları: <b>İl</b>, <b>İlçe</b>, <b>Genel Müdürlük</b>, <b>Kurum Türü</b>, <b>Kurum Kodu</b>, <b>Kurum</b>.<br>
+              Sütun başlıkları: <b>İl</b>, <b>İlçe</b>, <b>Genel Müdürlük</b>, <b>Kurum Türü</b>, <b>Kurum Kodu</b>, <b>Kurum</b>, <b>Resmi/Özel</b>.<br>
               E-posta adresleri <b>kurumkodu@meb.k12.tr</b> şeklinde otomatik oluşturulur.
             </p>
             <div class="form-group">
@@ -1443,20 +1492,29 @@
     async function renderSchools() {
       const area = document.getElementById("contentArea");
       area.innerHTML = `
-        <div class="content-header">
+        <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
           <h2>Okullar</h2>
           <p>Sisteme kayıtlı okulları gruplarına göre görüntüleyin.</p>
+          </div>
+          <div style="display:flex;gap:8px;" id="schoolsOwnershipFilter">
+            <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" data-own="" onclick="setSchoolsOwnershipFilter('')">Tümü</button>
+            <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" data-own="resmi" onclick="setSchoolsOwnershipFilter('resmi')">Resmi</button>
+            <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" data-own="ozel" onclick="setSchoolsOwnershipFilter('ozel')">Özel</button>
+          </div>
         </div>
         <div id="schoolsContent">
           <div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
         </div>
       `;
+      paintSchoolsOwnershipFilter();
       try {
         const res = await fetch("/api/users", {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
-        const users = await res.json();
+        const allUsers = await res.json();
+        const users = !window.schoolsOwnershipFilter ? allUsers : allUsers.filter((u) => ((u.profile || {}).ownership || "") === window.schoolsOwnershipFilter);
         const lise = users.filter((u) => u.role === "lise");
         const ortaokul = users.filter((u) => u.role === "ortaokul");
         const diger = users.filter((u) => u.role === "diger");
@@ -1481,9 +1539,12 @@
                   <h4 style="color:${color};">${escHtml(p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email))}</h4>
                     <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">${escHtml(u.email)}</p>
                   </div>
-                  <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : u.role === "ortaokul" ? "Ortaokul" : "Diğer"}</span>
+                  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+                    <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : u.role === "ortaokul" ? "Ortaokul" : "Diğer"}</span>
+                    ${p.ownership ? `<span class="ann-tag" style="font-size:10px;${p.ownership === "ozel" ? "background:#fef3c7;color:#92400e;border:1px solid #fcd34d;" : "background:#dcfce7;color:#166534;border:1px solid #86efac;"}">${p.ownership === "ozel" ? "Özel" : "Resmi"}</span>` : ""}
+                  </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 20px;font-size:13px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:13px;">
                   <div><span style="color:var(--muted);">Kod:</span> ${escHtml(schoolCode || "-")}</div>
                   ${p.city ? `<div><span style="color:var(--muted);">İl:</span> ${escHtml(p.city)}</div>` : ""}
                   ${p.district ? `<div><span style="color:var(--muted);">İlçe:</span> ${escHtml(p.district)}</div>` : ""}
@@ -1504,19 +1565,19 @@
           if (lise.length > 0) {
             html += `
               <div class="section-title" style="margin-top:0;"><i class="fa-solid fa-school" style="color:#d97706;"></i> Lise Grubu (${lise.length})</div>
-              <div class="announcements-list" style="margin-bottom:28px;">${lise.map((u) => renderSchoolCard(u, "#d97706")).join("")}</div>
+              <div class="schools-grid">${lise.map((u) => renderSchoolCard(u, "#d97706")).join("")}</div>
             `;
           }
           if (ortaokul.length > 0) {
             html += `
               <div class="section-title"><i class="fa-solid fa-school" style="color:#9333ea;"></i> Ortaokul Grubu (${ortaokul.length})</div>
-              <div class="announcements-list" style="margin-bottom:28px;">${ortaokul.map((u) => renderSchoolCard(u, "#9333ea")).join("")}</div>
+              <div class="schools-grid">${ortaokul.map((u) => renderSchoolCard(u, "#9333ea")).join("")}</div>
             `;
           }
           if (diger.length > 0) {
             html += `
               <div class="section-title"><i class="fa-solid fa-users" style="color:#ec4899;"></i> Diğer (${diger.length})</div>
-              <div class="announcements-list" style="margin-bottom:28px;">${diger.map((u) => renderSchoolCard(u, "#ec4899")).join("")}</div>
+              <div class="schools-grid">${diger.map((u) => renderSchoolCard(u, "#ec4899")).join("")}</div>
             `;
           }
         }
@@ -1525,6 +1586,23 @@
         document.getElementById("schoolsContent").innerHTML =
           '<div style="text-align:center;padding:40px;color:#dc2626;">Okullar yüklenirken hata oluştu.</div>';
       }
+    }
+
+    function setSchoolsOwnershipFilter(val) {
+      window.schoolsOwnershipFilter = val || "";
+      paintSchoolsOwnershipFilter();
+      renderSchools();
+    }
+
+    function paintSchoolsOwnershipFilter() {
+      const wrap = document.getElementById("schoolsOwnershipFilter");
+      if (!wrap) return;
+      const cur = window.schoolsOwnershipFilter || "";
+      wrap.querySelectorAll("button").forEach((b) => {
+        const active = (b.dataset.own || "") === cur;
+        b.style.border = active ? "1px solid var(--brand-ink)" : "";
+        b.style.fontWeight = active ? "700" : "";
+      });
     }
 
     // ---- School Profile Form ----
