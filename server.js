@@ -857,10 +857,60 @@ function groupTargetMatches(targetGroup, userRole, userOwnership) {
   if (OWNERSHIP_GROUPS.includes(targetGroup) && userOwnership === targetGroup) return true;
   return false;
 }
+// Coklu grup hedefleme: eski tekil alanlar (targetGroup/target) aynen calismaya
+// devam eder; yeni targetGroups/targets dizisi VEYA mantigiyla eslesir.
+const VALID_GROUPS = ["lise", "ortaokul", "diger", "resmi", "ozel"];
+function sanitizeTargetGroups(v) {
+  let arr = v;
+  if (typeof v === "string" && v) {
+    try {
+      const parsed = JSON.parse(v);
+      arr = Array.isArray(parsed) ? parsed : v.split(",");
+    } catch (_) {
+      arr = v.split(",");
+    }
+  }
+  if (!Array.isArray(arr)) arr = [];
+  const out = [];
+  for (const g of arr) {
+    const t = String(g || "").trim();
+    if (VALID_GROUPS.includes(t) && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+function matchedGroups(item) {
+  const out = [];
+  const push = (g) => {
+    const t = String(g || "").trim();
+    if (VALID_GROUPS.includes(t) && !out.includes(t)) out.push(t);
+  };
+  push(item.targetGroup);
+  push(item.target);
+  sanitizeTargetGroups(item.targetGroups || item.targets).forEach(push);
+  return out;
+}
+function isGroupTargeted(item, userRole, userOwnership) {
+  return matchedGroups(item).some((g) => groupTargetMatches(g, userRole, userOwnership));
+}
 function countGroupTargets(userList, targetGroup) {
   return (userList || []).filter(
     (u) => u.role !== "admin" && groupTargetMatches(targetGroup, u.role, (u.profile || {}).ownership || "")
   ).length;
+}
+function countItemTargets(userList, item) {
+  return (userList || []).filter(
+    (u) => u.role !== "admin" && isGroupTargeted(item, u.role, (u.profile || {}).ownership || "")
+  ).length;
+}
+// Hedef cozumleme: tekil targetGroup geriye uyumluluk icin korunur,
+// coklu secim targetGroups dizisinde tutulur (bos dizi = secim yok).
+function resolveTargetGroups(targetType, targetGroup, targetGroups) {
+  if (targetType !== "group") return { group: null, groups: [] };
+  const groups = sanitizeTargetGroups(targetGroups);
+  if (groups.length === 0 && VALID_GROUPS.includes(String(targetGroup || "").trim())) {
+    groups.push(String(targetGroup).trim());
+  }
+  return { group: groups[0] || null, groups };
 }
 
 app.post("/api/users/import", (req, res) => {
@@ -975,7 +1025,7 @@ app.get("/api/announcements", (req, res) => {
     }));
   } else {
     list = allAnn
-      .filter((a) => a.expiresAt > now && (a.target === "all" || groupTargetMatches(a.target, activeRole, getUserOwnership(users, decoded.email))))
+      .filter((a) => a.expiresAt > now && (a.target === "all" || isGroupTargeted(a, activeRole, getUserOwnership(users, decoded.email))))
       .map((a) => ({
         id: a.id,
         title: a.title,
@@ -994,15 +1044,16 @@ app.post("/api/announcements", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { title, content, target, expiresInDays } = req.body;
-  if (!title || !content || !target) {
+  const { title, content, target, targetGroups, expiresInDays } = req.body;
+  if (!title || !content || (!target && (!targetGroups || targetGroups.length === 0))) {
     return res.status(400).json({ error: "Başlık, içerik ve hedef kitle gerekli." });
   }
   if (String(title).length > 200 || String(content).length > 5000) {
     return res.status(400).json({ error: "Başlık en fazla 200, içerik en fazla 5000 karakter olabilir." });
   }
   const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
-  if (!validTargets.includes(target)) {
+  const annGroups = sanitizeTargetGroups(targetGroups);
+  if (annGroups.length === 0 && !validTargets.includes(target)) {
     return res.status(400).json({ error: "Geçersiz hedef kitle." });
   }
 
@@ -1011,7 +1062,8 @@ app.post("/api/announcements", (req, res) => {
     id: crypto.randomUUID(),
     title,
     content,
-    target,
+    target: annGroups.length > 0 ? annGroups[0] : target,
+    targets: annGroups,
     createdBy: decoded.email,
     createdAt: Date.now(),
     expiresAt: Date.now() + (expiresInDays || 7) * 24 * 60 * 60 * 1000,
@@ -1019,7 +1071,7 @@ app.post("/api/announcements", (req, res) => {
   };
   list.push(ann);
   saveAnnouncements(list);
-  appendLog(makeLog("announcement_create", decoded.email, `"${title}" duyurusu oluşturuldu (hedef: ${target}).`, req));
+  appendLog(makeLog("announcement_create", decoded.email, `"${title}" duyurusu oluşturuldu (hedef: ${annGroups.length > 1 ? annGroups.join("+") : ann.target}).`, req));
   res.status(201).json(ann);
 });
 
@@ -1031,7 +1083,7 @@ app.put("/api/announcements/:id", (req, res) => {
   const idx = list.findIndex((a) => a.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Duyuru bulunamadı." });
 
-  const { title, content, target, expiresInDays } = req.body;
+  const { title, content, target, targetGroups, expiresInDays } = req.body;
   if (title && String(title).length > 200) {
     return res.status(400).json({ error: "Başlık en fazla 200 karakter olabilir." });
   }
@@ -1040,9 +1092,16 @@ app.put("/api/announcements/:id", (req, res) => {
   }
   if (title) list[idx].title = title;
   if (content) list[idx].content = content;
-  if (target) {
+  const annGroups = sanitizeTargetGroups(targetGroups);
+  if (annGroups.length > 0) {
+    list[idx].target = annGroups[0];
+    list[idx].targets = annGroups;
+  } else if (target) {
     const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
-    if (validTargets.includes(target)) list[idx].target = target;
+    if (validTargets.includes(target)) {
+      list[idx].target = target;
+      if (target === "all") list[idx].targets = [];
+    }
   }
   if (expiresInDays) {
     list[idx].expiresAt = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
@@ -1200,7 +1259,7 @@ function saveResponses(list) {
 
 function isSurveyTargeted(survey, userEmail, userRole, userOwnership) {
   if (survey.targetType === "all") return true;
-  if (survey.targetType === "group") return groupTargetMatches(survey.targetGroup, userRole, userOwnership);
+  if (survey.targetType === "group") return isGroupTargeted(survey, userRole, userOwnership);
   if (survey.targetType === "users") return (survey.targetUsers || []).includes(userEmail);
   return false;
 }
@@ -1249,13 +1308,17 @@ app.post("/api/surveys", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { title, description, targetType, targetGroup, targetUsers, expiresInDays, allowEdit, questions } = req.body;
+  const { title, description, targetType, targetGroup, targetGroups, targetUsers, expiresInDays, allowEdit, questions } = req.body;
   if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
     return res.status(400).json({ error: "Baslik ve en az bir soru gerekli." });
   }
   const validTargets = ["all", "group", "users"];
   if (!validTargets.includes(targetType)) {
     return res.status(400).json({ error: "Geçersiz hedef kitle." });
+  }
+  const tg = resolveTargetGroups(targetType, targetGroup, targetGroups);
+  if (targetType === "group" && tg.groups.length === 0) {
+    return res.status(400).json({ error: "En az bir grup seçin." });
   }
 
   const list = loadSurveys();
@@ -1269,7 +1332,8 @@ app.post("/api/surveys", (req, res) => {
     expiresAt: Date.now() + (Number.isFinite(surveyDays) && surveyDays > 0 ? surveyDays : 7) * 24 * 60 * 60 * 1000,
     allowEdit: allowEdit !== false,
     targetType,
-    targetGroup: targetType === "group" ? targetGroup : null,
+    targetGroup: tg.group,
+    targetGroups: tg.groups,
     targetUsers: targetType === "users" ? (targetUsers || []) : null,
     questions: questions.map((q, i) => ({
       id: crypto.randomUUID(),
@@ -1314,14 +1378,25 @@ app.put("/api/surveys/:id", (req, res) => {
   const idx = list.findIndex((s) => s.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Anket bulunamadı." });
 
-  const { title, description, targetType, targetGroup, targetUsers, expiresInDays, allowEdit, questions } = req.body;
+  const { title, description, targetType, targetGroup, targetGroups, targetUsers, expiresInDays, allowEdit, questions } = req.body;
   if (title) list[idx].title = title;
   if (description !== undefined) list[idx].description = description;
   if (targetType) {
     const validTargets = ["all", "group", "users"];
     if (validTargets.includes(targetType)) {
       list[idx].targetType = targetType;
-      list[idx].targetGroup = targetType === "group" ? targetGroup : null;
+      if (targetType === "group") {
+        const tg = resolveTargetGroups(targetType, targetGroup, targetGroups);
+        if (tg.groups.length > 0) {
+          list[idx].targetGroup = tg.group;
+          list[idx].targetGroups = tg.groups;
+        }
+        const eff = matchedGroups(list[idx]);
+        if (eff.length === 0) return res.status(400).json({ error: "En az bir grup seçin." });
+      } else {
+        list[idx].targetGroup = null;
+        list[idx].targetGroups = [];
+      }
       list[idx].targetUsers = targetType === "users" ? (targetUsers || []) : null;
     }
   }
@@ -1559,7 +1634,7 @@ app.get("/api/surveys/:id/status", (req, res) => {
   const targetUsers = Object.entries(users)
     .filter(([, u]) => {
       if (survey.targetType === "all") return u.role !== "admin";
-      if (survey.targetType === "group") return u.role !== "admin" && groupTargetMatches(survey.targetGroup, u.role, (u.profile || {}).ownership || "");
+      if (survey.targetType === "group") return u.role !== "admin" && isGroupTargeted(survey, u.role, (u.profile || {}).ownership || "");
       if (survey.targetType === "users") return survey.targetUsers.includes(u.email);
       return false;
     })
@@ -1612,7 +1687,7 @@ function saveFiles(list) {
 
 function isFileTargeted(file, userEmail, userRole, userOwnership) {
   if (file.targetType === "all") return true;
-  if (file.targetType === "group") return groupTargetMatches(file.targetGroup, userRole, userOwnership);
+  if (file.targetType === "group") return isGroupTargeted(file, userRole, userOwnership);
   if (file.targetType === "users") return (file.targetUsers || []).includes(userEmail);
   return false;
 }
@@ -1696,6 +1771,11 @@ app.post("/api/files", (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: "Gecersiz hedef kitle." });
     }
+    const fileTg = resolveTargetGroups(req.body.targetType, req.body.targetGroup, req.body.targetGroups);
+    if (req.body.targetType === "group" && fileTg.groups.length === 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "En az bir grup seçin." });
+    }
 
     const entry = {
       id: crypto.randomUUID(),
@@ -1708,7 +1788,8 @@ app.post("/api/files", (req, res) => {
       startsAt: Number(req.body.startsAt),
       expiresAt: Number(req.body.expiresAt),
       targetType: req.body.targetType,
-      targetGroup: req.body.targetGroup || null,
+      targetGroup: fileTg.group,
+      targetGroups: fileTg.groups,
       targetUsers: req.body.targetType === "users"
         ? (req.body.targetUsers || "").split(",").map((s) => s.trim()).filter(Boolean)
         : null,
@@ -1795,10 +1876,10 @@ app.get("/api/files/:id/status", (req, res) => {
   const downloads = file.downloads || [];
 
   const targetUsers = Object.entries(users)
-    .filter(([, u]) => {
+    .filter(([email, u]) => {
       if (file.targetType === "all") return u.role !== "admin";
-      if (file.targetType === "group") return u.role === file.targetGroup;
-      if (file.targetType === "users") return (file.targetUsers || []).includes(u.email);
+      if (file.targetType === "group") return u.role !== "admin" && isGroupTargeted(file, u.role, (u.profile || {}).ownership || "");
+      if (file.targetType === "users") return (file.targetUsers || []).includes(email);
       return false;
     })
     .map(([email, u]) => {
@@ -1829,10 +1910,10 @@ app.get("/api/files/:id/export", (req, res) => {
   const downloads = file.downloads || [];
 
   const targetUsers = Object.entries(users)
-    .filter(([, u]) => {
+    .filter(([email, u]) => {
       if (file.targetType === "all") return u.role !== "admin";
-      if (file.targetType === "group") return u.role === file.targetGroup;
-      if (file.targetType === "users") return (file.targetUsers || []).includes(u.email);
+      if (file.targetType === "group") return u.role !== "admin" && isGroupTargeted(file, u.role, (u.profile || {}).ownership || "");
+      if (file.targetType === "users") return (file.targetUsers || []).includes(email);
       return false;
     })
     .map(([email, u]) => {
@@ -1904,7 +1985,7 @@ app.get("/api/reports", (req, res) => {
     const respCount = allResponses.filter((r) => r.surveyId === s.id).length;
     let targetCount = 0;
     if (s.targetType === "all") targetCount = userList.filter((u) => u.role !== "admin").length;
-    else if (s.targetType === "group") targetCount = countGroupTargets(userList, s.targetGroup);
+    else if (s.targetType === "group") targetCount = countItemTargets(userList, s);
     else if (s.targetType === "users") targetCount = (s.targetUsers || []).length;
     return {
       title: s.title,
@@ -1927,7 +2008,7 @@ app.get("/api/reports", (req, res) => {
     const readCount = (a.readBy || []).length;
     const targetUserCount = (() => {
       if (a.target === "all") return userList.filter((u) => u.role !== "admin").length;
-      return countGroupTargets(userList, a.target);
+      return countItemTargets(userList, a);
     })();
     return {
       title: a.title,
@@ -1960,7 +2041,7 @@ app.get("/api/reports", (req, res) => {
   const totalAnnReads = allAnn.reduce((s, a) => s + (a.readBy || []).length, 0);
   const totalAnnTargets = allAnn.reduce((s, a) => {
     if (a.target === "all") return s + userList.filter((u) => u.role !== "admin").length;
-    return s + userList.filter((u) => u.role === a.target).length;
+    return s + countItemTargets(userList, a);
   }, 0);
 
   res.json({
@@ -2302,7 +2383,7 @@ const frUpload = multer({
 
 function isFrTargeted(fr, userEmail, userRole, userOwnership) {
   if (fr.targetType === "all") return true;
-  if (fr.targetType === "group") return groupTargetMatches(fr.targetGroup, userRole, userOwnership);
+  if (fr.targetType === "group") return isGroupTargeted(fr, userRole, userOwnership);
   if (fr.targetType === "users") return (fr.targetUsers || []).includes(userEmail);
   return false;
 }
@@ -2348,15 +2429,16 @@ app.post("/api/file-requests", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { title, description, targetType, targetGroup, targetUsers, expiresInDays } = req.body;
+  const { title, description, targetType, targetGroup, targetGroups, targetUsers, expiresInDays } = req.body;
   if (!title || !targetType) {
     return res.status(400).json({ error: "Baslik ve hedef tipi gerekli." });
   }
   if (!["all", "group", "users"].includes(targetType)) {
     return res.status(400).json({ error: "Gecersiz hedef kitle." });
   }
-  if (targetType === "group" && !targetGroup) {
-    return res.status(400).json({ error: "Grup secimi gerekli." });
+  const frTg = resolveTargetGroups(targetType, targetGroup, targetGroups);
+  if (targetType === "group" && frTg.groups.length === 0) {
+    return res.status(400).json({ error: "En az bir grup seçin." });
   }
   const frDays = Number(expiresInDays);
   const validFrDays = Number.isFinite(frDays) && frDays > 0 ? frDays : 7;
@@ -2366,7 +2448,8 @@ app.post("/api/file-requests", (req, res) => {
     title: title.trim(),
     description: description ? description.trim() : "",
     targetType,
-    targetGroup: targetType === "group" ? targetGroup : null,
+    targetGroup: frTg.group,
+    targetGroups: frTg.groups,
     targetUsers: targetType === "users" ? (targetUsers || []).map((e) => e.toLowerCase().trim()) : null,
     createdAt: Date.now(),
     expiresAt: Date.now() + validFrDays * 24 * 60 * 60 * 1000,

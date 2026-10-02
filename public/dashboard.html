@@ -99,14 +99,8 @@
           </select>
         </div>
         <div class="form-group" id="frTargetGroup" style="display:none;">
-          <label>Grup Seçin</label>
-          <select id="frTargetGroupSelect" class="form-control">
-            <option value="lise">Lise Grubu</option>
-            <option value="ortaokul">Ortaokul Grubu</option>
-            <option value="diger">Diğer</option>
-            <option value="resmi">Resmi Okullar (tümü)</option>
-            <option value="ozel">Özel Okullar (tümü)</option>
-          </select>
+          <label>Gruplar (birden çok seçilebilir)</label>
+          <div id="frTargetGroups" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
         </div>
         <div class="form-group" id="frTargetUsers" style="display:none;">
           <label>Kullanıcı E-postaları (virgülle ayırın)</label>
@@ -210,6 +204,41 @@
       if (g === "ozel") return "Özel Okullar";
       if (g === "all") return "Tümü";
       return g || "-";
+    }
+
+    // Coklu grup etiketi: targetGroups/targets varsa birlestir, yoksa tekil alana dus
+    function groupLabels(item) {
+      const arr = [];
+      const push = (g) => { if (g && !arr.includes(g)) arr.push(g); };
+      (item.targetGroups || item.targets || []).forEach(push);
+      push(item.targetGroup);
+      push(item.target);
+      return arr.length > 0 ? arr.map(groupLabel).join(" + ") : "-";
+    }
+
+    const GROUP_OPTIONS = [
+      { value: "lise", label: "Lise Grubu" },
+      { value: "ortaokul", label: "Ortaokul Grubu" },
+      { value: "diger", label: "Diğer" },
+      { value: "resmi", label: "Resmi Okullar (tümü)" },
+      { value: "ozel", label: "Özel Okullar (tümü)" },
+    ];
+
+    // Grup checkbox listesi (coklu secim)
+    function groupCheckboxHtml(prefix, selected) {
+      const sel = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+      return GROUP_OPTIONS.map((o) => `
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;padding:7px 10px;border:1px solid var(--border);border-radius:8px;">
+          <input type="checkbox" class="${prefix}-group-cb" value="${o.value}" ${sel.includes(o.value) ? "checked" : ""} style="accent-color:#8b0000;width:15px;height:15px;" />
+          ${o.label}
+        </label>
+      `).join("");
+    }
+
+    function collectGroupValues(prefix) {
+      return Array.from(document.querySelectorAll("." + prefix + "-group-cb"))
+        .filter((c) => c.checked)
+        .map((c) => c.value);
     }
 
     // Sidebar toggle
@@ -388,7 +417,7 @@
             <div class="announcement-item" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                  <span class="ann-tag ${a.target}">${targetLabels[a.target] || a.target}</span>
+                  <span class="ann-tag ${a.target}">${(a.targets && a.targets.length > 1) ? groupLabels(a) : (targetLabels[a.target] || a.target)}</span>
                   ${isRead
                     ? '<span style="font-size:11px;color:#16a34a;"><i class="fa-solid fa-check"></i> Okundu</span>'
                     : '<span style="font-size:11px;color:#d97706;"><i class="fa-solid fa-circle"></i> Okunmadı</span>'}
@@ -1217,14 +1246,18 @@
                   <label for="annTarget">Hedef Kitle</label>
                   <div class="input-wrapper">
                     <i class="fa-solid fa-bullseye icon"></i>
-                    <select id="annTarget" class="form-control" style="padding-left:44px;">
+                    <select id="annTarget" class="form-control" style="padding-left:44px;" onchange="toggleAnnTargets()">
                       <option value="all">Tüm Kullanıcılar</option>
                       <option value="lise">Lise Grubu</option>
                       <option value="ortaokul">Ortaokul Grubu</option>
                       <option value="diger">Diğer</option>
                       <option value="resmi">Resmi Okullar (tümü)</option>
                       <option value="ozel">Özel Okullar (tümü)</option>
+                      <option value="__multi">Birden çok grup...</option>
                     </select>
+                  </div>
+                  <div id="annTargetsWrap" style="display:none;margin-top:8px;">
+                    <div id="annTargets" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
                   </div>
                 </div>
                 <div class="form-group">
@@ -1292,7 +1325,7 @@
           return `
             <tr style="${expired ? 'opacity:0.4;' : ''}">
               <td class="cell-email">${escHtml(a.title)}</td>
-              <td><span class="ann-tag ${a.target === 'all' ? 'admin' : a.target}" style="font-size:11px;">${targetLabels[a.target] || a.target}</span></td>
+              <td><span class="ann-tag ${a.target === 'all' ? 'admin' : a.target}" style="font-size:11px;">${(a.targets && a.targets.length > 1) ? groupLabels(a) : (targetLabels[a.target] || a.target)}</span></td>
               <td class="cell-date">${expired ? 'Süresi doldu' : expires}</td>
               <td class="cell-date">
                 ${readCount > 0
@@ -1334,7 +1367,7 @@
             <div class="announcement-item" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                  <span class="ann-tag ${a.target}">${targetLabels[a.target] || a.target}</span>
+                  <span class="ann-tag ${a.target}">${(a.targets && a.targets.length > 1) ? groupLabels(a) : (targetLabels[a.target] || a.target)}</span>
                   ${isRead
                     ? '<span style="font-size:11px;color:#16a34a;"><i class="fa-solid fa-check"></i> Okundu</span>'
                     : '<span style="font-size:11px;color:#d97706;"><i class="fa-solid fa-circle"></i> Okunmadı</span>'}
@@ -1374,11 +1407,21 @@
       document.getElementById("annTitle").value = "";
       document.getElementById("annContent").value = "";
       document.getElementById("annTarget").value = "all";
+      document.getElementById("annTargets").innerHTML = "";
+      document.getElementById("annTargetsWrap").style.display = "none";
       document.getElementById("annExpiry").value = "7";
       document.getElementById("annModalMessage").textContent = "";
       document.getElementById("annModalMessage").className = "message";
       document.getElementById("annModal").style.display = "flex";
       setTimeout(() => document.getElementById("annTitle").focus(), 100);
+    }
+
+    function toggleAnnTargets() {
+      const multi = document.getElementById("annTarget").value === "__multi";
+      document.getElementById("annTargetsWrap").style.display = multi ? "" : "none";
+      if (multi && document.getElementById("annTargets").children.length === 0) {
+        document.getElementById("annTargets").innerHTML = groupCheckboxHtml("ann", []);
+      }
     }
 
     function closeAnnModal() {
@@ -1399,7 +1442,9 @@
         document.getElementById("annSaveBtn").textContent = "Güncelle";
         document.getElementById("annTitle").value = ann.title;
         document.getElementById("annContent").value = ann.content;
-        document.getElementById("annTarget").value = ann.target;
+        document.getElementById("annTarget").value = (ann.targets && ann.targets.length > 1) ? "__multi" : ann.target;
+        document.getElementById("annTargets").innerHTML = groupCheckboxHtml("ann", ann.targets && ann.targets.length > 0 ? ann.targets : (ann.target && ann.target !== "all" ? [ann.target] : []));
+        document.getElementById("annTargetsWrap").style.display = (ann.targets && ann.targets.length > 1) ? "" : "none";
         const remainingDays = Math.ceil((ann.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
         document.getElementById("annExpiry").value = Math.max(1, remainingDays);
         document.getElementById("annModalMessage").textContent = "";
@@ -1412,13 +1457,25 @@
     async function saveAnnouncement() {
       const title = document.getElementById("annTitle").value.trim();
       const content = document.getElementById("annContent").value.trim();
-      const target = document.getElementById("annTarget").value;
+      const targetSel = document.getElementById("annTarget").value;
+      const annGroups = targetSel === "__multi" ? collectGroupValues("ann") : [];
+      const target = targetSel === "__multi" ? (annGroups[0] || null) : targetSel;
       const expiresInDays = parseInt(document.getElementById("annExpiry").value) || 7;
       const msg = document.getElementById("annModalMessage");
       const btn = document.getElementById("annSaveBtn");
 
       if (!title || !content) {
         msg.textContent = "Başlık ve içerik gerekli.";
+        msg.className = "message error show";
+        return;
+      }
+      if (targetSel === "__multi" && annGroups.length === 0) {
+        msg.textContent = "En az bir grup seçin.";
+        msg.className = "message error show";
+        return;
+      }
+      if (!target) {
+        msg.textContent = "Hedef kitle gerekli.";
         msg.className = "message error show";
         return;
       }
@@ -1429,10 +1486,12 @@
       try {
         const method = editingAnnId ? "PUT" : "POST";
         const url = editingAnnId ? "/api/announcements/" + editingAnnId : "/api/announcements";
+        const payload = { title, content, target, expiresInDays };
+        if (annGroups.length > 0) payload.targetGroups = annGroups;
         const res = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ title, content, target, expiresInDays }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (res.ok) {
@@ -1899,7 +1958,7 @@
           else if (expired) { statusLabel = "Süresi Doldu"; statusColor = "#ef4444"; }
           else { statusLabel = "Aktif"; statusColor = "#22c55e"; }
           const targetLabel = f.targetType === "all" ? "Tüm Kullanıcılar"
-            : f.targetType === "group" ? groupLabel(f.targetGroup)
+            : f.targetType === "group" ? groupLabels(f)
             : (f.targetUsers || []).join(", ");
           return `
             <tr>
@@ -1958,14 +2017,10 @@
               </select>
             </div>
             <div id="fileTargetGroupWrap" style="display:none;">
-              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Grup</label>
-              <select id="fileTargetGroup" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);">
-                <option value="lise">Lise Grubu</option>
-                <option value="ortaokul">Ortaokul Grubu</option>
-                <option value="diger">Diğer</option>
-                <option value="resmi">Resmi Okullar (tümü)</option>
-                <option value="ozel">Özel Okullar (tümü)</option>
-              </select>
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Gruplar (birden çok seçilebilir)</label>
+              <div id="fileTargetGroups" style="display:flex;flex-wrap:wrap;gap:8px;">
+                ${groupCheckboxHtml("file", [])}
+              </div>
             </div>
             <div id="fileTargetUsersWrap" style="display:none;">
               <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Kullanıcı E-postaları (virgülle ayırın)</label>
@@ -2002,7 +2057,7 @@
       const startsAt = document.getElementById("fileStartsAt");
       const expiresAt = document.getElementById("fileExpiresAt");
       const targetType = document.getElementById("fileTargetType");
-      const targetGroup = document.getElementById("fileTargetGroup");
+      const fileGroups = collectGroupValues("file");
       const targetUsers = document.getElementById("fileTargetUsers");
 
       if (!fileInput.files || !fileInput.files[0]) {
@@ -2033,7 +2088,13 @@
       formData.append("startsAt", new Date(startsAt.value).getTime());
       formData.append("expiresAt", new Date(expiresAt.value).getTime());
       formData.append("targetType", targetType.value);
-      if (targetType.value === "group") formData.append("targetGroup", targetGroup.value);
+      if (targetType.value === "group") {
+        if (fileGroups.length === 0) {
+          msg.className = "message error show"; msg.textContent = "En az bir grup seçin."; return;
+        }
+        formData.append("targetGroup", fileGroups[0]);
+        formData.append("targetGroups", JSON.stringify(fileGroups));
+      }
       if (targetType.value === "users") formData.append("targetUsers", targetUsers.value);
 
       const uploadBtn = document.querySelector('button[onclick="uploadFile()"]');
@@ -3015,7 +3076,7 @@
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
         tbody.innerHTML = list.map((s) => {
           const expired = s.expiresAt < Date.now();
-          const targetStr = s.targetType === "group" ? groupLabel(s.targetGroup) : targetLabels[s.targetType] || "Tümü";
+          const targetStr = s.targetType === "group" ? groupLabels(s) : targetLabels[s.targetType] || "Tümü";
           return `
             <tr style="${expired ? 'opacity:0.4;' : ''}">
               <td class="cell-email">${escHtml(s.title)}</td>
@@ -3111,14 +3172,10 @@
               </select>
             </div>
             <div class="form-group" id="svTargetGroupWrap" style="margin-bottom:0;${s.targetType !== "group" ? 'display:none;' : ''}">
-              <label for="svTargetGroup">Grup Seçin</label>
-              <select id="svTargetGroup" class="form-control" style="padding-left:16px;">
-                <option value="lise" ${s.targetGroup === "lise" ? "selected" : ""}>Lise</option>
-                <option value="ortaokul" ${s.targetGroup === "ortaokul" ? "selected" : ""}>Ortaokul</option>
-                <option value="diger" ${s.targetGroup === "diger" ? "selected" : ""}>Diğer</option>
-                <option value="resmi" ${s.targetGroup === "resmi" ? "selected" : ""}>Resmi Okullar (tümü)</option>
-                <option value="ozel" ${s.targetGroup === "ozel" ? "selected" : ""}>Özel Okullar (tümü)</option>
-              </select>
+              <label>Gruplar (birden çok seçilebilir)</label>
+              <div id="svTargetGroups" style="display:flex;flex-wrap:wrap;gap:8px;">
+                ${groupCheckboxHtml("sv", (s.targetGroups && s.targetGroups.length > 0) ? s.targetGroups : (s.targetGroup ? [s.targetGroup] : []))}
+              </div>
             </div>
             <div class="form-group" id="svTargetUsersWrap" style="margin-bottom:0;grid-column:1/-1;${s.targetType !== "users" ? 'display:none;' : ''}">
               <label for="svTargetUsers">Kullanıcı E-postaları (virgülle ayırın)</label>
@@ -3297,11 +3354,13 @@
         if (qid) item.id = qid;
         questions.push(item);
       });
+      const svGroups = collectGroupValues("sv");
       return {
         title: document.getElementById("svTitle")?.value?.trim(),
         description: document.getElementById("svDesc")?.value?.trim(),
         targetType: document.getElementById("svTargetType")?.value || "all",
-        targetGroup: document.getElementById("svTargetGroup")?.value || null,
+        targetGroup: svGroups[0] || null,
+        targetGroups: svGroups,
         targetUsers: (document.getElementById("svTargetUsers")?.value || "").split(",").map((s) => s.trim()).filter(Boolean),
         expiresInDays: Math.max(1, parseInt(document.getElementById("svExpiry")?.value, 10) || 7),
         allowEdit: document.getElementById("svAllowEdit")?.value === "true",
@@ -3759,7 +3818,7 @@
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
         container.innerHTML = list.map((fr) => {
           const expired = fr.expiresAt < Date.now();
-          const targetStr = fr.targetType === "group" ? groupLabel(fr.targetGroup) : targetLabels[fr.targetType] || "Tümü";
+          const targetStr = fr.targetType === "group" ? groupLabels(fr) : targetLabels[fr.targetType] || "Tümü";
           const subCount = fr.submissionCount || 0;
           return `
             <div class="announcement-item" style="cursor:pointer;${expired?'opacity:0.5;':''}" onclick="viewFrDetail('${fr.id}')">
@@ -3815,6 +3874,7 @@
       document.getElementById("frTitle").value = "";
       document.getElementById("frDescription").value = "";
       document.getElementById("frTargetType").value = "all";
+      document.getElementById("frTargetGroups").innerHTML = groupCheckboxHtml("fr", []);
       document.getElementById("frTargetGroup").style.display = "none";
       document.getElementById("frTargetUsers").style.display = "none";
       document.getElementById("frExpiresDays").value = "7";
@@ -3836,7 +3896,7 @@
       const title = document.getElementById("frTitle").value.trim();
       const description = document.getElementById("frDescription").value.trim();
       const targetType = document.getElementById("frTargetType").value;
-      const targetGroup = document.getElementById("frTargetGroupSelect").value;
+      const frGroups = collectGroupValues("fr");
       const targetUsersRaw = document.getElementById("frTargetUsersInput").value;
       const expiresInDays = parseInt(document.getElementById("frExpiresDays").value) || 7;
       const msg = document.getElementById("frMessage");
@@ -3849,7 +3909,15 @@
       }
 
       const body = { title, description, targetType, expiresInDays };
-      if (targetType === "group") body.targetGroup = targetGroup;
+      if (targetType === "group") {
+        if (frGroups.length === 0) {
+          msg.textContent = "En az bir grup seçin.";
+          msg.className = "message error show";
+          return;
+        }
+        body.targetGroup = frGroups[0];
+        body.targetGroups = frGroups;
+      }
       if (targetType === "users") body.targetUsers = targetUsersRaw.split(",").map((e) => e.trim()).filter(Boolean);
 
       btn.disabled = true;
@@ -3885,7 +3953,7 @@
         if (!res.ok) throw new Error();
         const fr = await res.json();
         const targetLabels = { all: "Tümü", group: "Grup", users: "Özel" };
-        const targetStr = fr.targetType === "group" ? groupLabel(fr.targetGroup) : targetLabels[fr.targetType] || "Tümü";
+        const targetStr = fr.targetType === "group" ? groupLabels(fr) : targetLabels[fr.targetType] || "Tümü";
         const expired = fr.expiresAt < Date.now();
 
         let subsHtml = "";
