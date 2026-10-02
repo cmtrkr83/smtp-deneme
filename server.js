@@ -890,6 +890,15 @@ function matchedGroups(item) {
   return out;
 }
 function isGroupTargeted(item, userRole, userOwnership) {
+  // Yeni model (tur x rol kesisimi): targetOwnership varsa VE mantigi kullanilir.
+  // Kayitta bu alan yoksa eski VEYA modeline dusulur (geriye uyumluluk).
+  if (item && item.targetOwnership !== undefined) {
+    const own = item.targetOwnership || "all";
+    const roles = Array.isArray(item.targetRoles) ? item.targetRoles.filter((r) => ["lise", "ortaokul", "diger"].includes(r)) : [];
+    const ownOk = own === "all" || userOwnership === own;
+    const roleOk = roles.length === 0 || roles.includes(userRole);
+    return ownOk && roleOk;
+  }
   return matchedGroups(item).some((g) => groupTargetMatches(g, userRole, userOwnership));
 }
 function countGroupTargets(userList, targetGroup) {
@@ -901,6 +910,57 @@ function countItemTargets(userList, item) {
   return (userList || []).filter(
     (u) => u.role !== "admin" && isGroupTargeted(item, u.role, (u.profile || {}).ownership || "")
   ).length;
+}
+const VALID_ROLES = ["lise", "ortaokul", "diger"];
+function sanitizeTargetRoles(v) {
+  let arr = v;
+  if (typeof v === "string" && v) {
+    try {
+      const parsed = JSON.parse(v);
+      arr = Array.isArray(parsed) ? parsed : v.split(",");
+    } catch (_) {
+      arr = v.split(",");
+    }
+  }
+  if (!Array.isArray(arr)) arr = [];
+  const out = [];
+  for (const r of arr) {
+    const t = String(r || "").trim();
+    if (VALID_ROLES.includes(t) && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+// Tur x rol secimi: {ownership, roles} yenidir (VE mantigi).
+// Eski istemciden sadece targetGroup/targetGroups gelirse ve karsiligi
+// yeni modelde ifade edilebiliyorsa donustur, yoksa legacy birak (null).
+function resolveTargetSelection(targetType, src) {
+  const out = { group: null, groups: [], ownership: null, roles: null };
+  if (targetType !== "group") return out;
+  const hasNew = src && (src.targetOwnership !== undefined || src.targetRoles !== undefined);
+  if (hasNew) {
+    const ownership = ["resmi", "ozel"].includes(src.targetOwnership) ? src.targetOwnership : "all";
+    const roles = sanitizeTargetRoles(src.targetRoles);
+    out.ownership = ownership;
+    out.roles = roles;
+    if (ownership !== "all" && roles.length === 0) {
+      out.groups = [ownership]; out.group = ownership;
+    } else if (ownership === "all" && roles.length > 0) {
+      out.groups = [...roles]; out.group = roles[0];
+    } else if (ownership !== "all" && roles.length > 0) {
+      out.groups = [...roles, ownership]; out.group = roles[0];
+    }
+    return out;
+  }
+  const legacy = resolveTargetGroups(targetType, src.targetGroup, src.targetGroups);
+  out.group = legacy.group; out.groups = legacy.groups;
+  const rolePart = legacy.groups.filter((g) => VALID_ROLES.includes(g));
+  const ownPart = legacy.groups.filter((g) => OWNERSHIP_GROUPS.includes(g));
+  if (legacy.groups.length > 0 && ownPart.length === 0) {
+    out.ownership = "all"; out.roles = rolePart;
+  } else if (legacy.groups.length === 1 && ownPart.length === 1) {
+    out.ownership = ownPart[0]; out.roles = [];
+  }
+  return out;
 }
 // Hedef cozumleme: tekil targetGroup geriye uyumluluk icin korunur,
 // coklu secim targetGroups dizisinde tutulur (bos dizi = secim yok).
@@ -1044,17 +1104,21 @@ app.post("/api/announcements", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { title, content, target, targetGroups, expiresInDays } = req.body;
-  if (!title || !content || (!target && (!targetGroups || targetGroups.length === 0))) {
-    return res.status(400).json({ error: "Başlık, içerik ve hedef kitle gerekli." });
+  const { title, content, target, targetGroups, targetOwnership, targetRoles, expiresInDays } = req.body;
+  if (!title || !content) {
+    return res.status(400).json({ error: "Başlık ve içerik gerekli." });
   }
   if (String(title).length > 200 || String(content).length > 5000) {
     return res.status(400).json({ error: "Başlık en fazla 200, içerik en fazla 5000 karakter olabilir." });
   }
   const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
-  const annGroups = sanitizeTargetGroups(targetGroups);
-  if (annGroups.length === 0 && !validTargets.includes(target)) {
-    return res.status(400).json({ error: "Geçersiz hedef kitle." });
+  const isAll = target === "all" && sanitizeTargetGroups(targetGroups).length === 0 && targetOwnership === undefined && targetRoles === undefined;
+  const annTg = isAll
+    ? { group: null, groups: [], ownership: null, roles: null }
+    : resolveTargetSelection("group", { targetGroup: target === "all" ? null : target, targetGroups, targetOwnership, targetRoles });
+  if (!isAll && annTg.groups.length === 0 && annTg.ownership === null) {
+    if (!validTargets.includes(target)) return res.status(400).json({ error: "Geçersiz hedef kitle." });
+    annTg.group = target; annTg.groups = [target];
   }
 
   const list = loadAnnouncements();
@@ -1062,8 +1126,10 @@ app.post("/api/announcements", (req, res) => {
     id: crypto.randomUUID(),
     title,
     content,
-    target: annGroups.length > 0 ? annGroups[0] : target,
-    targets: annGroups,
+    target: isAll ? "all" : (annTg.group || target),
+    targets: sanitizeTargetGroups(targetGroups),
+    targetOwnership: annTg.ownership,
+    targetRoles: annTg.roles,
     createdBy: decoded.email,
     createdAt: Date.now(),
     expiresAt: Date.now() + (expiresInDays || 7) * 24 * 60 * 60 * 1000,
@@ -1071,7 +1137,7 @@ app.post("/api/announcements", (req, res) => {
   };
   list.push(ann);
   saveAnnouncements(list);
-  appendLog(makeLog("announcement_create", decoded.email, `"${title}" duyurusu oluşturuldu (hedef: ${annGroups.length > 1 ? annGroups.join("+") : ann.target}).`, req));
+  appendLog(makeLog("announcement_create", decoded.email, `"${title}" duyurusu oluşturuldu (hedef: ${ann.target}).`, req));
   res.status(201).json(ann);
 });
 
@@ -1083,7 +1149,7 @@ app.put("/api/announcements/:id", (req, res) => {
   const idx = list.findIndex((a) => a.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Duyuru bulunamadı." });
 
-  const { title, content, target, targetGroups, expiresInDays } = req.body;
+  const { title, content, target, targetGroups, targetOwnership, targetRoles, expiresInDays } = req.body;
   if (title && String(title).length > 200) {
     return res.status(400).json({ error: "Başlık en fazla 200 karakter olabilir." });
   }
@@ -1092,15 +1158,24 @@ app.put("/api/announcements/:id", (req, res) => {
   }
   if (title) list[idx].title = title;
   if (content) list[idx].content = content;
-  const annGroups = sanitizeTargetGroups(targetGroups);
-  if (annGroups.length > 0) {
-    list[idx].target = annGroups[0];
-    list[idx].targets = annGroups;
-  } else if (target) {
-    const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
-    if (validTargets.includes(target)) {
-      list[idx].target = target;
-      if (target === "all") list[idx].targets = [];
+  if (target !== undefined || targetGroups !== undefined || targetOwnership !== undefined || targetRoles !== undefined) {
+    if (target === "all") {
+      list[idx].target = "all";
+      list[idx].targets = [];
+      list[idx].targetOwnership = null;
+      list[idx].targetRoles = null;
+    } else {
+      const annTg = resolveTargetSelection("group", { targetGroup: target, targetGroups, targetOwnership, targetRoles });
+      const hasSel = (annTg.groups || []).length > 0 || annTg.ownership !== null;
+      if (hasSel) {
+        list[idx].target = annTg.group;
+        list[idx].targets = annTg.groups;
+        list[idx].targetOwnership = annTg.ownership;
+        list[idx].targetRoles = annTg.roles;
+      } else if (target) {
+        const validTargets = ["all", "lise", "ortaokul", "diger", "resmi", "ozel"];
+        if (validTargets.includes(target)) list[idx].target = target;
+      }
     }
   }
   if (expiresInDays) {
@@ -1308,7 +1383,7 @@ app.post("/api/surveys", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { title, description, targetType, targetGroup, targetGroups, targetUsers, expiresInDays, allowEdit, questions } = req.body;
+  const { title, description, targetType, targetGroup, targetGroups, targetOwnership, targetRoles, targetUsers, expiresInDays, allowEdit, questions } = req.body;
   if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
     return res.status(400).json({ error: "Baslik ve en az bir soru gerekli." });
   }
@@ -1316,8 +1391,8 @@ app.post("/api/surveys", (req, res) => {
   if (!validTargets.includes(targetType)) {
     return res.status(400).json({ error: "Geçersiz hedef kitle." });
   }
-  const tg = resolveTargetGroups(targetType, targetGroup, targetGroups);
-  if (targetType === "group" && tg.groups.length === 0) {
+  const tg = resolveTargetSelection(targetType, req.body);
+  if (targetType === "group" && tg.groups.length === 0 && tg.ownership === null) {
     return res.status(400).json({ error: "En az bir grup seçin." });
   }
 
@@ -1334,6 +1409,8 @@ app.post("/api/surveys", (req, res) => {
     targetType,
     targetGroup: tg.group,
     targetGroups: tg.groups,
+    targetOwnership: tg.ownership,
+    targetRoles: tg.roles,
     targetUsers: targetType === "users" ? (targetUsers || []) : null,
     questions: questions.map((q, i) => ({
       id: crypto.randomUUID(),
@@ -1378,7 +1455,7 @@ app.put("/api/surveys/:id", (req, res) => {
   const idx = list.findIndex((s) => s.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Anket bulunamadı." });
 
-  const { title, description, targetType, targetGroup, targetGroups, targetUsers, expiresInDays, allowEdit, questions } = req.body;
+  const { title, description, targetType, targetGroups, targetUsers, expiresInDays, allowEdit, questions } = req.body;
   if (title) list[idx].title = title;
   if (description !== undefined) list[idx].description = description;
   if (targetType) {
@@ -1386,16 +1463,22 @@ app.put("/api/surveys/:id", (req, res) => {
     if (validTargets.includes(targetType)) {
       list[idx].targetType = targetType;
       if (targetType === "group") {
-        const tg = resolveTargetGroups(targetType, targetGroup, targetGroups);
-        if (tg.groups.length > 0) {
+        const tg = resolveTargetSelection(targetType, req.body);
+        const hasNewSel = req.body.targetOwnership !== undefined || req.body.targetRoles !== undefined || (tg.groups || []).length > 0;
+        if (hasNewSel) {
           list[idx].targetGroup = tg.group;
           list[idx].targetGroups = tg.groups;
+          list[idx].targetOwnership = tg.ownership;
+          list[idx].targetRoles = tg.roles;
         }
-        const eff = matchedGroups(list[idx]);
-        if (eff.length === 0) return res.status(400).json({ error: "En az bir grup seçin." });
+        const effNew = list[idx].targetOwnership !== undefined && list[idx].targetOwnership !== null;
+        const effLegacy = matchedGroups(list[idx]);
+        if (!effNew && effLegacy.length === 0) return res.status(400).json({ error: "En az bir grup seçin." });
       } else {
         list[idx].targetGroup = null;
         list[idx].targetGroups = [];
+        list[idx].targetOwnership = null;
+        list[idx].targetRoles = null;
       }
       list[idx].targetUsers = targetType === "users" ? (targetUsers || []) : null;
     }
@@ -1771,8 +1854,8 @@ app.post("/api/files", (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: "Gecersiz hedef kitle." });
     }
-    const fileTg = resolveTargetGroups(req.body.targetType, req.body.targetGroup, req.body.targetGroups);
-    if (req.body.targetType === "group" && fileTg.groups.length === 0) {
+    const fileTg = resolveTargetSelection(req.body.targetType, req.body);
+    if (req.body.targetType === "group" && fileTg.groups.length === 0 && fileTg.ownership === null) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: "En az bir grup seçin." });
     }
@@ -1790,6 +1873,8 @@ app.post("/api/files", (req, res) => {
       targetType: req.body.targetType,
       targetGroup: fileTg.group,
       targetGroups: fileTg.groups,
+      targetOwnership: fileTg.ownership,
+      targetRoles: fileTg.roles,
       targetUsers: req.body.targetType === "users"
         ? (req.body.targetUsers || "").split(",").map((s) => s.trim()).filter(Boolean)
         : null,
@@ -2429,15 +2514,15 @@ app.post("/api/file-requests", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { title, description, targetType, targetGroup, targetGroups, targetUsers, expiresInDays } = req.body;
+  const { title, description, targetType, targetUsers, expiresInDays } = req.body;
   if (!title || !targetType) {
     return res.status(400).json({ error: "Baslik ve hedef tipi gerekli." });
   }
   if (!["all", "group", "users"].includes(targetType)) {
     return res.status(400).json({ error: "Gecersiz hedef kitle." });
   }
-  const frTg = resolveTargetGroups(targetType, targetGroup, targetGroups);
-  if (targetType === "group" && frTg.groups.length === 0) {
+  const frTg = resolveTargetSelection(targetType, req.body);
+  if (targetType === "group" && frTg.groups.length === 0 && frTg.ownership === null) {
     return res.status(400).json({ error: "En az bir grup seçin." });
   }
   const frDays = Number(expiresInDays);
@@ -2450,6 +2535,8 @@ app.post("/api/file-requests", (req, res) => {
     targetType,
     targetGroup: frTg.group,
     targetGroups: frTg.groups,
+    targetOwnership: frTg.ownership,
+    targetRoles: frTg.roles,
     targetUsers: targetType === "users" ? (targetUsers || []).map((e) => e.toLowerCase().trim()) : null,
     createdAt: Date.now(),
     expiresAt: Date.now() + validFrDays * 24 * 60 * 60 * 1000,
