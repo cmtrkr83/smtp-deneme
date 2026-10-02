@@ -1726,14 +1726,20 @@ app.get("/api/surveys/:id/status", (req, res) => {
   const survey = all.find((s) => s.id === req.params.id);
   if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
 
-  const users = loadUsers();
-  const respList = loadResponses().filter((r) => r.surveyId === req.params.id);
+  const targetUsers = getSurveyStatusUsers(survey);
+  const submitted = targetUsers.filter((u) => u.submitted).length;
 
-  const targetUsers = Object.entries(users)
+  res.json({ total: targetUsers.length, submitted, users: targetUsers });
+});
+
+function getSurveyStatusUsers(survey) {
+  const users = loadUsers();
+  const respList = loadResponses().filter((r) => r.surveyId === survey.id);
+  return Object.entries(users)
     .filter(([, u]) => {
       if (survey.targetType === "all") return u.role !== "admin";
       if (survey.targetType === "group") return u.role !== "admin" && isGroupTargeted(survey, u.role, (u.profile || {}).ownership || "");
-      if (survey.targetType === "users") return survey.targetUsers.includes(u.email);
+      if (survey.targetType === "users") return (survey.targetUsers || []).includes(u.email);
       return false;
     })
     .map(([email, u]) => ({
@@ -1745,8 +1751,69 @@ app.get("/api/surveys/:id/status", (req, res) => {
       submitted: respList.some((r) => r.userId === email),
       submittedAt: respList.find((r) => r.userId === email)?.submittedAt || null,
     }));
+}
 
-  res.json({ total: targetUsers.length, submitted: respList.length, users: targetUsers });
+// İlçe bazında yanıt durumu: her ilçe için hedef/giren/girmeyen + yüzde
+app.get("/api/surveys/:id/district-stats", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const all = loadSurveys();
+  const survey = all.find((s) => s.id === req.params.id);
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
+
+  const targetUsers = getSurveyStatusUsers(survey);
+  const byDistrict = {};
+  for (const u of targetUsers) {
+    const d = (u.district || "").trim() || "Belirsiz";
+    if (!byDistrict[d]) byDistrict[d] = { district: d, total: 0, submitted: 0 };
+    byDistrict[d].total++;
+    if (u.submitted) byDistrict[d].submitted++;
+  }
+  const districts = Object.values(byDistrict).map((x) => ({
+    ...x,
+    pending: x.total - x.submitted,
+    rate: x.total > 0 ? Math.round((x.submitted / x.total) * 100) : 0,
+  })).sort((a, b) => a.district.localeCompare(b.district, "tr"));
+  const submitted = districts.reduce((s, x) => s + x.submitted, 0);
+
+  res.json({
+    survey: { id: survey.id, title: survey.title },
+    total: targetUsers.length,
+    submitted,
+    rate: targetUsers.length > 0 ? Math.round((submitted / targetUsers.length) * 100) : 0,
+    districts,
+  });
+});
+
+// Kullanıcı durumu tablosu Excel indir
+app.get("/api/surveys/:id/status/export-xlsx", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const all = loadSurveys();
+  const survey = all.find((s) => s.id === req.params.id);
+  if (!survey) return res.status(404).json({ error: "Anket bulunamadı." });
+
+  const XLSX = require("xlsx");
+  const roleLabels = { admin: "Yönetici", lise: "Lise", ortaokul: "Ortaokul", diger: "Diğer" };
+  const rows = getSurveyStatusUsers(survey).map((u) => ({
+    Okul: u.schoolName || "-",
+    "İlçe": u.district || "-",
+    "E-posta": u.email,
+    Grup: roleLabels[u.role] || u.role,
+    Durum: u.submitted ? "Yanıtladı" : "Yanıtlamadı",
+    Tarih: u.submittedAt ? new Date(u.submittedAt).toLocaleDateString("tr-TR") : "-",
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [{ wch: 45 }, { wch: 16 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Kullanici Durumu");
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", contentDisposition(`anket-${survey.id}-kullanici-durumu.xlsx`));
+  res.send(buf);
 });
 
 // ---- Files ----
@@ -2088,6 +2155,7 @@ app.get("/api/reports", (req, res) => {
     else if (s.targetType === "group") targetCount = countItemTargets(userList, s);
     else if (s.targetType === "users") targetCount = (s.targetUsers || []).length;
     return {
+      id: s.id,
       title: s.title,
       targetCount,
       respCount,

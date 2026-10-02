@@ -2972,8 +2972,58 @@
       html += '</div></div></div>';
       html += '<div style="text-align:center;padding:12px;color:#bbb;font-size:11px;">Raporlar gercek zamanli verilerle olusturulmustur.</div>';
 
+      // 7) Anket ilce raporu
+      const surveyed = (d.surveyStats || []).filter((s) => s.id);
+      html += '<div class="report-card" style="margin-bottom:28px;"><h4><i class="fa-solid fa-map-location-dot"></i> Anket İlçe Raporu</h4>';
+      if (surveyed.length === 0) {
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz anket bulunmuyor.</div>';
+      } else {
+        html += '<div style="margin:12px 0;max-width:480px;"><select id="districtSurveySelect" class="form-control" onchange="loadDistrictStats()">'
+          + surveyed.map((s, i) => '<option value="' + s.id + '">' + escHtml(s.title) + '</option>').join("")
+          + '</select></div>'
+          + '<div id="districtStatsContent" style="text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>';
+      }
+      html += '</div>';
+
       container.innerHTML = html;
       drawUserPieChart(d.users);
+      if (surveyed.length > 0) loadDistrictStats();
+    }
+
+    async function loadDistrictStats() {
+      const sel = document.getElementById("districtSurveySelect");
+      const box = document.getElementById("districtStatsContent");
+      if (!sel || !box) return;
+      box.innerHTML = '<div style="padding:20px;color:var(--muted);">Yükleniyor...</div>';
+      try {
+        const res = await fetch("/api/surveys/" + sel.value + "/district-stats", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const d = await res.json();
+        let h = '<div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">'
+          + '<span style="font-size:13px;color:var(--text-2);">Hedef: <b>' + d.total + '</b></span>'
+          + '<span style="font-size:13px;color:#22c55e;">Yanıtlayan: <b>' + d.submitted + '</b></span>'
+          + '<span style="font-size:13px;color:#ef4444;">Yanıtlamayan: <b>' + (d.total - d.submitted) + '</b></span>'
+          + '<span style="font-size:13px;color:var(--text);">Genel: <b>%' + d.rate + '</b></span></div>';
+        h += '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
+          + '<th>İlçe</th><th>Hedef</th><th>Yanıtlayan</th><th>Yanıtlamayan</th><th>Oran</th></tr></thead><tbody>';
+        d.districts.forEach((x) => {
+          const barColor = x.rate >= 70 ? "#22c55e" : x.rate >= 40 ? "#f59e0b" : "#ef4444";
+          h += '<tr><td class="cell-email">' + escHtml(x.district) + '</td>'
+            + '<td>' + x.total + '</td>'
+            + '<td style="color:#22c55e;font-weight:600;">' + x.submitted + '</td>'
+            + '<td style="color:#ef4444;">' + x.pending + '</td>'
+            + '<td style="min-width:140px;"><div style="display:flex;align-items:center;gap:8px;">'
+            + '<div style="flex:1;height:16px;background:#f0f0f5;border-radius:4px;overflow:hidden;">'
+            + '<div style="height:100%;width:' + x.rate + '%;background:' + barColor + ';border-radius:4px;"></div></div>'
+            + '<span style="font-size:12px;font-weight:600;">%' + x.rate + '</span></div></td></tr>';
+        });
+        h += '</tbody></table></div>';
+        box.innerHTML = h;
+      } catch {
+        box.innerHTML = '<div style="padding:20px;color:#dc2626;">İlçe raporu yüklenemedi.</div>';
+      }
     }
 
     function drawUserPieChart(users) {
@@ -3439,6 +3489,7 @@
             </div>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminSurveys()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+              <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportStatusXlsx('${id}')"><i class="fa-solid fa-file-excel"></i> Excel İndir</button>
               <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportSurveyCSV('${id}')"><i class="fa-solid fa-download"></i> CSV İndir</button>
             </div>
           </div>
@@ -3532,6 +3583,26 @@
             <td class="cell-date">${u.submittedAt ? new Date(u.submittedAt).toLocaleDateString("tr-TR") : "-"}</td>
           </tr>
         `).join("");
+    }
+
+    async function exportStatusXlsx(id) {
+      try {
+        const res = await fetch("/api/surveys/" + id + "/status/export-xlsx", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) throw new Error();
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "anket-kullanici-durumu-" + id + ".xlsx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert("Excel indirilirken hata oluştu.");
+      }
     }
 
     async function exportSurveyCSV(id) {
