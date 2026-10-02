@@ -195,10 +195,15 @@ function appendLog(entry) {
 }
 
 function clientIp(req) {
-  // Proxy zincirindeki en bastaki (gercek istemci) IP; zincir yoksa baglanti IP'si
+  // Ham XFF zincirinin en basi = internete cikis IP'si.
+  // (req.ips kullanilmiyor: trust sayisini asan zincirlerde express
+  // en soldaki halkayi buduyor ve yanlis IP veriyor.)
   try {
-    const chain = req && req.ips;
-    if (Array.isArray(chain) && chain.length > 0 && chain[0]) return chain[0];
+    const raw = req && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"]);
+    if (raw) {
+      const first = String(raw).split(",")[0].trim();
+      if (first) return first;
+    }
     if (req && req.ip) return req.ip;
     if (req && req.connection && req.connection.remoteAddress) return req.connection.remoteAddress;
   } catch (_) {}
