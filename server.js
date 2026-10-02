@@ -1254,15 +1254,24 @@ app.put("/api/surveys/:id", (req, res) => {
   }
   if (allowEdit !== undefined) list[idx].allowEdit = allowEdit;
   if (questions && Array.isArray(questions) && questions.length > 0) {
-    list[idx].questions = questions.map((q, i) => ({
-      id: q.id || crypto.randomUUID(),
-      type: q.type || "open_ended",
-      title: q.title,
-      required: q.required !== false,
-      order: i,
-      options: q.options || [],
-      validation: q.validation || "none",
-    }));
+    const prev = list[idx].questions || [];
+    list[idx].questions = questions.map((q, i) => {
+      // id korunur: once client gonderdiyse onu kullan, yoksa ayni siradaki
+      // baslik+tip eslesen eski sorunun id'sini devral (eski cevaplari koparma)
+      let qid = q.id;
+      if (!qid && prev[i] && prev[i].title === q.title && (prev[i].type || "open_ended") === (q.type || "open_ended")) {
+        qid = prev[i].id;
+      }
+      return {
+        id: qid || crypto.randomUUID(),
+        type: q.type || "open_ended",
+        title: q.title,
+        required: q.required !== false,
+        order: i,
+        options: q.options || [],
+        validation: q.validation || "none",
+      };
+    });
   }
   saveSurveys(list);
   appendLog(makeLog("survey_edit", decoded.email, `"${list[idx].title}" ankete duzenlendi.`, req));
@@ -1353,6 +1362,16 @@ app.post("/api/surveys/:id/respond", (req, res) => {
     }
   }
 
+  // Zorunlu soru denetimi (tum tipler): eksik ya da bos cevap kabul edilmez
+  for (const q of survey.questions) {
+    if (!q.required) continue;
+    const ans = answers.find((a) => a.questionId === q.id);
+    const empty = !ans || (Array.isArray(ans.value) ? ans.value.length === 0 : !(ans.value || "").toString().trim());
+    if (empty) {
+      return res.status(400).json({ error: `"${q.title}" sorusu zorunlu.` });
+    }
+  }
+
   const entry = {
     id: crypto.randomUUID(),
     surveyId: req.params.id,
@@ -1427,8 +1446,13 @@ app.get("/api/surveys/:id/responses/export", (req, res) => {
     const schoolName = (users[r.userId]?.profile?.schoolName) || "";
     const district = (users[r.userId]?.profile?.district) || "";
     const row = [date, time, r.userId, schoolName, district];
-    survey.questions.forEach((q) => {
-      const ans = r.answers.find((a) => a.questionId === q.id);
+    survey.questions.forEach((q, qi) => {
+      let ans = r.answers.find((a) => a.questionId === q.id);
+      // Geriye uyumluluk: anket duzenlenmeden once verilen cevaplarda soru
+      // id'si tutmayabilir; cevap sayisi soru sayisina esitse sira ile eslestir
+      if (!ans && Array.isArray(r.answers) && r.answers.length === survey.questions.length && r.answers[qi]) {
+        ans = r.answers[qi];
+      }
       const rawVal = ans ? (Array.isArray(ans.value) ? ans.value.join(", ") : (ans.value || "")) : "";
       row.push(ans ? String(rawVal) : "");
     });

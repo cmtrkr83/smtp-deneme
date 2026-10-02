@@ -3133,7 +3133,7 @@
         : '<p class="options-placeholder" style="font-size:12px;color:var(--muted);margin-top:4px;">Çoktan seçmeli veya çoklu seçim sorularında seçenek ekleyin.</p>';
 
       return `
-        <div class="announcement-item question-block">
+        <div class="announcement-item question-block" data-qid="${q.id || ""}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
             <div style="flex:1;">
               <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
@@ -3258,7 +3258,10 @@
             if (v) options.push(v);
           });
         }
-        questions.push({ title, type, required, validation, options });
+        const item = { title, type, required, validation, options };
+        const qid = block.dataset.qid;
+        if (qid) item.id = qid;
+        questions.push(item);
       });
       return {
         title: document.getElementById("svTitle")?.value?.trim(),
