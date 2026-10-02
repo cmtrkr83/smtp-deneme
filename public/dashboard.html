@@ -406,6 +406,9 @@
 
       area.innerHTML = html;
 
+      // Aktif kullanicilar (sadece admin)
+      if (currentUser.role === "admin") renderPresenceSection();
+
       // Quick link navigation
       document.querySelectorAll("#quickLinks .link-card[data-nav]").forEach((el) => {
         el.addEventListener("click", (e) => {
@@ -415,6 +418,37 @@
           if (navBtn) navBtn.click();
         });
       });
+    }
+
+    async function renderPresenceSection() {
+      const area = document.getElementById("contentArea");
+      if (!area) return;
+      try {
+        const res = await fetch("/api/presence?minutes=5", { headers: { Authorization: "Bearer " + token } });
+        if (!res.ok) return;
+        const d = await res.json();
+        const ago = (ts) => {
+          const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+          return m < 1 ? "şimdi" : m + " dk önce";
+        };
+        const rows = (d.users || []).slice(0, 20).map((u) => `
+          <tr>
+            <td class="cell-email">${escHtml(u.schoolName || "-")}</td>
+            <td class="cell-email">${escHtml(u.email)}</td>
+            <td><span class="ann-tag ${u.role}" style="font-size:10px;">${roleLabels[u.role] || u.role}</span></td>
+            <td class="cell-date">${ago(u.lastSeen)}</td>
+          </tr>
+        `).join("");
+        area.insertAdjacentHTML("beforeend", `
+          <div class="section-title"><i class="fa-solid fa-signal"></i> Şu An Aktif <span style="font-size:11px;color:var(--muted);font-weight:400;">(son 5 dk: ${d.active})</span></div>
+          <div class="users-table-wrapper">
+            <table class="users-table">
+              <thead><tr><th>Okul</th><th>E-posta</th><th>Grup</th><th>Son Hareket</th></tr></thead>
+              <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">Aktif kullanıcı yok.</td></tr>'}</tbody>
+            </table>
+          </div>
+        `);
+      } catch {}
     }
 
     function escHtml(s) {

@@ -16,6 +16,18 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+// Aktiflik takibi: token'li her istekte son gorulme guncellenir (throttled, admin paneli icin)
+app.use((req, res, next) => {
+  try {
+    const h = req.headers.authorization;
+    if (h && h.startsWith("Bearer ")) {
+      const d = jwt.verify(h.split(" ")[1], JWT_SECRET);
+      if (d && d.email) touchPresence(String(d.email).toLowerCase().trim());
+    }
+  } catch (_) {}
+  next();
+});
+
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -26,6 +38,49 @@ const LOGS_FILE = path.join(DATA_DIR, "logs.json");
 const FILES_FILE = path.join(DATA_DIR, "files.json");
 const FILE_REQUESTS_FILE = path.join(DATA_DIR, "file-requests.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
+const PRESENCE_FILE = path.join(DATA_DIR, "presence.json");
+const PRESENCE_TOUCH_MS = 60 * 1000; // kullanici basina yazma sikligi
+const PRESENCE_SAVE_MS = 20 * 1000; // diske yazma araligi (debounce)
+const PRESENCE_TTL_MS = 2 * 60 * 60 * 1000; // budama suresi
+let presenceMap = null;
+let presenceSaveTimer = null;
+function loadPresence() {
+  if (presenceMap) return presenceMap;
+  try {
+    if (fs.existsSync(PRESENCE_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(PRESENCE_FILE, "utf-8"));
+      presenceMap = raw && typeof raw === "object" ? raw : {};
+    } else {
+      presenceMap = {};
+    }
+  } catch (_) {
+    presenceMap = {};
+  }
+  return presenceMap;
+}
+function savePresence() {
+  presenceSaveTimer = null;
+  try {
+    const now = Date.now();
+    const map = loadPresence();
+    for (const k of Object.keys(map)) {
+      if (!map[k] || now - map[k] > PRESENCE_TTL_MS) delete map[k];
+    }
+    fs.writeFileSync(PRESENCE_FILE, JSON.stringify(map));
+  } catch (_) {}
+}
+function touchPresence(email) {
+  if (!email) return;
+  const now = Date.now();
+  const map = loadPresence();
+  if (map[email] && now - map[email] < PRESENCE_TOUCH_MS) return;
+  map[email] = now;
+  if (!presenceSaveTimer) presenceSaveTimer = setTimeout(savePresence, PRESENCE_SAVE_MS);
+}
+function countPresence(minutes) {
+  const cutoff = Date.now() - minutes * 60 * 1000;
+  return Object.values(loadPresence()).filter((ts) => ts >= cutoff).length;
+}
 
 function seedInitialAdmin() {
   const users = loadUsers();
@@ -273,6 +328,7 @@ function getDashboardData(role, users, email) {
       ],
       stats: [
         { label: "Toplam Kullanıcı", value: String(totalUsers), icon: "fa-users", color: "#6366f1" },
+        { label: "Aktif (5 dk)", value: String(countPresence(5)), icon: "fa-signal", color: "#10b981" },
         { label: "Yöneticiler", value: String(adminCount), icon: "fa-user-gear", color: "#22c55e" },
         { label: "Lise Grubu", value: String(liseCount), icon: "fa-school", color: "#f59e0b" },
         { label: "Ortaokul Grubu", value: String(ortaokulCount), icon: "fa-school", color: "#a855f7" },
@@ -619,6 +675,28 @@ app.get("/api/users", (req, res) => {
     lastLogin: data.lastLogin,
   }));
   res.json(list);
+});
+
+// ---- Presence (aktif kullanicilar, admin) ----
+app.get("/api/presence", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const minutes = Math.min(120, Math.max(1, Number(req.query.minutes) || 5));
+  const cutoff = Date.now() - minutes * 60 * 1000;
+  const map = loadPresence();
+  const users = loadUsers();
+  const list = Object.entries(map)
+    .filter(([, ts]) => ts >= cutoff)
+    .map(([email, ts]) => ({
+      email,
+      role: users[email]?.role || "?",
+      schoolName: users[email]?.profile?.schoolName || "",
+      district: users[email]?.profile?.district || "",
+      lastSeen: ts,
+    }))
+    .sort((a, b) => b.lastSeen - a.lastSeen);
+  res.json({ windowMinutes: minutes, active: list.length, users: list });
 });
 
 app.get("/api/users/:email", (req, res) => {
