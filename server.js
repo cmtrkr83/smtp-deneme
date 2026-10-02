@@ -536,7 +536,9 @@ app.put("/api/profile", (req, res) => {
 
   const { schoolName, schoolCode, city, district, principalName, principalPhone, schoolPhone, studentCount, teacherCount, classCount } = req.body;
   const autoCode = decoded.email.split("@")[0];
+  const prevProfile = users[decoded.email].profile || {};
   users[decoded.email].profile = {
+    ...prevProfile,
     schoolName: schoolName || "",
     schoolCode: schoolCode || autoCode,
     city: city || "",
