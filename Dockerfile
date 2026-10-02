@@ -5,7 +5,7 @@ WORKDIR /app
 ENV PORT=4004
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN apk add --no-cache tzdata && npm ci --omit=dev
 
 COPY . .
 

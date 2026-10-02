@@ -3,6 +3,8 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     restart: unless-stopped
+    environment:
+      - TZ=Europe/Istanbul
     ports:
       - "4004:80"
     depends_on:
@@ -33,6 +35,7 @@ services:
     container_name: smtp-otp-login
     restart: unless-stopped
     environment:
+      - TZ=Europe/Istanbul
       - PORT=4004
       - DATA_DIR=/app/data
       - JWT_SECRET=${JWT_SECRET}
