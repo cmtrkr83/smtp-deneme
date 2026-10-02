@@ -11,7 +11,7 @@ const multer = require("multer");
 
 const app = express();
 
-app.set("trust proxy", 1);
+app.set("trust proxy", 2);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -194,6 +194,16 @@ function appendLog(entry) {
   fs.writeFileSync(LOGS_FILE, JSON.stringify({ logs: list }, null, 2));
 }
 
+function clientIp(req) {
+  // Proxy zincirindeki en bastaki (gercek istemci) IP; zincir yoksa baglanti IP'si
+  try {
+    const chain = req && req.ips;
+    if (Array.isArray(chain) && chain.length > 0 && chain[0]) return chain[0];
+    if (req && req.ip) return req.ip;
+    if (req && req.connection && req.connection.remoteAddress) return req.connection.remoteAddress;
+  } catch (_) {}
+  return "?";
+}
 function makeLog(action, user, detail, req) {
   return {
     id: crypto.randomUUID(),
@@ -201,7 +211,7 @@ function makeLog(action, user, detail, req) {
     action,
     user,
     detail,
-    ip: req ? req.ip || req.connection?.remoteAddress || "?" : "?",
+    ip: req ? clientIp(req) : "?",
   };
 }
 
