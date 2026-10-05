@@ -10,6 +10,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="/style.css?v=3" />
+  <style>
+    /* Toast bildirimleri (ekleme, mevcut stilleri ezmez) */
+    #toastWrap { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: min(360px, 90vw); }
+    .toast { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; font-size: 13px; font-weight: 500; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.18); animation: toast-in .25s ease; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .toast.info { background: #2563eb; }
+    .toast.warning { background: #d97706; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  </style>
   <script>
     // Varsayılan her zaman açık tema; kullanıcı koyu temaya geçerse tercihi hatırlanır.
     try {
@@ -523,6 +533,25 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    // Merkezi toast bildirimi (mevcut mesaj alanlarına dokunmaz, ek kanaldır)
+    function showToast(msg, type) {
+      try {
+        let wrap = document.getElementById("toastWrap");
+        if (!wrap) {
+          wrap = document.createElement("div");
+          wrap.id = "toastWrap";
+          document.body.appendChild(wrap);
+        }
+        const el = document.createElement("div");
+        el.className = "toast " + (["success", "error", "info", "warning"].includes(type) ? type : "info");
+        const icon = type === "success" ? "fa-check-circle" : type === "error" ? "fa-circle-exclamation" : type === "warning" ? "fa-triangle-exclamation" : "fa-circle-info";
+        el.innerHTML = '<i class="fa-solid ' + icon + '"></i><span></span>';
+        el.querySelector("span").textContent = String(msg || "");
+        wrap.appendChild(el);
+        setTimeout(() => { try { el.remove(); } catch (_) {} }, 3000);
+      } catch (_) {}
     }
 
     function applyTheme(t) {
