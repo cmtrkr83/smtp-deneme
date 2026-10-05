@@ -2829,8 +2829,8 @@ app.get("/api/file-requests/:id/download-all", (req, res) => {
 });
 
 app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) => {
-  const decoded = requireAdmin(req, res);
-  if (!decoded) return;
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
 
   const all = loadFileRequests();
   const fr = all.find((fr) => fr.id === req.params.id);
@@ -2838,6 +2838,13 @@ app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) =
 
   const sub = (fr.submissions || []).find((s) => s.id === req.params.submissionId);
   if (!sub) return res.status(404).json({ error: "Gönderi bulunamadi." });
+
+  // Admin tümünü, okul yalnızca kendi gönderisini indirebilir
+  const users = loadUsers();
+  const isAdmin = users[decoded.email] && users[decoded.email].role === "admin";
+  if (!isAdmin && sub.userEmail !== decoded.email) {
+    return res.status(403).json({ error: "Bu dosyayı indirme yetkiniz yok." });
+  }
 
   const fileIdx = parseInt(req.params.fileIndex, 10);
   const file = sub.files[fileIdx];

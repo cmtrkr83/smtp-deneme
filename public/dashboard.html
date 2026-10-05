@@ -4151,10 +4151,10 @@
               <h3 style="font-size:15px;font-weight:600;color:#16a34a;margin-bottom:12px;"><i class="fa-solid fa-check-circle"></i> Dosyalarınız Teslim Edildi</h3>
               <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Teslim tarihi: ${new Date(mySub.submittedAt).toLocaleDateString("tr-TR")} ${new Date(mySub.submittedAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</p>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                ${mySub.files.map((f) => `
-                  <div style="padding:8px 14px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;">
-                    <i class="fa-solid fa-file-zipper"></i> ${escHtml(f.originalName)} (${(f.size/1024).toFixed(1)} KB)
-                  </div>
+                ${mySub.files.map((f, fi) => `
+                  <a href="#" onclick="downloadFileRequestFile('${fr.id}','${mySub.id}',${fi});return false;" style="padding:8px 14px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;text-decoration:none;" title="İndir">
+                    <i class="fa-solid fa-file-zipper"></i> ${escHtml(f.originalName)} (${(f.size/1024).toFixed(1)} KB) <i class="fa-solid fa-download" style="font-size:11px;color:#6366f1;"></i>
+                  </a>
                 `).join("")}
               </div>
             </div>
