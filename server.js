@@ -11,7 +11,10 @@ const multer = require("multer");
 
 const app = express();
 
-app.set("trust proxy", 2);
+// Sayiya degil ozel-ag araliklarina guven: soketten baslayip tum ic ag
+// halkalari (docker, NAT, sanal ag) atlanir, ilk herkese acik IP bulunur.
+// Halka sayisi degisse de (Windows NAT + nginx + olasi ara proxy) dogru calisir.
+app.set("trust proxy", ["loopback", "linklocal", "uniquelocal", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]);
 app.use(helmet({
   contentSecurityPolicy: {
     // Rapor modu: HICBIR SEYI ENGELLEMEZ, sadece ihlalleri /api/csp-report'a bildirir.
