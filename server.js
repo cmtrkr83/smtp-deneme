@@ -373,14 +373,19 @@ function getDashboardData(role, users, email) {
     read: (a.readBy || []).includes(email),
   }));
 
+  const openRequestCount = loadRequests().filter((r) => r.status === "open").length;
+  const activeAnnCount = activeAnn.length;
+  const activeFileCount = loadFiles().filter((f) => (f.startsAt || 0) <= now && f.expiresAt > now).length;
+
   const roleData = {
     admin: {
       announcements: filteredAnn,
       links: [
         { title: "Kullanıcı Yönetimi", url: "/navigate/users", icon: "fa-users-gear", desc: "Kullanıcı rollerini yönetin" },
-        { title: "Duyuru Panosu", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
-        { title: "Dosya Yönetimi", url: "/navigate/files", icon: "fa-folder", desc: "Belge ve dosya paylaşımı" },
+        { title: "Duyuru Panosu", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler", badge: activeAnnCount },
+        { title: "Dosya Yönetimi", url: "/navigate/files", icon: "fa-folder", desc: "Belge ve dosya paylaşımı", badge: activeFileCount },
         { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri oluşturun ve sonuçları görüntüleyin" },
+        { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Okullardan gelen talepler", badge: openRequestCount },
         { title: "Log Kayıtları", url: "/navigate/logs", icon: "fa-clipboard-list", desc: "Sistem hareketlerini inceleyin" },
         { title: "Raporlar", url: "/navigate/reports", icon: "fa-chart-bar", desc: "İstatistik ve grafik raporları" },
         { title: "Sistem Ayarları", url: "/navigate/settings", icon: "fa-sliders", desc: "Genel sistem yapılandırması" },
