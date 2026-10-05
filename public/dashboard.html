@@ -656,6 +656,10 @@
             <p>Sisteme erişebilecek kullanıcıları yönetin.</p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="input-wrapper" style="width:auto;min-width:220px;">
+              <i class="fa-solid fa-magnifying-glass icon"></i>
+              <input type="text" id="usersSearch" class="form-control" placeholder="E-posta / okul / ilçe ara..." oninput="setUsersSearch(this.value)" style="padding-left:40px;" />
+            </div>
             <select id="ownershipFilter" class="form-control" onchange="setOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
               style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
               <option value="">Tümü (Resmi+Özel)</option>
@@ -748,6 +752,12 @@
           </div>
         </div>
       `;
+      try {
+        const si = document.getElementById("usersSearch");
+        if (si && usersSearch) si.value = usersSearch;
+        const of = document.getElementById("ownershipFilter");
+        if (of && usersOwnershipFilter) of.value = usersOwnershipFilter;
+      } catch (_) {}
       await loadUsersTable();
     }
 
@@ -757,6 +767,7 @@
     let usersPage = 1;
     let usersAll = [];
     let usersOwnershipFilter = "";
+    let usersSearch = "";
     let usersSort = { key: null, dir: 1 };
     const USERS_PAGE_SIZE = 25;
 
@@ -765,6 +776,14 @@
       if (!usersOwnershipFilter) list = [...usersAll];
       else if (usersOwnershipFilter === "bos") list = usersAll.filter((u) => !((u.profile || {}).ownership));
       else list = usersAll.filter((u) => ((u.profile || {}).ownership || "") === usersOwnershipFilter);
+      const q = (usersSearch || "").toLocaleLowerCase("tr").trim();
+      if (q) {
+        list = list.filter((u) => {
+          const hay = [u.email, u.role, (u.profile || {}).schoolName, (u.profile || {}).district]
+            .map((s) => (s || "").toString().toLocaleLowerCase("tr")).join(" ");
+          return hay.includes(q);
+        });
+      }
       const { key, dir } = usersSort;
       if (key) {
         const trLow = (s) => (s || "").toString().toLocaleLowerCase("tr");
@@ -799,6 +818,12 @@
 
     function setOwnershipFilter(val) {
       usersOwnershipFilter = val || "";
+      usersPage = 1;
+      renderUsersTable();
+    }
+
+    function setUsersSearch(val) {
+      usersSearch = val || "";
       usersPage = 1;
       renderUsersTable();
     }
