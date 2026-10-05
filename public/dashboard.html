@@ -548,7 +548,7 @@
       return res;
     }
 
-    // Ortak onay penceresi (pilot: duyuru silme; confirm() yerine modern modal)
+    // Ortak onay penceresi (confirm() yerine modern modal: duyuru, dosya, talep, anket, dosya talebi silme)
     let _confirmCb = null;
     function showConfirmModal(o) {
       try {
@@ -2228,16 +2228,24 @@
     }
 
     async function deleteFile(id) {
-      if (!confirm("Bu dosyayı silmek istediğinize emin misiniz?")) return;
-      try {
-        const res = await fetch("/api/files/" + id, {
-          method: "DELETE",
-          headers: { Authorization: "Bearer " + token },
-        });
-        if (res.ok) {
-          loadAdminFilesTable();
-        }
-      } catch (_) {}
+      showConfirmModal({
+        title: "Dosyayı Sil",
+        message: "Bu dosyayı silmek istediğinize emin misiniz?",
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/files/" + id, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Dosya silindi.", "success");
+              loadAdminFilesTable();
+            } else if (res.status !== 401) {
+              showToast("Dosya silinemedi.", "error");
+            }
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
     }
 
     async function downloadFile(id) {
@@ -2699,20 +2707,26 @@
     }
 
     async function deleteRequest(id, isUser) {
-      if (!confirm("Bu talebi silmek istediginize emin misiniz?")) return;
-      try {
-        const res = await fetch("/api/requests/" + id, {
-          method: "DELETE",
-          headers: { Authorization: "Bearer " + token },
-        });
-        if (res.ok) {
-          if (isUser) renderUserRequests();
-          else renderAdminRequests();
-        } else {
-          const data = await res.json().catch(() => ({}));
-          alert(data.error || "Silinemedi.");
-        }
-      } catch (_) {}
+      showConfirmModal({
+        title: "Talebi Sil",
+        message: "Bu talebi silmek istediğinize emin misiniz?",
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/requests/" + id, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Talep silindi.", "success");
+              if (isUser) renderUserRequests();
+              else renderAdminRequests();
+            } else if (res.status !== 401) {
+              const data = await res.json().catch(() => ({}));
+              showToast(data.error || "Silinemedi.", "error");
+            }
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
     }
 
     async function downloadRequestAttachment(id) {
@@ -3265,14 +3279,24 @@
     }
 
     async function deleteSurvey(id) {
-      if (!confirm("Bu anketi ve tüm yanıtlarını silmek istediğinize emin misiniz?")) return;
-      try {
-        await fetch("/api/surveys/" + id, {
-          method: "DELETE",
-          headers: { Authorization: "Bearer " + token },
-        });
-        await loadSurveyTable();
-      } catch {}
+      showConfirmModal({
+        title: "Anketi Sil",
+        message: "Bu anketi ve tüm yanıtlarını silmek istediğinize emin misiniz?",
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/surveys/" + id, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Anket silindi.", "success");
+            } else if (res.status !== 401) {
+              showToast("Anket silinemedi.", "error");
+            }
+            await loadSurveyTable();
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
     }
 
     function renderSurveyBuilder(id) {
@@ -4286,14 +4310,24 @@
     };
 
     window.deleteFr = async function (id) {
-      if (!confirm("Bu dosya talebini silmek istediğinize emin misiniz?")) return;
-      try {
-        const res = await fetch("/api/file-requests/" + id, {
-          method: "DELETE",
-          headers: { Authorization: "Bearer " + token },
-        });
-        if (res.ok) renderAdminFileRequests();
-      } catch {}
+      showConfirmModal({
+        title: "Dosya Talebini Sil",
+        message: "Bu dosya talebini silmek istediğinize emin misiniz?",
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/file-requests/" + id, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Dosya talebi silindi.", "success");
+              renderAdminFileRequests();
+            } else if (res.status !== 401) {
+              showToast("Dosya talebi silinemedi.", "error");
+            }
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
     };
 
     init();
