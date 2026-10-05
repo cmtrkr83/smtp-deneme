@@ -146,18 +146,20 @@
 
     function buildSidebar(role) {
       const nav = document.getElementById("sidebarNav");
-      const mainItems = [
+      const overviewItems = [
         { page: "dashboard", icon: "fa-gauge-high", label: "Genel Bakış", roles: ["admin", "lise", "ortaokul", "diger"] },
-        { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
+      ];
+      const moduleItems = [
         { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "surveys", icon: "fa-square-poll-vertical", label: "Anketler", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "files", icon: "fa-folder-open", label: "Dosya Dağıtım", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "file-requests", icon: "fa-file-arrow-up", label: "Belge İstekleri", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "requests", icon: "fa-paper-plane", label: "Talep/İtiraz", roles: ["admin", "lise", "ortaokul", "diger"] },
-        { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
       ];
 
       const opsItems = [
+        { page: "users", icon: "fa-users", label: "Kullanıcılar", roles: ["admin"] },
+        { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
         { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul", "diger"] },
         { page: "schools", icon: "fa-school", label: "Okullar", roles: ["admin"] },
         { page: "reports", icon: "fa-chart-bar", label: "Raporlar", roles: ["admin"] },
@@ -166,9 +168,11 @@
 
       const btn = (item) => `<button class="nav-item" data-page="${item.page}"><i class="fa-solid ${item.icon}"></i> ${item.label}</button>`;
       const cards = [];
-      const main = mainItems.filter((item) => item.roles.includes(role));
+      const overview = overviewItems.filter((item) => item.roles.includes(role));
+      const modules = moduleItems.filter((item) => item.roles.includes(role));
       const ops = opsItems.filter((item) => item.roles.includes(role));
-      if (main.length) cards.push(`<div class="nav-card">${main.map(btn).join("")}</div>`);
+      if (overview.length) cards.push(`<div class="nav-card">${overview.map(btn).join("")}</div>`);
+      if (modules.length) cards.push(`<div class="nav-card"><div class="nav-section-title">Modüller</div>${modules.map(btn).join("")}</div>`);
       if (ops.length) cards.push(`<div class="nav-card"><div class="nav-section-title">İşlemler</div>${ops.map(btn).join("")}</div>`);
 
       nav.innerHTML = cards.join("");
@@ -419,10 +423,8 @@
         html += `</div>`;
       }
 
-      // Links
+      // Links (Modüller / İşlemler gruplu)
       if (data.links) {
-        html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
-        html += `<div class="cards-grid" id="quickLinks">`;
         const cardColors = [
           { bg: "rgba(59, 130, 246, 0.1)", color: "#2563eb" },
           { bg: "rgba(16, 185, 129, 0.1)", color: "#059669" },
@@ -431,7 +433,8 @@
           { bg: "rgba(236, 72, 153, 0.1)", color: "#db2777" },
           { bg: "rgba(14, 165, 233, 0.1)", color: "#0284c7" },
         ];
-        data.links.forEach((l, i) => {
+        const modulePages = ["announcements", "surveys", "files", "file-requests", "requests"];
+        const linkCard = (l, i) => {
           const isNav = l.url.startsWith("/navigate/");
           const badge = l.badge > 0 ? `<span class="card-badge">${l.badge}</span>` : "";
           let hlStyle = "", iconBg = cardColors[i % cardColors.length];
@@ -439,15 +442,30 @@
             hlStyle = 'background:#dc2626;border:2px solid #b91c1c;';
             iconBg = { bg: "#fff", color: "#dc2626" };
           }
-          html += `
+          return `
             <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card${l.highlight ? ' highlight' : ''}" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}" style="${hlStyle}">
               <div class="card-icon" style="background:${iconBg.bg};color:${iconBg.color};"><i class="fa-solid ${l.icon}"></i>${badge}</div>
               ${l.highlight ? '<h4 style="color:#fff;">' + l.title + '</h4>' : '<h4>' + l.title + '</h4>'}
               ${l.highlight ? '<p style="color:#fca5a5;">' + l.desc + '</p>' : '<p>' + l.desc + '</p>'}
             </a>
           `;
-        });
-        html += `</div>`;
+        };
+        const isModule = (l) => l.url.startsWith("/navigate/") && modulePages.includes(l.url.replace("/navigate/", ""));
+        const modLinks = data.links.filter(isModule);
+        const opsLinks = data.links.filter((l) => !isModule(l));
+        html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
+        if (modLinks.length) {
+          html += `<div class="section-title" style="font-size:13px;"><i class="fa-solid fa-cubes"></i> Modüller</div>`;
+          html += `<div class="cards-grid" id="quickLinksModules">`;
+          modLinks.forEach((l) => { html += linkCard(l, data.links.indexOf(l)); });
+          html += `</div>`;
+        }
+        if (opsLinks.length) {
+          html += `<div class="section-title" style="font-size:13px;"><i class="fa-solid fa-gears"></i> İşlemler</div>`;
+          html += `<div class="cards-grid" id="quickLinksOps">`;
+          opsLinks.forEach((l) => { html += linkCard(l, data.links.indexOf(l)); });
+          html += `</div>`;
+        }
       }
 
       // Announcements (only for admin)
@@ -484,7 +502,7 @@
       if (currentUser.role === "admin") renderPresenceSection();
 
       // Quick link navigation
-      document.querySelectorAll("#quickLinks .link-card[data-nav]").forEach((el) => {
+      document.querySelectorAll("#contentArea .link-card[data-nav]").forEach((el) => {
         el.addEventListener("click", (e) => {
           e.preventDefault();
           const page = el.dataset.nav;

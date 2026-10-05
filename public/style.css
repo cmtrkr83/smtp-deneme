@@ -680,7 +680,9 @@ body.dashboard-body::before {
   margin-bottom: 28px;
 }
 
-#quickLinks {
+#quickLinks,
+#quickLinksModules,
+#quickLinksOps {
   grid-template-columns: repeat(4, 1fr);
 }
 
@@ -1115,7 +1117,9 @@ body.dashboard-body::before {
   }
 
   .cards-grid,
-  #quickLinks {
+  #quickLinks,
+  #quickLinksModules,
+  #quickLinksOps {
     grid-template-columns: 1fr;
   }
 }
