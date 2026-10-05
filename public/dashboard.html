@@ -535,6 +535,57 @@
         .replace(/'/g, "&#39;");
     }
 
+    // Merkezi API çağrısı: token ekler, 401'de oturum uyarısı + girişe yönlendirir (pilot: duyurular)
+    async function apiFetch(url, options) {
+      const opts = Object.assign({}, options || {});
+      opts.headers = Object.assign({}, opts.headers || {}, { Authorization: "Bearer " + token });
+      const res = await fetch(url, opts);
+      if (res.status === 401 && !window._sessionExpired) {
+        window._sessionExpired = true;
+        try { showToast("Oturumunuzun süresi doldu, giriş sayfasına yönlendiriliyorsunuz.", "warning"); } catch (_) {}
+        setTimeout(() => { try { localStorage.removeItem("token"); } catch (_) {} window.location.replace("/login.html"); }, 1200);
+      }
+      return res;
+    }
+
+    // Ortak onay penceresi (pilot: duyuru silme; confirm() yerine modern modal)
+    let _confirmCb = null;
+    function showConfirmModal(o) {
+      try {
+        let ov = document.getElementById("confirmModal");
+        if (!ov) {
+          ov = document.createElement("div");
+          ov.id = "confirmModal";
+          ov.className = "modal-overlay";
+          ov.style.display = "none";
+          ov.innerHTML = '<div class="modal" style="max-width:400px;">'
+            + '<div class="modal-header"><h3 id="confirmTitle"></h3>'
+            + '<button class="modal-close" onclick="closeConfirmModal()"><i class="fa-solid fa-xmark"></i></button></div>'
+            + '<div class="modal-body"><p id="confirmMsg" style="font-size:14px;color:var(--text-2);line-height:1.6;"></p></div>'
+            + '<div class="modal-footer"><button class="btn btn-ghost" style="width:auto;" onclick="closeConfirmModal()">Vazgeç</button>'
+            + '<button class="btn btn-danger" style="width:auto;" id="confirmOkBtn">Sil</button></div></div>';
+          ov.addEventListener("click", (e) => { if (e.target === ov) closeConfirmModal(); });
+          document.body.appendChild(ov);
+        }
+        document.getElementById("confirmTitle").textContent = (o && o.title) || "Emin misiniz?";
+        document.getElementById("confirmMsg").textContent = (o && o.message) || "";
+        document.getElementById("confirmOkBtn").textContent = (o && o.confirmText) || "Sil";
+        _confirmCb = (o && o.onConfirm) || null;
+        document.getElementById("confirmOkBtn").onclick = async () => {
+          const cb = _confirmCb; _confirmCb = null;
+          closeConfirmModal();
+          if (cb) await cb();
+        };
+        ov.style.display = "flex";
+      } catch (_) {
+        if (o && o.onConfirm) o.onConfirm();
+      }
+    }
+    function closeConfirmModal() {
+      try { document.getElementById("confirmModal").style.display = "none"; } catch (_) {}
+      _confirmCb = null;
+    }
+
     // Merkezi toast bildirimi (mevcut mesaj alanlarına dokunmaz, ek kanaldır)
     function showToast(msg, type) {
       try {
@@ -1383,9 +1434,7 @@
     async function loadAnnouncementsTable() {
       const tbody = document.getElementById("annTableBody");
       try {
-        const res = await fetch("/api/announcements" + asRoleQuery(), {
-          headers: { Authorization: "Bearer " + token },
-        });
+        const res = await apiFetch("/api/announcements" + asRoleQuery());
         if (!res.ok) throw new Error();
         const list = await res.json();
         readData = list;
@@ -1561,14 +1610,24 @@
     }
 
     async function deleteAnn(id) {
-      if (!confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) return;
-      try {
-        await fetch("/api/announcements/" + id, {
-          method: "DELETE",
-          headers: { Authorization: "Bearer " + token },
-        });
-        await loadAnnouncementsTable();
-      } catch {}
+      showConfirmModal({
+        title: "Duyuruyu Sil",
+        message: "Bu duyuruyu silmek istediğinize emin misiniz?",
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/announcements/" + id, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Duyuru silindi.", "success");
+              await loadAnnouncementsTable();
+            } else if (res.status !== 401) {
+              showToast("Duyuru silinemedi.", "error");
+            }
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
     }
 
     // ---- Logs ----
