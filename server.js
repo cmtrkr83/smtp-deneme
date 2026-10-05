@@ -790,12 +790,16 @@ app.post("/api/users", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
 
-  const { email, role } = req.body;
+  const { email, role, ownership } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
   }
   const validRoles = ["admin", "lise", "ortaokul", "diger"];
   const userRole = validRoles.includes(role) ? role : detectRole(email);
+  const normOwn = detectOwnership(ownership);
+  if (userRole !== "admin" && !normOwn) {
+    return res.status(400).json({ error: "Okul türü gerekli (resmi / ozel)." });
+  }
 
   const normEmail = email.toLowerCase().trim();
   const users = loadUsers();
@@ -804,12 +808,14 @@ app.post("/api/users", (req, res) => {
   }
 
   const schoolMatch = normEmail.match(/^(\d+)@meb\.(gov\.tr|k12\.tr)$/);
+  const profile = schoolMatch ? { schoolCode: schoolMatch[1] } : {};
+  if (normOwn) profile.ownership = normOwn;
   users[normEmail] = {
     email: normEmail,
     role: userRole,
     created: Date.now(),
     lastLogin: null,
-    profile: schoolMatch ? { schoolCode: schoolMatch[1] } : undefined,
+    profile: Object.keys(profile).length ? profile : undefined,
   };
   saveUsers(users);
   appendLog(makeLog("user_create", decoded.email, `${normEmail} (${userRole}) kullanıcı eklendi.`, req));

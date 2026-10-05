@@ -776,6 +776,17 @@
                   </select>
                 </div>
               </div>
+              <div class="form-group">
+                <label for="modalOwnership">Okul Türü</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-building icon"></i>
+                  <select id="modalOwnership" class="form-control" style="padding-left:44px;-webkit-appearance:none;appearance:none;">
+                    <option value="">Seçiniz...</option>
+                    <option value="resmi">Resmi</option>
+                    <option value="ozel">Özel</option>
+                  </select>
+                </div>
+              </div>
               <div id="modalMessage" class="message"></div>
             </div>
             <div class="modal-footer">
@@ -977,6 +988,7 @@
       document.getElementById("modalEmail").value = "";
       document.getElementById("modalEmail").disabled = false;
       document.getElementById("modalRole").value = "admin";
+      document.getElementById("modalOwnership").value = "";
       document.getElementById("modalMessage").textContent = "";
       document.getElementById("modalMessage").className = "message";
       document.getElementById("userModal").style.display = "flex";
@@ -990,11 +1002,17 @@
     async function saveUser() {
       const email = document.getElementById("modalEmail").value.trim();
       const role = document.getElementById("modalRole").value;
+      const ownership = document.getElementById("modalOwnership").value;
       const msg = document.getElementById("modalMessage");
       const btn = document.getElementById("modalSaveBtn");
 
       if (!email) {
         msg.textContent = "E-posta adresi girin.";
+        msg.className = "message error show";
+        return;
+      }
+      if (role !== "admin" && !ownership) {
+        msg.textContent = "Okul türü seçin (Resmi / Özel).";
         msg.className = "message error show";
         return;
       }
@@ -1006,7 +1024,7 @@
         const res = await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ email, role }),
+          body: JSON.stringify({ email, role, ownership }),
         });
         const data = await res.json();
         if (res.ok) {
