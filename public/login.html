@@ -33,6 +33,7 @@
             <i class="fa-solid fa-envelope icon"></i>
             <input type="email" id="email" class="form-control" placeholder="ornek@meb.k12.tr" required />
           </div>
+          <div id="emailTypoWarn" class="message warning" style="display:none;margin-top:6px;"></div>
         </div>
         <div class="form-group">
           <label for="captcha">Güvenlik Kodu</label>
@@ -102,6 +103,55 @@
       el.className = "message";
     }
 
+    // MEB adresi typo yakalama: meb.k12.tr'ye benzeyip tam eşleşmeyen domainleri bayrakla
+    function suggestMebFix(email) {
+      const norm = String(email || "").toLowerCase().trim();
+      const at = norm.lastIndexOf("@");
+      if (at < 1) return null;
+      const local = norm.slice(0, at);
+      const domain = norm.slice(at + 1);
+      if (!local || !domain) return null;
+      if (domain === "meb.k12.tr") return null;
+      // Noktasız/kaymış yazımlar için normalize karşılaştırma: örn "meb.k12tr" -> "mebk12tr"
+      const flat = (s) => s.replace(/[^a-z0-9]/g, "");
+      if (flat(domain) === "mebk12tr") return local + "@meb.k12.tr";
+      // meb veya k12 içeren ama doğru olmayan her şey typo adayıdır
+      if (domain.includes("meb") || domain.includes("k12") || domain.includes("k.12") || domain.replace(/\./g, "") === "mebk12tr") {
+        return local + "@meb.k12.tr";
+      }
+      return null;
+    }
+
+    function refreshTypoWarn() {
+      const input = document.getElementById("email");
+      const warn = document.getElementById("emailTypoWarn");
+      const suggestion = suggestMebFix(input.value);
+      if (suggestion && input.value.trim() !== "") {
+        warn.style.display = "block";
+        warn.innerHTML = "";
+        const txt = document.createTextNode("Adres yanlış gibi görünüyor. Doğrusu " + suggestion + " olabilir mi? ");
+        const fix = document.createElement("button");
+        fix.type = "button";
+        fix.className = "btn btn-link";
+        fix.style.padding = "0";
+        fix.textContent = "Düzelt";
+        fix.addEventListener("click", () => {
+          input.value = suggestion;
+          refreshTypoWarn();
+          input.focus();
+        });
+        warn.appendChild(txt);
+        warn.appendChild(fix);
+        return suggestion;
+      }
+      warn.style.display = "none";
+      warn.innerHTML = "";
+      return null;
+    }
+
+    document.getElementById("email").addEventListener("input", refreshTypoWarn);
+    document.getElementById("email").addEventListener("blur", refreshTypoWarn);
+
     async function loadCaptcha() {
       try {
         const res = await fetch("/api/captcha");
@@ -148,6 +198,13 @@
       const captcha = document.getElementById("captcha").value;
       const btn = document.getElementById("sendOtpBtn");
       const msg = document.getElementById("emailMessage");
+
+      const suggestion = refreshTypoWarn();
+      if (suggestion) {
+        showMessage(msg, "E-posta adresi hatalı görünüyor. Doğrusu " + suggestion + " olabilir mi? Kontrol edip tekrar deneyin.", "error");
+        document.getElementById("email").focus();
+        return;
+      }
 
       if (!captchaId) {
         showMessage(msg, "Güvenlik kodu yüklenemedi. Lütfen sayfayı yenileyin.", "error");

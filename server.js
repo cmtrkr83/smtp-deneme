@@ -450,6 +450,24 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "Gecerli bir e-posta adresi girin." });
     }
+    // MEB typo kontrolü: meb.k12.tr'ye benzeyip tam eşleşmeyen domaini erken reddet
+    // (admin gibi farklı domainlere izin verilir, sadece bariz typo engellenir)
+    {
+      const norm = String(email).toLowerCase().trim();
+      const at = norm.lastIndexOf("@");
+      const domain = at > 0 ? norm.slice(at + 1) : "";
+      const flat = domain.replace(/[^a-z0-9]/g, "");
+      const looksLikeMeb = domain !== "meb.k12.tr" && (
+        flat === "mebk12tr" ||
+        domain.includes("meb") ||
+        domain.includes("k12") ||
+        domain.includes("k.12")
+      );
+      if (looksLikeMeb) {
+        const local = norm.slice(0, at);
+        return res.status(400).json({ error: `E-posta adresi hatalı görünüyor. Doğrusu ${local}@meb.k12.tr olabilir mi?` });
+      }
+    }
     if (!captchaId || !captcha) {
       return res.status(400).json({ error: "Guvenlik kodu gerekli." });
     }
