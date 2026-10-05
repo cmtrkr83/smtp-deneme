@@ -12,7 +12,26 @@ const multer = require("multer");
 const app = express();
 
 app.set("trust proxy", 2);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    // Rapor modu: HICBIR SEYI ENGELLEMEZ, sadece ihlalleri /api/csp-report'a bildirir.
+    // Mevcut inline script + CDN kullanimiyla tam uyumlu politika; sikilastirma sonraki adim.
+    reportOnly: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "connect-src": ["'self'"],
+      "frame-src": ["blob:"],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
+      "report-uri": ["/api/csp-report"],
+    },
+  },
+}));
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -2861,6 +2880,15 @@ app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) =
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya sunucuda bulunamadi." });
 
   res.download(filePath, file.originalName);
+});
+
+// ---- CSP ihlal raporu (rapor modu; log dosyasina yazilmaz, sadece konsola) ----
+app.post("/api/csp-report", (req, res) => {
+  try {
+    const r = (req.body && (req.body["csp-report"] || req.body)) || {};
+    console.warn("[CSP]", r["violated-directive"] || r.directive || "?", "->", (r["blocked-uri"] || r.blockedURL || "?").toString().slice(0, 200));
+  } catch (_) {}
+  res.status(204).end();
 });
 
 // ---- Verify Token ----
