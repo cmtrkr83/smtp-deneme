@@ -13,7 +13,7 @@ const app = express();
 
 app.set("trust proxy", 2);
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Aktiflik takibi: token'li her istekte son gorulme guncellenir (throttled, admin paneli icin)
@@ -42,6 +42,12 @@ const PRESENCE_FILE = path.join(DATA_DIR, "presence.json");
 const PRESENCE_TOUCH_MS = 60 * 1000; // kullanici basina yazma sikligi
 const PRESENCE_SAVE_MS = 20 * 1000; // diske yazma araligi (debounce)
 const PRESENCE_TTL_MS = 2 * 60 * 60 * 1000; // budama suresi
+// Atomik JSON yazma: tmp dosyaya yaz + rename (yarım yazma / 0-bayt bozulmayı önler)
+function atomicSaveJson(filePath, data) {
+  const tmp = filePath + ".tmp-" + process.pid;
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, filePath);
+}
 let presenceMap = null;
 let presenceSaveTimer = null;
 function loadPresence() {
@@ -66,7 +72,7 @@ function savePresence() {
     for (const k of Object.keys(map)) {
       if (!map[k] || now - map[k] > PRESENCE_TTL_MS) delete map[k];
     }
-    fs.writeFileSync(PRESENCE_FILE, JSON.stringify(map));
+    atomicSaveJson(PRESENCE_FILE, JSON.stringify(map));
   } catch (_) {}
 }
 function touchPresence(email) {
@@ -160,7 +166,7 @@ function loadUsers() {
 }
 
 function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  atomicSaveJson(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
 function loadAnnouncements() {
@@ -174,7 +180,7 @@ function loadAnnouncements() {
 }
 
 function saveAnnouncements(list) {
-  fs.writeFileSync(ANNOUNCEMENTS_FILE, JSON.stringify({ announcements: list }, null, 2));
+  atomicSaveJson(ANNOUNCEMENTS_FILE, JSON.stringify({ announcements: list }, null, 2));
 }
 
 function loadLogs() {
@@ -191,7 +197,7 @@ function appendLog(entry) {
   const list = loadLogs();
   list.push(entry);
   if (list.length > 10000) list.splice(0, list.length - 10000);
-  fs.writeFileSync(LOGS_FILE, JSON.stringify({ logs: list }, null, 2));
+  atomicSaveJson(LOGS_FILE, JSON.stringify({ logs: list }, null, 2));
 }
 
 function clientIp(req) {
@@ -1347,7 +1353,7 @@ function loadSurveys() {
 }
 
 function saveSurveys(list) {
-  fs.writeFileSync(SURVEYS_FILE, JSON.stringify({ surveys: list }, null, 2));
+  atomicSaveJson(SURVEYS_FILE, JSON.stringify({ surveys: list }, null, 2));
 }
 
 function loadResponses() {
@@ -1361,7 +1367,7 @@ function loadResponses() {
 }
 
 function saveResponses(list) {
-  fs.writeFileSync(RESPONSES_FILE, JSON.stringify({ responses: list }, null, 2));
+  atomicSaveJson(RESPONSES_FILE, JSON.stringify({ responses: list }, null, 2));
 }
 
 function isSurveyTargeted(survey, userEmail, userRole, userOwnership) {
@@ -1864,7 +1870,7 @@ function loadFiles() {
 }
 
 function saveFiles(list) {
-  fs.writeFileSync(FILES_FILE, JSON.stringify({ files: list }, null, 2));
+  atomicSaveJson(FILES_FILE, JSON.stringify({ files: list }, null, 2));
 }
 
 function isFileTargeted(file, userEmail, userRole, userOwnership) {
@@ -2289,7 +2295,7 @@ function loadRequests() {
 }
 
 function saveRequests(list) {
-  fs.writeFileSync(REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
+  atomicSaveJson(REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
 }
 
 const requestTypes = ["talep", "oneri", "sikayet", "itiraz"];
@@ -2551,7 +2557,7 @@ function loadFileRequests() {
 }
 
 function saveFileRequests(list) {
-  fs.writeFileSync(FILE_REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
+  atomicSaveJson(FILE_REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
 }
 
 const frTempDir = path.join(FILE_REQUESTS_UPLOADS_DIR, "temp");
