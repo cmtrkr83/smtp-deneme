@@ -241,6 +241,14 @@ function clientIp(req) {
   } catch (_) {}
   return "?";
 }
+function rawXffChain(req) {
+  // Teshis alani: guvenilmez ham zincir (spoof edilebilir, karar icin DEGIL gozlem icin)
+  try {
+    const raw = req && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"]);
+    const s = String(raw || "").trim().slice(0, 200);
+    return s || "-";
+  } catch (_) { return "-"; }
+}
 function makeLog(action, user, detail, req) {
   return {
     id: crypto.randomUUID(),
@@ -249,6 +257,7 @@ function makeLog(action, user, detail, req) {
     user,
     detail,
     ip: req ? clientIp(req) : "?",
+    xff: req ? rawXffChain(req) : "-",
   };
 }
 

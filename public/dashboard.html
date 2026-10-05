@@ -1686,7 +1686,7 @@
             <td><span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:500;background:${getActionColor(l.action)}15;color:${getActionColor(l.action)};">${l.actionLabel}</span></td>
             <td class="cell-email" style="font-size:13px;">${l.user}</td>
             <td style="color:var(--text-2);font-size:13px;">${l.detail}</td>
-            <td style="color:var(--muted);font-size:12px;font-family:monospace;">${l.ip}</td>
+            <td style="color:var(--muted);font-size:12px;font-family:monospace;" ${l.xff && l.xff !== "-" ? `title="XFF zinciri: ${escHtml(l.xff)}"` : ""}>${l.ip}</td>
           </tr>
         `).join("");
 
