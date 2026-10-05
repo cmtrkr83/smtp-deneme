@@ -201,17 +201,24 @@ function appendLog(entry) {
 }
 
 function clientIp(req) {
-  // Ham XFF zincirinin en basi = internete cikis IP'si.
-  // (req.ips kullanilmiyor: trust sayisini asan zincirlerde express
-  // en soldaki halkayi buduyor ve yanlis IP veriyor.)
+  // Guvenilir cozum: Express "trust proxy" ayarini kullanarak proxy
+  // zincirini cozer. Ham XFF basliginin en solu kullanilmaz cunku
+  // istemci tarafindan sahtecilikle (spoof) yazilabilir ve loglari
+  // delil niteliginden dusurur.
+  const clean = (ip) => {
+    const s = String(ip || "").trim();
+    if (!s) return "";
+    return s.startsWith("::ffff:") ? s.slice(7) : s;
+  };
   try {
-    const raw = req && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"]);
-    if (raw) {
-      const first = String(raw).split(",")[0].trim();
-      if (first) return first;
+    if (req && req.ip) {
+      const ip = clean(req.ip);
+      if (ip) return ip;
     }
-    if (req && req.ip) return req.ip;
-    if (req && req.connection && req.connection.remoteAddress) return req.connection.remoteAddress;
+    if (req && req.connection && req.connection.remoteAddress) {
+      const ip = clean(req.connection.remoteAddress);
+      if (ip) return ip;
+    }
   } catch (_) {}
   return "?";
 }
