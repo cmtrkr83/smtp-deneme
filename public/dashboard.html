@@ -2332,6 +2332,14 @@
     }
 
     async function hydrateAttachments(root) {
+      // Önceki önizleme URL'lerini serbest bırak (contentArea her render'da yenilenir, blob'lar RAM'de kalmasın)
+      try {
+        const holder = root || document.getElementById("contentArea");
+        if (holder && Array.isArray(holder._blobUrls)) {
+          holder._blobUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch (_) {} });
+        }
+        if (holder) holder._blobUrls = [];
+      } catch (_) {}
       const nodes = (root || document).querySelectorAll(".attach-preview[data-attach-id]");
       for (const el of nodes) {
         if (el.dataset.loaded === "1") continue;
@@ -2345,6 +2353,10 @@
           if (!res.ok) continue;
           const blob = await res.blob();
           const url = URL.createObjectURL(blob);
+          try {
+            const holder = root || document.getElementById("contentArea");
+            if (holder && Array.isArray(holder._blobUrls)) holder._blobUrls.push(url);
+          } catch (_) {}
           if (type === "image") {
             const img = document.createElement("img");
             img.src = url;
@@ -2372,6 +2384,7 @@
         if (type === "image") {
           const w = window.open("");
           w.document.write('<html><head><title>Onizleme</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#222;}img{max-width:100%;max-height:100vh;object-fit:contain;}</style></head><body><img src="' + url + '" /></body></html>');
+          setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} }, 60000);
         }
       } catch (e) {
         alert("Hata: " + e.message);
