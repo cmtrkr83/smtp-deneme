@@ -464,8 +464,7 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
         domain.includes("k.12")
       );
       if (looksLikeMeb) {
-        const local = norm.slice(0, at);
-        return res.status(400).json({ error: `E-posta adresi hatalı görünüyor. Doğrusu ${local}@meb.k12.tr olabilir mi?` });
+        return res.status(400).json({ error: "E-posta adresi geçerli değil." });
       }
     }
     if (!captchaId || !captcha) {
