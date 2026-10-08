@@ -197,6 +197,7 @@
     else if (page === "file-requests") { renderFileRequests(); }
     else if (page === "requests") { renderRequests(); }
     else if (page === "reports") { renderReports(); }
+    else if (page === "settings") { renderSettings(); }
     else renderPlaceholder(page);
         });
       });
@@ -732,6 +733,92 @@
           <div style="font-size:14px;">Sayfa yapım aşamasındadır.</div>
         </div>
       `;
+    }
+
+    // ---- Settings (Bakim modu) ----
+
+    async function renderSettings() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <div>
+            <h2>Ayarlar</h2>
+            <p>Sistem genel ayarlarını yönetin.</p>
+          </div>
+        </div>
+        <div class="announcement-item" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;">
+            <h4><i class="fa-solid fa-power-off" style="color:#8b0000;"></i> Bakım Modu</h4>
+            <p id="maintenanceDesc">Yükleniyor...</p>
+          </div>
+          <button class="btn" style="width:auto;padding:10px 22px;font-size:13px;" id="maintenanceBtn" onclick="toggleMaintenance()" disabled>
+            Yükleniyor...
+          </button>
+        </div>
+        <div id="settingsMessage" class="message" style="margin-top:12px;"></div>
+      `;
+      await loadSettings();
+    }
+
+    async function loadSettings() {
+      const msg = document.getElementById("settingsMessage");
+      try {
+        const res = await apiFetch("/api/settings");
+        if (!res.ok) throw new Error();
+        const s = await res.json();
+        paintMaintenance(s.maintenance === true);
+        if (msg) { msg.textContent = ""; msg.className = "message"; }
+      } catch {
+        if (msg) { msg.textContent = "Ayarlar yüklenemedi."; msg.className = "message error show"; }
+      }
+    }
+
+    let maintenanceState = false;
+
+    function paintMaintenance(on) {
+      maintenanceState = on === true;
+      const btn = document.getElementById("maintenanceBtn");
+      const desc = document.getElementById("maintenanceDesc");
+      if (!btn || !desc) return;
+      btn.disabled = false;
+      if (maintenanceState) {
+        desc.textContent = "Sistem şu an KAPALI. Okullar giriş yapamaz, yöneticiler girebilir. Açmak için düğmeye basın.";
+        btn.textContent = "Sistemi Aç";
+        btn.className = "btn btn-primary";
+        btn.style.background = "#16a34a";
+        btn.style.borderColor = "#16a34a";
+      } else {
+        desc.textContent = "Sistem şu an AÇIK. Herkes normal giriş yapabilir. Bakıma almak için düğmeye basın.";
+        btn.textContent = "Sistemi Kapat";
+        btn.className = "btn btn-danger";
+        btn.style.background = "";
+        btn.style.borderColor = "";
+      }
+    }
+
+    async function toggleMaintenance() {
+      const btn = document.getElementById("maintenanceBtn");
+      const msg = document.getElementById("settingsMessage");
+      const wantClosed = !maintenanceState;
+      try {
+        if (btn) btn.disabled = true;
+        const res = await apiFetch("/api/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maintenance: wantClosed }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          paintMaintenance(data.maintenance === true);
+          showToast(data.maintenance ? "Sistem bakıma alındı." : "Sistem açıldı.", data.maintenance ? "warning" : "success");
+        } else if (res.status !== 401) {
+          if (msg) { msg.textContent = data.error || "Kaydedilemedi."; msg.className = "message error show"; }
+        }
+      } catch {
+        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     // ---- User Management ----

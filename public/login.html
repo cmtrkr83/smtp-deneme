@@ -24,6 +24,7 @@
         </div>
         <h1>Giriş Yap</h1>
         <p>Yalnızca Resmi Kurum eposta adresinizle giriş kodu alabilirsiniz</p>
+        <div id="maintenanceBanner" class="message warning" style="display:none;margin-top:10px;"></div>
       </div>
 
       <form id="emailForm" class="fade-in">
@@ -272,6 +273,19 @@
       document.getElementById("email").focus();
     });
 
+    async function checkMaintenance() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        if (data.maintenance) {
+          const b = document.getElementById("maintenanceBanner");
+          b.textContent = "Sistem geçici olarak kapalı. Kısa süre sonra tekrar aktif olacak.";
+          b.style.display = "block";
+        }
+      } catch {}
+    }
+
+    checkMaintenance();
     loadCaptcha();
   </script>
 </body>

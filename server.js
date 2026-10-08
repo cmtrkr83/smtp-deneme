@@ -61,6 +61,7 @@ const FILES_FILE = path.join(DATA_DIR, "files.json");
 const FILE_REQUESTS_FILE = path.join(DATA_DIR, "file-requests.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const PRESENCE_FILE = path.join(DATA_DIR, "presence.json");
+const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const PRESENCE_TOUCH_MS = 60 * 1000; // kullanici basina yazma sikligi
 const PRESENCE_SAVE_MS = 20 * 1000; // diske yazma araligi (debounce)
 const PRESENCE_TTL_MS = 2 * 60 * 60 * 1000; // budama suresi
@@ -272,6 +273,21 @@ function resolveExpiresAt(body, defaultDays) {
   const days = Number(body.expiresInDays);
   if (!Number.isFinite(days) || days <= 0) return { error: "Geçersiz süre." };
   return { at: Date.now() + days * 24 * 60 * 60 * 1000 };
+}
+function loadSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8"));
+      if (raw && typeof raw === "object") return { maintenance: raw.maintenance === true };
+    }
+  } catch (_) {}
+  return { maintenance: false };
+}
+function saveSettings(s) {
+  atomicSaveJson(SETTINGS_FILE, JSON.stringify({ maintenance: !!(s && s.maintenance) }, null, 2));
+}
+function isMaintenanceOn() {
+  return loadSettings().maintenance === true;
 }
 function makeLog(action, user, detail, req) {
   return {
@@ -556,6 +572,13 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
     const now = Date.now();
 
     const registered = loadUsers();
+    // Bakim modu: yoneticiler OTP alabilir, diger herkes kapali mesajini gorur
+    if (isMaintenanceOn()) {
+      const u = registered[normEmail];
+      if (!u || u.role !== "admin") {
+        return res.status(503).json({ error: "Sistem geçici olarak kapalı. Kısa süre sonra tekrar aktif olacak, lütfen daha sonra deneyin.", maintenance: true });
+      }
+    }
     if (!registered[normEmail]) {
       // Güvenlik: kayıtsız e-postalarda da aynı yanıt + cooldown uygulanır (kullanıcı sayımı engeli)
       lastOtpRequest.set(normEmail, Date.now());
@@ -1359,6 +1382,8 @@ const actionLabels = {
   file_request_create: "Belge İstek Oluşturma",
   file_request_submit: "Belge İstek Yükleme",
   file_request_delete: "Belge İstek Silme",
+  maintenance_on: "Bakım Modu Açma",
+  maintenance_off: "Bakım Modu Kapatma",
 };
 
 app.get("/api/logs", (req, res) => {
@@ -2937,6 +2962,27 @@ app.post("/api/csp-report", (req, res) => {
     console.warn("[CSP]", r["violated-directive"] || r.directive || "?", "->", (r["blocked-uri"] || r.blockedURL || "?").toString().slice(0, 200));
   } catch (_) {}
   res.status(204).end();
+});
+
+// ---- Sistem durumu (herkese acik, giris ekrani uyarisi icin) ----
+app.get("/api/status", (req, res) => {
+  res.json({ maintenance: isMaintenanceOn() });
+});
+
+// ---- Ayarlar (admin) ----
+app.get("/api/settings", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  res.json(loadSettings());
+});
+
+app.put("/api/settings", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const next = { maintenance: req.body && req.body.maintenance === true };
+  saveSettings(next);
+  appendLog(makeLog(next.maintenance ? "maintenance_on" : "maintenance_off", decoded.email, next.maintenance ? "Sistem bakıma alındı." : "Sistem tekrar açıldı.", req));
+  res.json(next);
 });
 
 // ---- Verify Token ----
