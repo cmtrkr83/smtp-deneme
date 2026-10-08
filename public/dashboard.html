@@ -152,7 +152,7 @@
       ];
       const moduleItems = [
         { page: "announcements", icon: "fa-bullhorn", label: "Duyurular", roles: ["admin", "lise", "ortaokul", "diger"] },
-        { page: "surveys", icon: "fa-square-poll-vertical", label: "Anketler", roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "surveys", icon: "fa-square-poll-vertical", label: "Veri Toplama", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "files", icon: "fa-folder-open", label: "Dosya Dağıtım", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "file-requests", icon: "fa-file-arrow-up", label: "Belge İstekleri", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "requests", icon: "fa-paper-plane", label: "Talep/İtiraz", roles: ["admin", "lise", "ortaokul", "diger"] },
@@ -791,11 +791,11 @@
         <div class="section-title" style="margin-top:28px;"><i class="fa-solid fa-box-archive"></i> Yedekleme</div>
         <div class="announcement-item">
           <h4>Yedeğe alınacak bölümler</h4>
-          <p>Anketler yanıtlarıyla, dosya içeren bölümler dosyalarıyla birlikte gelir.</p>
+          <p>Veri Toplama yanıtlarıyla, dosya içeren bölümler dosyalarıyla birlikte gelir.</p>
           <div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0;">
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="users" checked /> Kullanıcılar</label>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="announcements" checked /> Duyurular</label>
-            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="surveys" checked /> Anketler + Yanıtlar</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="surveys" checked /> Veri Toplama + Yanıtlar</label>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="files" checked /> Dosya Dağıtım</label>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="file-requests" checked /> Belge İstekleri</label>
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="requests" checked /> Talep/İtiraz</label>
@@ -3269,7 +3269,7 @@
       let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;">';
       const cards = [
         { label: "Toplam Kullanici", value: d.users.total, icon: "fa-users", color: "#6366f1" },
-        { label: "Anket", value: d.totals.surveys, icon: "fa-square-poll-vertical", color: "#22c55e" },
+        { label: "Veri Toplama", value: d.totals.surveys, icon: "fa-square-poll-vertical", color: "#22c55e" },
         { label: "Yanit", value: d.totals.responses, icon: "fa-reply", color: "#f59e0b" },
         { label: "Dosya Yukleme", value: d.totals.files, icon: "fa-upload", color: "#a855f7" },
         { label: "Dosya Indirme", value: d.totals.fileDownloads, icon: "fa-download", color: "#06b6d4" },
@@ -3491,8 +3491,8 @@
       area.innerHTML = `
         <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
           <div>
-            <h2>Anket Yönetimi</h2>
-            <p>Anketleri oluşturun, düzenleyin ve sonuçları görüntüleyin.</p>
+            <h2>Veri Toplama</h2>
+            <p>Veri toplama formlarını oluşturun, düzenleyin ve sonuçları görüntüleyin.</p>
           </div>
           <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderSurveyBuilder(null)">
             <i class="fa-solid fa-plus"></i> Anket Oluştur
@@ -3546,7 +3546,7 @@
           `;
         }).join("");
       } catch {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#dc2626;padding:40px;">Anketler yüklenirken hata oluştu.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#dc2626;padding:40px;">Veriler yüklenirken hata oluştu.</td></tr>';
       }
     }
 
@@ -4058,8 +4058,8 @@
       const area = document.getElementById("contentArea");
       area.innerHTML = `
         <div class="content-header">
-          <h2>Anketler</h2>
-          <p>Size gönderilen anketleri görüntüleyin ve yanıtlayın.</p>
+          <h2>Veri Toplama</h2>
+          <p>Size gönderilen veri toplama formlarını görüntüleyin ve yanıtlayın.</p>
         </div>
         <div id="userSurveysContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
@@ -4093,7 +4093,7 @@
           `;
         }).join('') + '</div>';
       } catch {
-        document.getElementById("userSurveysContent").innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Anketler yüklenirken hata oluştu.</div>';
+        document.getElementById("userSurveysContent").innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Veriler yüklenirken hata oluştu.</div>';
       }
     }
 

@@ -422,7 +422,7 @@ function getDashboardData(role, users, email) {
         { title: "Kullanıcı Yönetimi", url: "/navigate/users", icon: "fa-users-gear", desc: "Kullanıcı rollerini yönetin" },
         { title: "Duyuru Panosu", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler", badge: activeAnnCount },
         { title: "Dosya Yönetimi", url: "/navigate/files", icon: "fa-folder", desc: "Belge ve dosya paylaşımı", badge: activeFileCount },
-        { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri oluşturun ve sonuçları görüntüleyin", badge: activeSurveyCount },
+        { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını oluşturun ve sonuçları görüntüleyin", badge: activeSurveyCount },
         { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Okullardan gelen talepler", badge: openRequestCount },
         { title: "Log Kayıtları", url: "/navigate/logs", icon: "fa-clipboard-list", desc: "Sistem hareketlerini inceleyin" },
         { title: "Raporlar", url: "/navigate/reports", icon: "fa-chart-bar", desc: "İstatistik ve grafik raporları" },
@@ -442,7 +442,7 @@ function getDashboardData(role, users, email) {
       stats: buildProfileStats(users, email),
       links: [
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
-        { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
+        { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını görüntüleyin ve yanıtlayın" },
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
@@ -452,7 +452,7 @@ function getDashboardData(role, users, email) {
       stats: buildProfileStats(users, email),
       links: [
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
-        { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
+        { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını görüntüleyin ve yanıtlayın" },
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
@@ -462,7 +462,7 @@ function getDashboardData(role, users, email) {
       stats: buildProfileStats(users, email),
       links: [
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
-        { title: "Anketler", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Anketleri görüntüleyin ve yanıtlayın" },
+        { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını görüntüleyin ve yanıtlayın" },
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
@@ -2991,7 +2991,7 @@ app.put("/api/settings", (req, res) => {
 const BACKUP_SECTIONS = {
   users: { label: "Kullanıcılar", files: ["users.json"], uploadSubdirs: [] },
   announcements: { label: "Duyurular", files: ["announcements.json"], uploadSubdirs: [] },
-  surveys: { label: "Anketler + Yanıtlar", files: ["surveys.json", "responses.json"], uploadSubdirs: [] },
+  surveys: { label: "Veri Toplama + Yanıtlar", files: ["surveys.json", "responses.json"], uploadSubdirs: [] },
   files: { label: "Dosya Dağıtım", files: ["files.json"], uploadSubdirs: [], uploadRoot: true },
   "file-requests": { label: "Belge İstekleri", files: ["file-requests.json"], uploadSubdirs: ["file-requests"] },
   requests: { label: "Talep/İtiraz", files: ["requests.json"], uploadSubdirs: ["requests"] },

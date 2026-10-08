@@ -20,7 +20,7 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 | Sidebar label | Page key | API route prefix |
 |---|---|---|
 | Duyurular | announcements | /api/announcements |
-| Anketler | surveys | /api/surveys |
+| Veri Toplama | surveys | /api/surveys |
 | Dosya Dağıtım | files | /api/files |
 | Belge İstekleri | file-requests | /api/file-requests |
 | Talep/İtiraz | requests | /api/requests |
