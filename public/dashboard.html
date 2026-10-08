@@ -604,6 +604,26 @@
       _confirmCb = null;
     }
 
+    // Bitis tarihi yardimcilari (datetime-local <-> timestamp, yerel saat)
+    function toDateTimeLocalValue(ts) {
+      const d = new Date(Number(ts));
+      if (!Number.isFinite(d.getTime())) return "";
+      const p = (n) => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+    }
+    function defaultExpiryValue() {
+      return toDateTimeLocalValue(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
+    function readExpiryInput(id) {
+      const el = document.getElementById(id);
+      const v = el && el.value;
+      if (!v) return { error: "Bitiş tarihi seçin." };
+      const ts = new Date(v).getTime();
+      if (!Number.isFinite(ts)) return { error: "Geçersiz bitiş tarihi." };
+      if (ts <= Date.now()) return { error: "Bitiş tarihi gelecekte olmalı." };
+      return { at: ts };
+    }
+
     // Merkezi toast bildirimi (mevcut mesaj alanlarına dokunmaz, ek kanaldır)
     function showToast(msg, type) {
       try {
@@ -1423,10 +1443,10 @@
                   <div id="annTargetWrap"></div>
                 </div>
                 <div class="form-group">
-                  <label for="annExpiry">Geçerlilik Süresi (gün)</label>
+                  <label for="annExpiry">Bitiş Tarihi</label>
                   <div class="input-wrapper">
                     <i class="fa-solid fa-calendar icon"></i>
-                    <input type="number" id="annExpiry" class="form-control" style="padding-left:44px;" value="7" min="1" max="365" />
+                    <input type="datetime-local" id="annExpiry" class="form-control" style="padding-left:44px;" />
                   </div>
                 </div>
                 <div id="annModalMessage" class="message"></div>
@@ -1567,7 +1587,7 @@
       document.getElementById("annTitle").value = "";
       document.getElementById("annContent").value = "";
       document.getElementById("annTargetWrap").innerHTML = targetSelectorHtml("ann", { ownership: "all", roles: [] });
-      document.getElementById("annExpiry").value = "7";
+      document.getElementById("annExpiry").value = defaultExpiryValue();
       document.getElementById("annModalMessage").textContent = "";
       document.getElementById("annModalMessage").className = "message";
       document.getElementById("annModal").style.display = "flex";
@@ -1593,8 +1613,7 @@
         document.getElementById("annTitle").value = ann.title;
         document.getElementById("annContent").value = ann.content;
         document.getElementById("annTargetWrap").innerHTML = targetSelectorHtml("ann", normalizeTarget(ann));
-        const remainingDays = Math.ceil((ann.expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
-        document.getElementById("annExpiry").value = Math.max(1, remainingDays);
+        document.getElementById("annExpiry").value = toDateTimeLocalValue(ann.expiresAt);
         document.getElementById("annModalMessage").textContent = "";
         document.getElementById("annModalMessage").className = "message";
         document.getElementById("annModal").style.display = "flex";
@@ -1606,12 +1625,17 @@
       const title = document.getElementById("annTitle").value.trim();
       const content = document.getElementById("annContent").value.trim();
       const annSel = collectTargetSelection("ann");
-      const expiresInDays = parseInt(document.getElementById("annExpiry").value) || 7;
+      const exp = readExpiryInput("annExpiry");
       const msg = document.getElementById("annModalMessage");
       const btn = document.getElementById("annSaveBtn");
 
       if (!title || !content) {
         msg.textContent = "Başlık ve içerik gerekli.";
+        msg.className = "message error show";
+        return;
+      }
+      if (exp.error) {
+        msg.textContent = exp.error;
         msg.className = "message error show";
         return;
       }
@@ -1622,7 +1646,7 @@
       try {
         const method = editingAnnId ? "PUT" : "POST";
         const url = editingAnnId ? "/api/announcements/" + editingAnnId : "/api/announcements";
-        const payload = { title, content, targetOwnership: annSel.ownership, targetRoles: annSel.roles, expiresInDays };
+        const payload = { title, content, targetOwnership: annSel.ownership, targetRoles: annSel.roles, expiresAt: exp.at };
         const res = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -3407,8 +3431,8 @@
               <input type="text" id="svTargetUsers" class="form-control" style="padding-left:16px;" placeholder="ornek1@meb.k12.tr, ornek2@meb.k12.tr" value="${escHtml((s.targetUsers || []).join(', '))}" />
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label for="svExpiry">Geçerlilik (gün)</label>
-              <input type="number" id="svExpiry" class="form-control" style="padding-left:16px;" value="${isEdit ? Math.max(1, Math.ceil((s.expiresAt - Date.now()) / (24*60*60*1000))) : 7}" min="1" max="365" />
+              <label for="svExpiry">Bitiş Tarihi</label>
+              <input type="datetime-local" id="svExpiry" class="form-control" style="padding-left:16px;" value="${isEdit && s.expiresAt ? toDateTimeLocalValue(s.expiresAt) : defaultExpiryValue()}" />
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="svAllowEdit">Düzenleme İzni</label>
@@ -3587,7 +3611,7 @@
         targetOwnership: svSel.ownership,
         targetRoles: svSel.roles,
         targetUsers: (document.getElementById("svTargetUsers")?.value || "").split(",").map((s) => s.trim()).filter(Boolean),
-        expiresInDays: Math.max(1, parseInt(document.getElementById("svExpiry")?.value, 10) || 7),
+        expiresAt: (() => { const r = readExpiryInput("svExpiry"); return r.error ? NaN : r.at; })(),
         allowEdit: document.getElementById("svAllowEdit")?.value === "true",
         questions,
       };
@@ -3609,6 +3633,11 @@
       }
       if (data.questions.length === 0) {
         msg.textContent = "En az bir soru ekleyin.";
+        msg.className = "message error show";
+        return;
+      }
+      if (!Number.isFinite(data.expiresAt)) {
+        msg.textContent = "Geçerli bir bitiş tarihi seçin (gelecekte olmalı).";
         msg.className = "message error show";
         return;
       }

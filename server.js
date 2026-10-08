@@ -252,6 +252,27 @@ function rawXffChain(req) {
     return s || "-";
   } catch (_) { return "-"; }
 }
+// Kesin bitis tarihi cozumu: expiresAt (ms veya ISO tarih) oncelikli;
+// gonderilmemisse expiresInDays kullanilir (eski istemci + geriye uyumluluk).
+// Donus: { at } | { error } | { touch:false } (touch:false = tarih alani guncellenmesin, PUT icin)
+function resolveExpiresAt(body, defaultDays) {
+  const raw = body ? body.expiresAt : undefined;
+  const hasDays = body && body.expiresInDays !== undefined && body.expiresInDays !== null && body.expiresInDays !== "";
+  if ((raw === undefined || raw === null || raw === "") && !hasDays) {
+    if (defaultDays === undefined || defaultDays === null) return { touch: false };
+    return { at: Date.now() + defaultDays * 24 * 60 * 60 * 1000 };
+  }
+  if (raw !== undefined && raw !== null && raw !== "") {
+    const ts = typeof raw === "number" ? raw : Date.parse(String(raw));
+    if (!Number.isFinite(ts)) return { error: "Geçersiz bitiş tarihi." };
+    if (ts <= Date.now()) return { error: "Bitiş tarihi gelecekte olmalı." };
+    if (ts - Date.now() > 366 * 24 * 60 * 60 * 1000) return { error: "Bitiş tarihi en fazla 1 yıl sonrası olabilir." };
+    return { at: Math.floor(ts) };
+  }
+  const days = Number(body.expiresInDays);
+  if (!Number.isFinite(days) || days <= 0) return { error: "Geçersiz süre." };
+  return { at: Date.now() + days * 24 * 60 * 60 * 1000 };
+}
 function makeLog(action, user, detail, req) {
   return {
     id: crypto.randomUUID(),
@@ -1209,6 +1230,9 @@ app.post("/api/announcements", (req, res) => {
     annTg.group = target; annTg.groups = [target];
   }
 
+  const expR = resolveExpiresAt(req.body, 7);
+  if (expR.error) return res.status(400).json({ error: expR.error });
+
   const list = loadAnnouncements();
   const ann = {
     id: crypto.randomUUID(),
@@ -1220,7 +1244,7 @@ app.post("/api/announcements", (req, res) => {
     targetRoles: annTg.roles,
     createdBy: decoded.email,
     createdAt: Date.now(),
-    expiresAt: Date.now() + (expiresInDays || 7) * 24 * 60 * 60 * 1000,
+    expiresAt: expR.at,
     readBy: [],
   };
   list.push(ann);
@@ -1266,9 +1290,9 @@ app.put("/api/announcements/:id", (req, res) => {
       }
     }
   }
-  if (expiresInDays) {
-    list[idx].expiresAt = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
-  }
+  const expR = resolveExpiresAt(req.body);
+  if (expR.error) return res.status(400).json({ error: expR.error });
+  if (expR.touch !== false) list[idx].expiresAt = expR.at;
   saveAnnouncements(list);
   appendLog(makeLog("announcement_edit", decoded.email, `"${list[idx].title}" duyurusu düzenlendi.`, req));
   res.json(list[idx]);
@@ -1484,15 +1508,17 @@ app.post("/api/surveys", (req, res) => {
     return res.status(400).json({ error: "En az bir grup seçin." });
   }
 
+  const expR = resolveExpiresAt(req.body, 7);
+  if (expR.error) return res.status(400).json({ error: expR.error });
+
   const list = loadSurveys();
-  const surveyDays = Number(expiresInDays);
   const survey = {
     id: crypto.randomUUID(),
     title,
     description: description || "",
     createdBy: decoded.email,
     createdAt: Date.now(),
-    expiresAt: Date.now() + (Number.isFinite(surveyDays) && surveyDays > 0 ? surveyDays : 7) * 24 * 60 * 60 * 1000,
+    expiresAt: expR.at,
     allowEdit: allowEdit !== false,
     targetType,
     targetGroup: tg.group,
@@ -1571,12 +1597,10 @@ app.put("/api/surveys/:id", (req, res) => {
       list[idx].targetUsers = targetType === "users" ? (targetUsers || []) : null;
     }
   }
-  if (expiresInDays !== undefined && expiresInDays !== null && expiresInDays !== "") {
-    const days = Number(expiresInDays);
-    if (!Number.isFinite(days) || days <= 0) {
-      return res.status(400).json({ error: "Gecersiz son tarih." });
-    }
-    list[idx].expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+  {
+    const expR = resolveExpiresAt(req.body);
+    if (expR.error) return res.status(400).json({ error: expR.error });
+    if (expR.touch !== false) list[idx].expiresAt = expR.at;
   }
   if (allowEdit !== undefined) list[idx].allowEdit = allowEdit;
   if (questions && Array.isArray(questions) && questions.length > 0) {
