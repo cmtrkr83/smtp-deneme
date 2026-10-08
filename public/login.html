@@ -24,7 +24,7 @@
         </div>
         <h1>Giriş Yap</h1>
         <p>Yalnızca Resmi Kurum eposta adresinizle giriş kodu alabilirsiniz</p>
-        <div id="maintenanceBanner" class="message warning" style="display:none;margin-top:10px;"></div>
+        <div id="maintenanceBanner" class="message warning" style="display:none;margin-top:10px;" role="status" aria-live="polite"></div>
       </div>
 
       <form id="emailForm" class="fade-in">
@@ -38,9 +38,9 @@
         <div class="form-group">
           <label for="captcha">Güvenlik Kodu</label>
           <div id="captchaContainer" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div id="captchaSvg" style="border:1px solid #d1d5db;border-radius:6px;overflow:hidden;flex-shrink:0;width:160px;height:54px;background:#f9fafb;"></div>
-            <button type="button" class="btn btn-ghost" id="refreshCaptchaBtn" style="width:auto;padding:8px 12px;font-size:16px;" title="Yeni Kod">
-              <i class="fa-solid fa-rotate"></i>
+            <div id="captchaSvg" role="img" aria-label="Güvenlik kodu görseli" style="border:1px solid #d1d5db;border-radius:6px;overflow:hidden;flex-shrink:0;width:160px;height:54px;background:#f9fafb;"></div>
+            <button type="button" class="btn btn-ghost" id="refreshCaptchaBtn" style="width:auto;padding:8px 12px;font-size:16px;" title="Yeni Kod" aria-label="Yeni güvenlik kodu getir">
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
             </button>
           </div>
           <div class="input-wrapper">
@@ -51,7 +51,7 @@
         <button type="submit" class="btn btn-primary" id="sendOtpBtn" style="background:#b91c1c;border-color:#b91c1c;">
           <i class="fa-solid fa-paper-plane"></i> OTP Gönder
         </button>
-        <div id="emailMessage" class="message"></div>
+        <div id="emailMessage" class="message" role="status" aria-live="polite"></div>
       </form>
 
       <form id="otpForm" style="display:none" class="fade-in">
@@ -69,8 +69,8 @@
         <button type="submit" class="btn btn-primary" id="verifyOtpBtn">
           <i class="fa-solid fa-check"></i> Doğrula
         </button>
-        <div id="otpMessage" class="message"></div>
-        <div id="cooldownMessage" class="message"></div>
+        <div id="otpMessage" class="message" role="status" aria-live="polite"></div>
+        <div id="cooldownMessage" class="message" role="status" aria-live="polite"></div>
         <div class="form-footer">
           <button type="button" class="btn btn-link" id="backBtn">
             <i class="fa-solid fa-arrow-left"></i> Geri

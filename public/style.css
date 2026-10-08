@@ -5,7 +5,7 @@
   --border: #e8eaee;
   --text: #1a1a2e;
   --text-2: #555;
-  --muted: #888;
+  --muted: #5d6675;
   --btn-bg: #f0f1f5;
   --btn-bg-hover: #e8e9ef;
   --brand-ink: #8b0000;
@@ -52,6 +52,34 @@ html[data-theme="dark"] {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Klavye odağı her zaman görünür (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip-link: normalde gizli, odakta görünür */
+.skip-link {
+  position: fixed;
+  top: -48px;
+  left: 12px;
+  z-index: 10000;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus-visible {
+  top: 12px;
 }
 
 body {
@@ -823,8 +851,8 @@ body.dashboard-body::before {
   margin-bottom: 8px;
 }
 
-.ann-tag.admin { background: rgba(139, 0, 0, 0.1); color: #8b0000; }
-.ann-tag.all { background: rgba(139, 0, 0, 0.1); color: #8b0000; }
+.ann-tag.admin { background: rgba(139, 0, 0, 0.1); color: var(--brand-ink); }
+.ann-tag.all { background: rgba(139, 0, 0, 0.1); color: var(--brand-ink); }
 .ann-tag.lise { background: rgba(245, 158, 11, 0.1); color: var(--tag-amber); }
 .ann-tag.ortaokul { background: rgba(13, 148, 136, 0.1); color: var(--tag-teal); }
 .ann-tag.diger { background: rgba(236, 72, 153, 0.1); color: #ec4899; }
@@ -1121,5 +1149,30 @@ body.dashboard-body::before {
   #quickLinksModules,
   #quickLinksOps {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet ara kademe: 4 sütun direkt 1'e düşmesin */
+@media (min-width: 769px) and (max-width: 1200px) {
+  #quickLinks,
+  #quickLinksModules,
+  #quickLinksOps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Koyu temada etiket kontrastı */
+html[data-theme="dark"] .ann-tag.resmi { color: #4ade80; }
+html[data-theme="dark"] .ann-tag.ozel { color: #fbbf24; }
+html[data-theme="dark"] .ann-tag.diger { color: #f9a8d4; }
+
+/* Hareket hassasiyeti (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -28,6 +28,7 @@
   </script>
 </head>
 <body class="dashboard-body">
+  <a class="skip-link" href="#contentArea">İçeriğe atla</a>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <div class="dashboard-layout">
@@ -54,8 +55,8 @@
     <div class="main-area">
       <!-- Topbar -->
       <header class="topbar">
-        <button class="sidebar-toggle" id="sidebarToggle">
-          <i class="fa-solid fa-bars"></i>
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Menüyü aç/kapat" aria-expanded="false">
+          <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
         <div style="flex:1"></div>
         <div class="topbar-user">
@@ -69,8 +70,8 @@
         <div class="role-switcher" id="roleSwitcher" style="display:none;margin-right:12px;">
           <select id="roleSwitcherSelect" onchange="switchActiveRole(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;"></select>
         </div>
-        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Açık/Koyu tema">
-          <i class="fa-solid fa-moon"></i>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Açık/Koyu tema" aria-label="Açık/koyu temayı değiştir">
+          <i class="fa-solid fa-moon" aria-hidden="true"></i>
         </button>
         <button class="btn-logout" id="logoutBtn">
           <i class="fa-solid fa-right-from-bracket"></i> Çıkış
@@ -78,18 +79,18 @@
       </header>
 
       <!-- Content -->
-      <div class="content-area" id="contentArea">
+      <main class="content-area" id="contentArea" tabindex="-1">
         <!-- Dynamic content loaded here -->
-      </div>
+      </main>
     </div>
   </div>
 
   <!-- File Request Modal -->
-  <div class="modal-overlay" id="frModal" style="display:none" onclick="if(event.target===this)closeFrModal()">
+  <div class="modal-overlay" id="frModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="frModalTitle" onclick="if(event.target===this)closeFrModal()">
     <div class="modal">
       <div class="modal-header">
         <h3 id="frModalTitle">Dosya Talebi Oluştur</h3>
-        <button class="modal-close" onclick="closeFrModal()"><i class="fa-solid fa-xmark"></i></button>
+        <button class="modal-close" onclick="closeFrModal()" aria-label="Kapat"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -632,10 +633,13 @@
         if (!wrap) {
           wrap = document.createElement("div");
           wrap.id = "toastWrap";
+          wrap.setAttribute("aria-live", "polite");
+          wrap.setAttribute("aria-atomic", "false");
           document.body.appendChild(wrap);
         }
         const el = document.createElement("div");
         el.className = "toast " + (["success", "error", "info", "warning"].includes(type) ? type : "info");
+        el.setAttribute("role", "status");
         const icon = type === "success" ? "fa-check-circle" : type === "error" ? "fa-circle-exclamation" : type === "warning" ? "fa-triangle-exclamation" : "fa-circle-info";
         el.innerHTML = '<i class="fa-solid ' + icon + '"></i><span></span>';
         el.querySelector("span").textContent = String(msg || "");
@@ -659,6 +663,34 @@
     }
 
     applyTheme(document.documentElement.dataset.theme);
+
+    // Modal erişilebilirliği: statik overlay'lere dialog rolü + Escape ile kapatma
+    (function modalA11y() {
+      function labelOverlay(ov) {
+        if (!ov || ov.hasAttribute("role")) return;
+        ov.setAttribute("role", "dialog");
+        ov.setAttribute("aria-modal", "true");
+        const h = ov.querySelector(".modal-header h3");
+        if (h && !ov.hasAttribute("aria-labelledby")) {
+          if (!h.id) h.id = ov.id + "-title";
+          ov.setAttribute("aria-labelledby", h.id);
+        }
+        ov.querySelectorAll(".modal-close:not([aria-label])").forEach((b) => b.setAttribute("aria-label", "Kapat"));
+      }
+      function enhanceAll() {
+        document.querySelectorAll(".modal-overlay").forEach(labelOverlay);
+      }
+      enhanceAll();
+      new MutationObserver(enhanceAll).observe(document.body, { childList: true, subtree: true });
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        const closers = { frModal: "closeFrModal", userModal: "closeUserModal", deleteModal: "closeDeleteModal", annModal: "closeAnnModal", readModal: "closeReadModal", confirmModal: "closeConfirmModal" };
+        for (const [id, fn] of Object.entries(closers)) {
+          const ov = document.getElementById(id);
+          if (ov && ov.style.display !== "none" && typeof window[fn] === "function") { window[fn](); break; }
+        }
+      });
+    })();
 
     let sessionTimerInterval = null;
 
