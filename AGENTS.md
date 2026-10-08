@@ -4,7 +4,8 @@
 SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP ile giriş yapar. Admin ve kullanıcı (lise/ortaokul/diger) rolleri var. Cross-role geçiş desteklenir.
 
 ## Stack
-- Backend: Express.js, JWT (jsonwebtoken), Nodemailer, Multer (dosya yükleme), Archiver (ZIP), express-rate-limit, helmet, xlsx
+- Backend: Express.js, JWT (jsonwebtoken), Nodemailer, Multer (dosya yükleme), Archiver v8 (ZIP oluşturma: `new ZipArchive()`), Unzipper (ZIP açma), express-rate-limit, helmet, xlsx
+- JSON yazma her zaman `atomicSaveJson()` ile (tmp + rename); ham `writeFileSync` yasak
 - Frontend: Vanilla HTML+JS, CSS (public/style.css)
 - Veri: JSON dosyaları (proje kökünde; Docker'da `DATA_DIR=/app/data`)
 
@@ -25,6 +26,7 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 | Talep/İtiraz | requests | /api/requests |
 | Kullanıcılar | users | /api/users |
 | Log Kayıtları | logs | /api/logs |
+| Ayarlar (bakım modu + yedekleme) | settings | /api/settings + /api/backup |
 
 ## Theme & Colors
 - Ana renk: `#8b0000` (koyu kırmızı, logodan alındı)
@@ -66,7 +68,9 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - `renderDashboard()` → stats + quick access cards + announcements (admin)
 - Quick access card'larda highlight flag ile kırmızı arkaplan + pulse animasyonu
 - Content area routing: `renderXxx()` fonksiyonları ile sayfalar yönetilir
-- Sidebar'da her sayfa `{ page, icon, label, roles }` ile tanımlı
+- Sidebar'da her sayfa `{ page, icon, label, roles }` ile tanımlı; 3 grup: Genel Bakış (tek) + Modüller + İşlemler
+- Ortak helper'lar: `apiFetch()` (token + 401'de login'e atar), `showToast()`, `showConfirmModal()` — yeni silme/onay işlerinde `confirm()`/`alert()` kullanma
+- Admin hızlı erişim kartlarında rozet (`badge`): açık talep, aktif duyuru/dosya/anket sayısı; 0 ise rozet çıkmaz
 
 ## Data Files
 - `users.json` - Kullanıcılar
@@ -77,6 +81,7 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - `requests.json` - Talep/İtiraz
 - `logs.json` - Log kayıtları
 - `files.json` - Dosya dağıtım (eski dosyalarda `startsAt` olmayabilir, `f.startsAt || 0` ile geriye uyumlu)
+- `settings.json` - Sistem ayarları (`{ maintenance: bool }`); yoksa açık varsayılır
 
 ## Assets
 - Logo: `public/assets/logo-kodm.png` (sidebar 64x64, login/index 128x128)
@@ -96,7 +101,18 @@ SMTP tabanlı e-posta ile OTP doğrulama sistemi. Kullanıcılar e-posta + OTP i
 - `docker-compose`: `DATA_DIR=/app/data`, volume `smtp-data:/app/data`
 - Dockerfile image içinde root JSON verilerini `/app/data`'ya kopyalar (ilk volume oluşumunda seed)
 - Mevcut boş volume varsa bir kereye mahsus manuel kopya gerekebilir
-- nginx `client_max_body_size 12m` (10 MB upload limiti için)
+- nginx `client_max_body_size 600m` (yedek geri yükleme için; 10 MB upload'lar için 12m yeterliydi)
+
+## Bakım Modu
+- `PUT /api/settings { maintenance: bool }` (admin); `GET /api/status` herkese açık (login bandı için)
+- Açıkken `POST /api/send-otp` admin dışı herkese 503 döner; `verify-otp` bilerek engellenmez (3 dk'lık kodlar kullanılır)
+- Açma/kapama `logs.json`'a `maintenance_on/off` olarak yazılır
+
+## Yedekleme (Ayarlar sayfası)
+- `POST /api/backup { sections: [...] }` → `yedek-YYYYMMDD-HHmm.zip` indirir (`data/*.json` + ilgili `uploads/` + `manifest.json`)
+- Bölümler: users, announcements, surveys (+responses otomatik), files (+uploads kökü), file-requests (+uploads/file-requests), requests (+uploads/requests), logs, settings
+- `POST /api/backup/restore` (multer disk, 512 MB, sadece .zip) → manifest doğrular (bozuksa dokunmaz) → `DATA_DIR/backups/auto-<ts>/` altına son şans kopyası (en fazla 3) → atomik değişim
+- `.env` asla yedeğe girmez; geri yükleme sonrası oturumlar sürer (JWT_SECRET değişmez)
 
 ## Dosyalar
 - `server.js` (~2400 satır) - Tüm backend
