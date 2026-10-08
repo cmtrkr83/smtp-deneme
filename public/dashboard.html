@@ -3319,7 +3319,7 @@
           const expired = s.expiresAt < Date.now();
           const targetStr = s.targetType === "group" ? groupLabels(s) : targetLabels[s.targetType] || "Tümü";
           return `
-            <tr style="${expired ? 'opacity:0.4;' : ''}">
+            <tr style="${expired ? 'background:rgba(139,0,0,0.08);' : 'background:rgba(22,163,74,0.08);'}">
               <td class="cell-email">${escHtml(s.title)}</td>
               <td><span class="ann-tag ${s.targetType}" style="font-size:11px;">${targetStr}</span></td>
               <td class="cell-date">${expired ? 'Süresi doldu' : new Date(s.expiresAt).toLocaleDateString("tr-TR")}</td>
