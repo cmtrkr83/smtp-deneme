@@ -3,3 +3,5 @@ node_modules/
 users.json
 presence.json
 uploads/
+tmp/
+backups/

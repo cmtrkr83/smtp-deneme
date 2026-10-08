@@ -756,8 +756,99 @@
           </button>
         </div>
         <div id="settingsMessage" class="message" style="margin-top:12px;"></div>
+        <div class="section-title" style="margin-top:28px;"><i class="fa-solid fa-box-archive"></i> Yedekleme</div>
+        <div class="announcement-item">
+          <h4>Yedeğe alınacak bölümler</h4>
+          <p>Anketler yanıtlarıyla, dosya içeren bölümler dosyalarıyla birlikte gelir.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0;">
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="users" checked /> Kullanıcılar</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="announcements" checked /> Duyurular</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="surveys" checked /> Anketler + Yanıtlar</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="files" checked /> Dosya Dağıtım</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="file-requests" checked /> Belge İstekleri</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="requests" checked /> Talep/İtiraz</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="logs" checked /> Log Kayıtları</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="settings" checked /> Sistem Ayarları</label>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="downloadBackup()">
+              <i class="fa-solid fa-download"></i> Yedeği İndir
+            </button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;">
+            <input type="file" id="bkFile" accept=".zip" style="font-size:13px;" />
+            <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;" onclick="restoreBackup()">
+              <i class="fa-solid fa-upload"></i> Yedeği Geri Yükle
+            </button>
+          </div>
+          <div id="backupMessage" class="message" style="margin-top:12px;"></div>
+        </div>
       `;
       await loadSettings();
+    }
+
+    async function downloadBackup() {
+      const msg = document.getElementById("backupMessage");
+      const sections = [...document.querySelectorAll(".bk-sec:checked")].map((c) => c.value);
+      if (sections.length === 0) {
+        if (msg) { msg.textContent = "En az bir bölüm seçin."; msg.className = "message error show"; }
+        return;
+      }
+      try {
+        const res = await apiFetch("/api/backup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sections }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (res.status !== 401 && msg) { msg.textContent = data.error || "Yedek alınamadı."; msg.className = "message error show"; }
+          return;
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get("Content-Disposition") || "";
+        const match = cd.match(/filename="?(.+?)"?$/);
+        const filename = match ? match[1] : "yedek.zip";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("Yedek indirildi.", "success");
+      } catch {
+        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+      }
+    }
+
+    async function restoreBackup() {
+      const msg = document.getElementById("backupMessage");
+      const input = document.getElementById("bkFile");
+      if (!input || !input.files || input.files.length === 0) {
+        if (msg) { msg.textContent = "Önce yedek dosyası seçin."; msg.className = "message error show"; }
+        return;
+      }
+      showConfirmModal({
+        title: "Yedeği Geri Yükle",
+        message: "Yedekteki bölümler mevcut verilerin üzerine yazılacak. Önce otomatik güvenlik kopyası alınır. Devam edilsin mi?",
+        confirmText: "Geri Yükle",
+        onConfirm: async () => {
+          try {
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+            const res = await apiFetch("/api/backup/restore", { method: "POST", body: formData });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              showToast("Geri yüklendi: " + (data.restored || []).join(", "), "success");
+              setTimeout(() => window.location.reload(), 1200);
+            } else if (res.status !== 401 && msg) {
+              msg.textContent = data.error || "Geri yükleme başarısız.";
+              msg.className = "message error show";
+            }
+          } catch {
+            if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+          }
+        },
+      });
     }
 
     async function loadSettings() {

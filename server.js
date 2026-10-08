@@ -2892,8 +2892,8 @@ app.get("/api/file-requests/:id/download-all", (req, res) => {
   const submissions = fr.submissions || [];
   if (submissions.length === 0) return res.status(404).json({ error: "Gönderi yok." });
 
-  const archiver = require("archiver");
-  const archive = archiver("zip", { zlib: { level: 5 } });
+  const { ZipArchive } = require("archiver");
+  const archive = new ZipArchive({ zlib: { level: 5 } });
   const sanitized = fr.title.replace(/[^a-zA-Z0-9\- _]/g, "_").substring(0, 50);
   const zipName = `belge_istegi_${sanitized}.zip`;
 
@@ -2983,6 +2983,176 @@ app.put("/api/settings", (req, res) => {
   saveSettings(next);
   appendLog(makeLog(next.maintenance ? "maintenance_on" : "maintenance_off", decoded.email, next.maintenance ? "Sistem bakıma alındı." : "Sistem tekrar açıldı.", req));
   res.json(next);
+});
+
+// ---- Yedekleme (secimli, admin) ----
+// Bolum -> veri dosyalari + uploads altindaki ilgili klasorler.
+// JSON secilince ona ait ekler otomatik dahil olur (kirik yedek olusmamasi icin).
+const BACKUP_SECTIONS = {
+  users: { label: "Kullanıcılar", files: ["users.json"], uploadSubdirs: [] },
+  announcements: { label: "Duyurular", files: ["announcements.json"], uploadSubdirs: [] },
+  surveys: { label: "Anketler + Yanıtlar", files: ["surveys.json", "responses.json"], uploadSubdirs: [] },
+  files: { label: "Dosya Dağıtım", files: ["files.json"], uploadSubdirs: [], uploadRoot: true },
+  "file-requests": { label: "Belge İstekleri", files: ["file-requests.json"], uploadSubdirs: ["file-requests"] },
+  requests: { label: "Talep/İtiraz", files: ["requests.json"], uploadSubdirs: ["requests"] },
+  logs: { label: "Log Kayıtları", files: ["logs.json"], uploadSubdirs: [] },
+  settings: { label: "Sistem Ayarları", files: ["settings.json"], uploadSubdirs: [] },
+};
+const BACKUP_TMP_DIR = path.join(DATA_DIR, "tmp");
+const BACKUP_SNAP_DIR = path.join(DATA_DIR, "backups");
+for (const d of [BACKUP_TMP_DIR, BACKUP_SNAP_DIR]) {
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+}
+
+function backupUploadFiles(sectionKey) {
+  // ZIP icine konulacak uploads goreceli yollari listeler
+  const out = [];
+  const def = BACKUP_SECTIONS[sectionKey];
+  if (!def || !fs.existsSync(UPLOADS_DIR)) return out;
+  for (const sub of (def.uploadSubdirs || [])) {
+    const dir = path.join(UPLOADS_DIR, sub);
+    if (!fs.existsSync(dir)) continue;
+    const walk = (cur, rel) => {
+      for (const e of fs.readdirSync(cur, { withFileTypes: true })) {
+        if (e.name === "temp") continue;
+        const full = path.join(cur, e.name);
+        if (e.isDirectory()) walk(full, rel + e.name + "/");
+        else out.push(rel + e.name);
+      }
+    };
+    walk(dir, sub + "/");
+  }
+  if (def.uploadRoot) {
+    for (const e of fs.readdirSync(UPLOADS_DIR, { withFileTypes: true })) {
+      if (e.isFile()) out.push(e.name);
+    }
+  }
+  return out;
+}
+
+app.post("/api/backup", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const wanted = Array.isArray(req.body && req.body.sections) ? req.body.sections : [];
+  const sections = wanted.filter((s) => BACKUP_SECTIONS[s]);
+  if (sections.length === 0) return res.status(400).json({ error: "En az bir bölüm seçin." });
+
+  const { ZipArchive } = require("archiver");
+  const manifest = { app: "smtp-otp-login", version: 1, createdAt: Date.now(), createdBy: decoded.email, sections, dataFiles: [], uploads: [] };
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", contentDisposition(`yedek-${stamp}.zip`));
+  const archive = new ZipArchive({ zlib: { level: 5 } });
+  archive.on("error", () => { if (!res.headersSent) res.status(500); res.end(); });
+  archive.pipe(res);
+  for (const key of sections) {
+    for (const f of BACKUP_SECTIONS[key].files) {
+      const full = path.join(DATA_DIR, f);
+      if (fs.existsSync(full)) { archive.file(full, { name: "data/" + f }); manifest.dataFiles.push(f); }
+    }
+    for (const rel of backupUploadFiles(key)) {
+      manifest.uploads.push(rel);
+      archive.file(path.join(UPLOADS_DIR, rel), { name: "uploads/" + rel });
+    }
+  }
+  archive.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
+  archive.finalize();
+});
+
+const backupRestoreUpload = multer({
+  dest: BACKUP_TMP_DIR,
+  limits: { fileSize: 512 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (String(file.originalname || "").toLowerCase().endsWith(".zip")) return cb(null, true);
+    cb(new Error("Yalnızca .zip yedeği yüklenebilir."));
+  },
+});
+
+app.post("/api/backup/restore", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  backupRestoreUpload.single("file")(req, res, async (err) => {
+    const cleanup = (p) => { try { if (p && fs.existsSync(p)) fs.unlinkSync(p); } catch (_) {} };
+    if (err) return res.status(400).json({ error: "Yedek yüklenemedi: " + err.message });
+    if (!req.file) return res.status(400).json({ error: "Yedek dosyası seçilmedi." });
+    const zipPath = req.file.path;
+    const workDir = path.join(BACKUP_TMP_DIR, "restore-" + Date.now());
+    try {
+      const unzipper = require("unzipper");
+      fs.mkdirSync(workDir, { recursive: true });
+      await fs.createReadStream(zipPath).pipe(unzipper.Extract({ path: workDir })).promise();
+      const manRaw = path.join(workDir, "manifest.json");
+      if (!fs.existsSync(manRaw)) throw new Error("Geçersiz yedek: manifest.json yok.");
+      const man = JSON.parse(fs.readFileSync(manRaw, "utf-8"));
+      if (!man || man.app !== "smtp-otp-login" || !Array.isArray(man.sections)) {
+        throw new Error("Geçersiz yedek dosyası.");
+      }
+      const sections = man.sections.filter((s) => BACKUP_SECTIONS[s]);
+      if (sections.length === 0) throw new Error("Yedekte geri yüklenecek bölüm yok.");
+      // Tum JSON'lari once dogrula (canli veriye henuz dokunulmadı)
+      const payloads = {};
+      const dataFiles = Array.isArray(man.dataFiles) && man.dataFiles.length
+        ? man.dataFiles.filter((f) => Object.values(BACKUP_SECTIONS).some((d) => d.files.includes(f)))
+        : sections.flatMap((key) => BACKUP_SECTIONS[key].files);
+      if (dataFiles.length === 0) throw new Error("Yedekte geri yüklenecek dosya yok.");
+      for (const f of dataFiles) {
+        const full = path.join(workDir, "data", f);
+        if (!fs.existsSync(full)) throw new Error(`Yedekte eksik dosya: ${f}`);
+        payloads[f] = JSON.parse(fs.readFileSync(full, "utf-8"));
+      }
+      // Son sans kopyasi: mevcut secili kapsami diske al (en fazla 3 tutulur)
+      const snapDir = path.join(BACKUP_SNAP_DIR, "auto-" + Date.now());
+      fs.mkdirSync(snapDir, { recursive: true });
+      for (const key of sections) {
+        for (const f of BACKUP_SECTIONS[key].files) {
+          const full = path.join(DATA_DIR, f);
+          if (fs.existsSync(full)) fs.copyFileSync(full, path.join(snapDir, f));
+        }
+        for (const sub of (BACKUP_SECTIONS[key].uploadSubdirs || [])) {
+          const dir = path.join(UPLOADS_DIR, sub);
+          if (fs.existsSync(dir)) fs.cpSync(dir, path.join(snapDir, "uploads", sub), { recursive: true });
+        }
+        if (BACKUP_SECTIONS[key].uploadRoot) {
+          fs.mkdirSync(path.join(snapDir, "uploads"), { recursive: true });
+          for (const e of fs.readdirSync(UPLOADS_DIR, { withFileTypes: true })) {
+            if (e.isFile()) fs.copyFileSync(path.join(UPLOADS_DIR, e.name), path.join(snapDir, "uploads", e.name));
+          }
+        }
+      }
+      try {
+        const snaps = fs.readdirSync(BACKUP_SNAP_DIR).filter((n) => n.startsWith("auto-")).sort();
+        while (snaps.length > 3) fs.rmSync(path.join(BACKUP_SNAP_DIR, snaps.shift()), { recursive: true, force: true });
+      } catch (_) {}
+      // Degisimi uygula
+      for (const f of Object.keys(payloads)) {
+        atomicSaveJson(path.join(DATA_DIR, f), JSON.stringify(payloads[f], null, 2));
+      }
+      const zipUploads = path.join(workDir, "uploads");
+      for (const key of sections) {
+        for (const sub of (BACKUP_SECTIONS[key].uploadSubdirs || [])) {
+          const src = path.join(zipUploads, sub);
+          const dest = path.join(UPLOADS_DIR, sub);
+          try { fs.rmSync(dest, { recursive: true, force: true }); } catch (_) {}
+          if (fs.existsSync(src)) {
+            fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+            fs.cpSync(src, dest, { recursive: true });
+          }
+        }
+        if (BACKUP_SECTIONS[key].uploadRoot && fs.existsSync(zipUploads)) {
+          for (const e of fs.readdirSync(zipUploads, { withFileTypes: true })) {
+            if (e.isFile()) fs.copyFileSync(path.join(zipUploads, e.name), path.join(UPLOADS_DIR, e.name));
+          }
+        }
+      }
+      appendLog(makeLog("backup_restore", decoded.email, `Yedekten geri yüklendi: ${sections.map((s) => BACKUP_SECTIONS[s].label).join(", ")}.`, req));
+      res.json({ restored: sections, snapshot: path.basename(snapDir) });
+    } catch (e) {
+      res.status(400).json({ error: e.message || "Geri yükleme başarısız." });
+    } finally {
+      cleanup(zipPath);
+      try { fs.rmSync(workDir, { recursive: true, force: true }); } catch (_) {}
+    }
+  });
 });
 
 // ---- Verify Token ----
