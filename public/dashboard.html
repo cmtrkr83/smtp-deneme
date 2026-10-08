@@ -1503,7 +1503,7 @@
             ? a.readBy.join(", ")
             : "Henüz okunmadı";
           return `
-            <tr style="${expired ? 'opacity:0.4;' : ''}">
+            <tr style="${expired ? 'background:rgba(139,0,0,0.08);' : 'background:rgba(22,163,74,0.08);'}">
               <td class="cell-email">${escHtml(a.title)}</td>
               <td><span class="ann-tag ${a.target === 'all' ? 'admin' : a.target}" style="font-size:11px;">${(a.targets && a.targets.length > 1) ? groupLabels(a) : (targetLabels[a.target] || a.target)}</span></td>
               <td class="cell-date">${expired ? 'Süresi doldu' : expires}</td>
@@ -2129,8 +2129,9 @@
           const targetLabel = f.targetType === "all" ? "Tüm Kullanıcılar"
             : f.targetType === "group" ? groupLabels(f)
             : (f.targetUsers || []).join(", ");
+          const rowBg = (!notStarted && !expired) ? 'background:rgba(22,163,74,0.08);' : 'background:rgba(139,0,0,0.08);';
           return `
-            <tr>
+            <tr style="${rowBg}">
               <td style="font-weight:600;">
                 <i class="fa-solid fa-file-zipper" style="color:#f59e0b;margin-right:8px;"></i>
                 ${escHtml(f.originalName)}
@@ -2890,8 +2891,9 @@
           const date = new Date(r.submittedAt).toLocaleDateString("tr-TR");
           const color = typeColors[r.type] || "#6366f1";
           const icon = typeIcons[r.type] || "fa-paper-plane";
+          const reqBg = r.status === "open" ? 'background:rgba(22,163,74,0.08);' : 'background:rgba(139,0,0,0.08);';
           return `
-            <div class="announcement-item" style="cursor:pointer;" onclick="renderAdminRequestDetail('${r.id}')">
+            <div class="announcement-item" style="cursor:pointer;${reqBg}" onclick="renderAdminRequestDetail('${r.id}')">
               <div style="display:flex;align-items:center;gap:12px;">
                 <div style="width:40px;height:40px;border-radius:10px;background:${color}15;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                   <i class="fa-solid ${icon}" style="color:${color};font-size:18px;"></i>
@@ -4096,7 +4098,7 @@
           const targetStr = fr.targetType === "group" ? groupLabels(fr) : targetLabels[fr.targetType] || "Tümü";
           const subCount = fr.submissionCount || 0;
           return `
-            <div class="announcement-item" style="cursor:pointer;${expired?'opacity:0.5;':''}" onclick="viewFrDetail('${fr.id}')">
+            <div class="announcement-item" style="cursor:pointer;${expired?'background:rgba(139,0,0,0.08);':'background:rgba(22,163,74,0.08);'}" onclick="viewFrDetail('${fr.id}')">
               <span class="ann-tag ${fr.targetType}">${targetStr}</span>
               <h4>${escHtml(fr.title)}</h4>
               <p>${escHtml(fr.description) || "Açıklama yok"}</p>
