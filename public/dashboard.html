@@ -3495,7 +3495,7 @@
             <p>Veri toplama formlarını oluşturun, düzenleyin ve sonuçları görüntüleyin.</p>
           </div>
           <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderSurveyBuilder(null)">
-            <i class="fa-solid fa-plus"></i> Anket Oluştur
+            <i class="fa-solid fa-plus"></i> Form Oluştur
           </button>
         </div>
         <div class="users-table-wrapper">
@@ -3609,7 +3609,7 @@
       area.innerHTML = `
         <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;">
           <div>
-            <h2>${isEdit ? "Anket Düzenle" : "Yeni Anket"}</h2>
+            <h2>${isEdit ? "Formu Düzenle" : "Yeni Form"}</h2>
             <p>Soruları ekleyin ve hedef kitleyi belirleyin.</p>
           </div>
           <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminSurveys()">
@@ -3619,12 +3619,12 @@
         <div class="announcement-item" style="margin-bottom:24px;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group" style="grid-column:1/-1;margin-bottom:0;">
-              <label for="svTitle">Anket Başlığı</label>
-              <input type="text" id="svTitle" class="form-control" style="padding-left:16px;" placeholder="Örn: Okul Memnuniyet Anketi" value="${escHtml(s.title || '')}" />
+              <label for="svTitle">Form Başlığı</label>
+              <input type="text" id="svTitle" class="form-control" style="padding-left:16px;" placeholder="Örn: Okul Memnuniyet Formu" value="${escHtml(s.title || '')}" />
             </div>
             <div class="form-group" style="grid-column:1/-1;margin-bottom:0;">
               <label for="svDesc">Açıklama</label>
-              <textarea id="svDesc" class="form-control" style="padding-left:16px;min-height:60px;resize:vertical;" placeholder="Anket açıklaması">${escHtml(s.description || '')}</textarea>
+              <textarea id="svDesc" class="form-control" style="padding-left:16px;min-height:60px;resize:vertical;" placeholder="Form açıklaması">${escHtml(s.description || '')}</textarea>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="svTargetType">Hedef Kitle</label>
