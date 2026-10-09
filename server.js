@@ -3080,6 +3080,19 @@ app.post("/api/backup/restore", (req, res) => {
     try {
       const unzipper = require("unzipper");
       fs.mkdirSync(workDir, { recursive: true });
+      // Zip Slip koruması: workDir dışına taşan veya kotayı aşan arşivi çıkarmadan reddet
+      const MAX_RESTORE_BYTES = 512 * 1024 * 1024;
+      const workRoot = path.resolve(workDir);
+      let totalBytes = 0;
+      const listing = await unzipper.Open.file(zipPath);
+      for (const entry of listing.files) {
+        const target = path.resolve(workRoot, entry.path);
+        if (target !== workRoot && !target.startsWith(workRoot + path.sep)) {
+          throw new Error("Geçersiz yedek: arşiv yolu izin dışı (" + entry.path + ").");
+        }
+        totalBytes += entry.uncompressedSize || 0;
+        if (totalBytes > MAX_RESTORE_BYTES) throw new Error("Yedek boyutu sınırı aşıyor.");
+      }
       await fs.createReadStream(zipPath).pipe(unzipper.Extract({ path: workDir })).promise();
       const manRaw = path.join(workDir, "manifest.json");
       if (!fs.existsSync(manRaw)) throw new Error("Geçersiz yedek: manifest.json yok.");
@@ -3132,8 +3145,9 @@ app.post("/api/backup/restore", (req, res) => {
         for (const sub of (BACKUP_SECTIONS[key].uploadSubdirs || [])) {
           const src = path.join(zipUploads, sub);
           const dest = path.join(UPLOADS_DIR, sub);
-          try { fs.rmSync(dest, { recursive: true, force: true }); } catch (_) {}
+          // Yedekte olmayan klasöre dokunma: canlı dosyalar korunur
           if (fs.existsSync(src)) {
+            try { fs.rmSync(dest, { recursive: true, force: true }); } catch (_) {}
             fs.mkdirSync(UPLOADS_DIR, { recursive: true });
             fs.cpSync(src, dest, { recursive: true });
           }
