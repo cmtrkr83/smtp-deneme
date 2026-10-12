@@ -708,10 +708,14 @@ body.dashboard-body::before {
   margin-bottom: 28px;
 }
 
-#quickLinks,
+#quickLinks {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Modüller + İşlemler: satırda her zaman 2 kart (mobilde tek sütun) */
 #quickLinksModules,
 #quickLinksOps {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .report-card {
