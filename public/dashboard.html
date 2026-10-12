@@ -1102,8 +1102,9 @@
               <option value="ozel">Sadece Özel</option>
               <option value="bos">Tür Belirsiz</option>
             </select>
-            <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAddUserModal()">
-              <i class="fa-solid fa-plus"></i> Kullanıcı Ekle
+            <button type="button" class="add-btn" onclick="showAddUserModal()">
+              <span class="add-btn__text">Kullanıcı Ekle</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
             </button>
             <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showImportModal()">
               <i class="fa-solid fa-file-excel"></i> Excel'den Yükle
@@ -1746,8 +1747,9 @@
               <h2>Duyuru Yönetimi</h2>
               <p>Duyuruları oluşturun, düzenleyin ve yönetin.</p>
             </div>
-            <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="showAnnModal()">
-              <i class="fa-solid fa-plus"></i> Duyuru Ekle
+            <button type="button" class="add-btn" onclick="showAnnModal()">
+              <span class="add-btn__text">Duyuru Ekle</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
             </button>
           </div>
           <div class="users-table-wrapper">
@@ -2424,8 +2426,9 @@
             <h2>Dosya Yönetimi</h2>
             <p>ZIP dosyalarını kullanıcılara gönderin ve indirme durumlarını izleyin.</p>
           </div>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUploadFile()">
-            <i class="fa-solid fa-upload"></i> Dosya Yükle
+          <button type="button" class="add-btn" onclick="renderUploadFile()">
+            <span class="add-btn__text">Dosya Yükle</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
         <div class="users-table-wrapper" id="adminFilesWrap">
@@ -2906,8 +2909,9 @@
             <h2>Talep/İtiraz</h2>
             <p>Taleplerinizi görüntüleyin ve yeni talep oluşturun.</p>
           </div>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderCreateRequest()">
-            <i class="fa-solid fa-plus"></i> Yeni Talep
+          <button type="button" class="add-btn" onclick="renderCreateRequest()">
+            <span class="add-btn__text">Yeni Talep</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
         <div id="userRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yukleniyor...</div>
@@ -3630,8 +3634,9 @@
             <h2>Veri Toplama</h2>
             <p>Veri toplama formlarını oluşturun, düzenleyin ve sonuçları görüntüleyin.</p>
           </div>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderSurveyBuilder(null)">
-            <i class="fa-solid fa-plus"></i> Form Oluştur
+          <button type="button" class="add-btn" onclick="renderSurveyBuilder(null)">
+            <span class="add-btn__text">Form Oluştur</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
         <div class="users-table-wrapper">
@@ -4423,8 +4428,9 @@
             <h2>Belge İstekleri</h2>
             <p>Kullanıcılardan belge isteyin ve gönderimleri görüntüleyin.</p>
           </div>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;background:#8b0000;border-color:#8b0000;" onclick="showCreateFrModal()">
-            <i class="fa-solid fa-plus"></i> Talep Oluştur
+          <button type="button" class="add-btn" onclick="showCreateFrModal()">
+            <span class="add-btn__text">Talep Oluştur</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
         <div id="adminFrList" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
