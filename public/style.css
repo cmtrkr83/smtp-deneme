@@ -911,6 +911,66 @@ body.dashboard-body::before {
   gap: 14px;
   padding: 14px 18px;
 }
+/* Kompakt satır: tek satırda ad + ilçe + e-posta + kod; hover'da detay kartı açar */
+.school-row--compact {
+  padding: 10px 14px;
+  position: relative;
+}
+.school-row--compact:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+}
+.school-row-line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.school-row-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.school-row-sub {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.school-row-mail {
+  color: var(--text-2);
+}
+/* Satır detay kartı: hover/odakta açılır, okul bilgilerini gösterir */
+.school-detail-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  padding: 16px 18px;
+}
+.school-row:hover .school-detail-pop,
+.school-row:focus-within .school-detail-pop {
+  display: block;
+}
+.school-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 20px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+/* Okul arama kutusu (kartların altı, listenin üstü) */
+.schools-search-row {
+  margin-bottom: 16px;
+  max-width: 420px;
+}
 .school-avatar {
   width: 44px;
   height: 44px;
@@ -920,6 +980,11 @@ body.dashboard-body::before {
   justify-content: center;
   font-size: 17px;
   flex-shrink: 0;
+}
+.school-avatar--sm {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
 }
 .school-row-main {
   flex: 1;

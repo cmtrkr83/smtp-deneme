@@ -255,7 +255,7 @@
       else if (page === "announcements") await renderAnnouncements();
       else if (page === "logs") await renderLogs();
       // Okullar her açılışta filtresiz başlar: önceki seçim takılı kalırsa liste boş görünebilir
-      else if (page === "schools") { window.schoolsOwnershipFilter = ""; await renderSchools(); }
+      else if (page === "schools") { window.schoolsOwnershipFilter = ""; window.schoolsSearchText = ""; await renderSchools(); }
       else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
       else if (page === "surveys") { renderSurveys(); }
       else if (page === "files") { renderFiles(); }
@@ -2288,7 +2288,7 @@
             <div class="donut-legend-row"><span class="donut-dot" style="background:${s.color};"></span>${s.label}<span class="donut-count">${s.count}</span></div>
           `).join("");
 
-          // Star Students tarzı satırlar: ikon + ad/e-posta + kod/ilçe + rozetler
+          // Star Students tarzı satırlar: ikon + ad/ilçe/e-posta/kod + rozetler; hover'da detay kartı
           const roleMeta = {
             lise: { label: "Lise", color: "#d97706", bg: "rgba(245,158,11,0.12)" },
             ortaokul: { label: "Ortaokul", color: "#0d9488", bg: "rgba(13,148,136,0.12)" },
@@ -2298,30 +2298,48 @@
             const p = u.profile || {};
             const m = roleMeta[u.role] || roleMeta.diger;
             const schoolCode = p.schoolCode || (u.email.match(/^(\d+)@/) ? u.email.match(/^(\d+)@/)[1] : null);
-            const meta = [schoolCode ? "Kod: " + escHtml(schoolCode) : null, p.district ? escHtml(p.district) : null, p.city ? escHtml(p.city) : null].filter(Boolean).join(" • ");
+            const name = p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email);
+            const search = (name + " " + u.email + " " + (schoolCode || "") + " " + (p.district || "") + " " + (p.city || "")).toLocaleLowerCase("tr");
+            const dItem = (label, val) => val ? `<div><span style="color:var(--muted);">${label}:</span> ${escHtml(val)}</div>` : "";
+            const detailItems = dItem("Müdür", p.principalName) + dItem("Okul Tel", p.schoolPhone)
+              + dItem("Müdür Tel", p.principalPhone) + dItem("Öğrenci", p.studentCount)
+              + dItem("Öğretmen", p.teacherCount) + dItem("Şube", p.classCount)
+              + `<div><span style="color:var(--muted);">Kayıt:</span> ${u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-"}</div>`
+              + `<div><span style="color:var(--muted);">Son Giriş:</span> ${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") : "-"}</div>`;
             return `
-              <div class="announcement-item school-row">
-                <div class="school-avatar" style="background:${m.bg};color:${m.color};"><i class="fa-solid fa-school"></i></div>
-                <div class="school-row-main">
-                  <h4>${escHtml(p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email))}</h4>
-                  <p style="margin-bottom:2px;">${escHtml(u.email)}</p>
-                  ${meta ? `<div class="school-row-meta">${meta}</div>` : ""}
-                  ${!p.schoolName ? '<div style="font-size:12px;color:#d97706;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Okul bilgileri henüz girilmemiş</div>' : ""}
+              <div class="announcement-item school-row school-row--compact" tabindex="0" data-search="${escHtml(search)}">
+                <div class="school-avatar school-avatar--sm" style="background:${m.bg};color:${m.color};"><i class="fa-solid fa-school"></i></div>
+                <div class="school-row-line">
+                  <span class="school-row-name">${escHtml(name)}</span>
+                  ${p.district ? `<span class="school-row-sub">${escHtml(p.district)}</span>` : ""}
+                  <span class="school-row-mail">${escHtml(u.email)}</span>
+                  ${schoolCode ? `<span class="school-row-sub">Kod: ${escHtml(schoolCode)}</span>` : ""}
                 </div>
                 <div class="school-row-side">
                   <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;margin-bottom:0;">${m.label}</span>
                   ${p.ownership ? `<span class="ann-tag" style="font-size:10px;margin-bottom:0;${p.ownership === "ozel" ? "background:#fef3c7;color:#92400e;border:1px solid #fcd34d;" : "background:#dcfce7;color:#166534;border:1px solid #86efac;"}">${p.ownership === "ozel" ? "Özel" : "Resmi"}</span>` : ""}
                 </div>
+                <div class="school-detail-pop">
+                  <div class="section-title" style="font-size:13px;margin-bottom:8px;"><i class="fa-solid fa-circle-info"></i> ${escHtml(name)}</div>
+                  <div class="school-detail-grid">${detailItems}</div>
+                  ${!p.schoolName ? '<div style="font-size:12px;color:#d97706;margin-top:8px;"><i class="fa-solid fa-triangle-exclamation"></i> Okul bilgileri henüz girilmemiş</div>' : ""}
+                </div>
               </div>
             `;
           };
-          const groupBlock = (title, icon, color, list) => {
+          const groupBlock = (key, title, icon, color, list) => {
             if (list.length === 0) return "";
-            return `<div class="section-title"><i class="fa-solid ${icon}" style="color:${color};"></i> ${title} (${list.length})</div>`
-              + `<div class="announcements-list">${list.map(renderSchoolRow).join("")}</div>`;
+            return `<div class="school-group" data-group="${key}"><div class="section-title"><i class="fa-solid ${icon}" style="color:${color};"></i> ${title} (${list.length})</div>`
+              + `<div class="announcements-list">${list.map(renderSchoolRow).join("")}</div></div>`;
           };
 
           html += `
+            <div class="schools-search-row">
+              <div class="input-wrapper">
+                <i class="fa-solid fa-magnifying-glass icon"></i>
+                <input type="text" id="schoolsSearch" class="form-control" placeholder="Okul adı / kod / ilçe / e-posta ara..." value="${escHtml(window.schoolsSearchText || "")}" oninput="setSchoolsSearch(this.value)" style="padding-left:40px;" />
+              </div>
+            </div>
             <div class="schools-layout">
               <div class="donut-panel">
                 <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-chart-pie"></i> Grup Dağılımı</div>
@@ -2334,15 +2352,17 @@
                   <div class="donut-legend">${legend}</div>
                 </div>
               </div>
-              <div>
-                ${groupBlock("Lise Grubu", "fa-school", "#d97706", lise)}
-                ${groupBlock("Ortaokul Grubu", "fa-school", "#0d9488", ortaokul)}
-                ${groupBlock("Diğer", "fa-users", "#ec4899", diger)}
+              <div id="schoolsList">
+                ${groupBlock("lise", "Lise Grubu", "fa-school", "#d97706", lise)}
+                ${groupBlock("ortaokul", "Ortaokul Grubu", "fa-school", "#0d9488", ortaokul)}
+                ${groupBlock("diger", "Diğer", "fa-users", "#ec4899", diger)}
+                <div id="schoolsNoResult" style="display:none;text-align:center;padding:40px;color:var(--muted);">Aramaya uyan okul bulunamadı.</div>
               </div>
             </div>
           `;
         }
         document.getElementById("schoolsContent").innerHTML = html;
+        applySchoolsSearch();
       } catch {
         document.getElementById("schoolsContent").innerHTML =
           '<div style="text-align:center;padding:40px;color:#dc2626;">Okullar yüklenirken hata oluştu.</div>';
@@ -2364,6 +2384,29 @@
         b.style.border = active ? "1px solid var(--brand-ink)" : "";
         b.style.fontWeight = active ? "700" : "";
       });
+    }
+
+    // Okul arama: ad/kod/ilçe/e-posta üzerinden anlık satır filtreleme (Türkçe uyumlu)
+    function setSchoolsSearch(val) {
+      window.schoolsSearchText = (val || "").toLocaleLowerCase("tr");
+      applySchoolsSearch();
+    }
+    function applySchoolsSearch() {
+      const q = (window.schoolsSearchText || "").trim();
+      const rows = document.querySelectorAll("#schoolsList .school-row");
+      if (!rows.length) return;
+      let visible = 0;
+      rows.forEach((r) => {
+        const hit = !q || (r.dataset.search || "").includes(q);
+        r.style.display = hit ? "" : "none";
+        if (hit) visible++;
+      });
+      document.querySelectorAll("#schoolsList .school-group").forEach((g) => {
+        const any = [...g.querySelectorAll(".school-row")].some((r) => r.style.display !== "none");
+        g.style.display = any ? "" : "none";
+      });
+      const empty = document.getElementById("schoolsNoResult");
+      if (empty) empty.style.display = visible === 0 ? "" : "none";
     }
 
     // ---- School Profile Form ----
