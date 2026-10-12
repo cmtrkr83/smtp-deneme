@@ -1074,7 +1074,7 @@ body.dashboard-body::before {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 12px 16px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-2);

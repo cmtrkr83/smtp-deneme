@@ -1117,13 +1117,12 @@
               <i class="fa-solid fa-magnifying-glass icon"></i>
               <input type="text" id="usersSearch" class="form-control" placeholder="E-posta / okul / ilçe ara..." oninput="setUsersSearch(this.value)" style="padding-left:40px;" />
             </div>
-            <select id="ownershipFilter" class="form-control" onchange="setOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
-              style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
-              <option value="">Tümü (Resmi+Özel)</option>
-              <option value="resmi">Sadece Resmi</option>
-              <option value="ozel">Sadece Özel</option>
-              <option value="bos">Tür Belirsiz</option>
-            </select>
+            <div class="chart-radio" role="radiogroup" aria-label="Okul tür filtresi">
+              <label><input type="radio" name="usersOwnership" value="" checked onchange="setOwnershipFilter(this.value)" /><span><i class="fa-solid fa-layer-group"></i> Tümü</span></label>
+              <label><input type="radio" name="usersOwnership" value="resmi" onchange="setOwnershipFilter(this.value)" /><span><i class="fa-solid fa-landmark"></i> Resmi</span></label>
+              <label><input type="radio" name="usersOwnership" value="ozel" onchange="setOwnershipFilter(this.value)" /><span><i class="fa-solid fa-building"></i> Özel</span></label>
+              <label><input type="radio" name="usersOwnership" value="bos" onchange="setOwnershipFilter(this.value)" /><span><i class="fa-solid fa-circle-question"></i> Belirsiz</span></label>
+            </div>
             <button type="button" class="add-btn" onclick="showAddUserModal()">
               <span class="add-btn__text">Kullanıcı Ekle</span>
               <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
@@ -1238,8 +1237,8 @@
       try {
         const si = document.getElementById("usersSearch");
         if (si && usersSearch) si.value = usersSearch;
-        const of = document.getElementById("ownershipFilter");
-        if (of && usersOwnershipFilter) of.value = usersOwnershipFilter;
+        const cur = usersOwnershipFilter || "";
+        document.querySelectorAll('input[name="usersOwnership"]').forEach((r) => { r.checked = ((r.value || "") === cur); });
       } catch (_) {}
       await loadUsersTable();
     }
