@@ -966,10 +966,72 @@ body.dashboard-body::before {
   font-size: 13px;
   color: var(--text-2);
 }
-/* Okul arama kutusu (kartların altı, listenin üstü) */
-.schools-search-row {
+/* Okul araç çubuğu: arama (esnek) + sonuç sayacı */
+.schools-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
   margin-bottom: 16px;
-  max-width: 420px;
+}
+.schools-toolbar .input-wrapper {
+  flex: 1;
+  min-width: 220px;
+}
+.schools-count {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* Liste paneli: donut paneliyle dengeli kart */
+.schools-list-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 20px 12px;
+  min-width: 0;
+}
+.schools-list-panel .announcements-list {
+  margin-bottom: 0;
+}
+/* Sayfalama altlığı */
+.schools-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 16px 0 8px;
+}
+.schools-pagination .pg-btn {
+  min-width: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.schools-pagination .pg-btn:hover:not(:disabled) {
+  background: var(--btn-bg-hover);
+  color: var(--text);
+}
+.schools-pagination .pg-btn[aria-current="page"] {
+  background: #8b0000;
+  border-color: #8b0000;
+  color: #fff;
+}
+.schools-pagination .pg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.schools-pagination .pg-info {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 6px;
 }
 .school-avatar {
   width: 44px;
