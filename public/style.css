@@ -846,15 +846,26 @@ body.dashboard-body::before {
 .stat-card--brand .stat-label {
   opacity: 0.85;
 }
-.schools-layout {
+/* Okullar üst bölümü: solda 2x2 stat kartları, sağda dağılım halkası */
+.schools-top {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 1fr 340px;
   gap: 16px;
-  align-items: start;
-  margin-bottom: 28px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+.schools-top .stats-grid {
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 0;
+}
+.schools-top .donut-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 @media (max-width: 900px) {
-  .schools-layout {
+  .schools-top {
     grid-template-columns: 1fr;
   }
 }

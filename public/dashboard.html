@@ -2291,8 +2291,8 @@
         const resmiCount = users.filter((u) => (u.profile || {}).ownership === "resmi").length;
         const ozelCount = users.filter((u) => (u.profile || {}).ownership === "ozel").length;
 
-        // Üst şerit: vurgulu toplam kart + rol kartları (referans tasarımdaki stat şeridi)
-        let html = `
+        // Üst bölüm: solda 2x2 stat kartları, sağda dağılım halkası (üstte), altta filtre + liste
+        let statsHtml = `
           <div class="stats-grid">
             <div class="stat-card stat-card--brand">
               <div class="stat-icon" style="background:rgba(255,255,255,0.18);color:#fff;"><i class="fa-solid fa-school"></i></div>
@@ -2313,8 +2313,9 @@
           </div>
         `;
 
+        let html = "";
         if (total === 0) {
-          html += `
+          html = statsHtml + `
             <div style="text-align:center;padding:60px 0;color:#ccc;">
               <i class="fa-solid fa-school" style="font-size:48px;margin-bottom:16px;display:block;"></i>
               <div style="font-size:14px;">Henüz okul eklenmemiş.</div>
@@ -2340,15 +2341,9 @@
             <div class="donut-legend-row"><span class="donut-dot" style="background:${s.color};"></span>${s.label}<span class="donut-count">${s.count}</span></div>
           `).join("");
 
-          html += `
-            <div class="schools-toolbar">
-              <div class="input-wrapper">
-                <i class="fa-solid fa-magnifying-glass icon"></i>
-                <input type="text" id="schoolsSearch" class="form-control" placeholder="Okul adı / kod / ilçe / e-posta ara..." value="${escHtml(window.schoolsSearchText || "")}" oninput="setSchoolsSearch(this.value)" style="padding-left:40px;" aria-label="Okul ara" />
-              </div>
-              <span id="schoolsCount" class="schools-count" role="status" aria-live="polite"></span>
-            </div>
-            <div class="schools-layout">
+          html = `
+            <div class="schools-top">
+              ${statsHtml}
               <div class="donut-panel">
                 <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-chart-pie"></i> Grup Dağılımı</div>
                 <div class="donut-flex">
@@ -2360,10 +2355,17 @@
                   <div class="donut-legend">${legend}</div>
                 </div>
               </div>
-              <div class="schools-list-panel">
-                <div id="schoolsList"></div>
-                <div id="schoolsPagination" class="schools-pagination"></div>
+            </div>
+            <div class="schools-toolbar">
+              <div class="input-wrapper">
+                <i class="fa-solid fa-magnifying-glass icon"></i>
+                <input type="text" id="schoolsSearch" class="form-control" placeholder="Okul adı / kod / ilçe / e-posta ara..." value="${escHtml(window.schoolsSearchText || "")}" oninput="setSchoolsSearch(this.value)" style="padding-left:40px;" aria-label="Okul ara" />
               </div>
+              <span id="schoolsCount" class="schools-count" role="status" aria-live="polite"></span>
+            </div>
+            <div class="schools-list-panel">
+              <div id="schoolsList"></div>
+              <div id="schoolsPagination" class="schools-pagination"></div>
             </div>
           `;
         }
