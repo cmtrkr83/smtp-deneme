@@ -29,6 +29,41 @@
 </head>
 <body class="dashboard-body">
   <a class="skip-link" href="#contentArea">İçeriğe atla</a>
+  <!-- Peg Top Global Loader -->
+  <div class="peg-loader-overlay" id="globalLoader" role="status" aria-live="polite" aria-hidden="true">
+    <div class="peg-loader-box">
+      <div class="peg-loader" aria-hidden="true">
+  <svg
+    id="pegtopone"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    viewBox="0 0 100 100"
+  >
+    <defs>
+      <filter id="shine"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
+      <mask id="mask"><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="white"></path></mask>
+      <radialGradient id="gradient-1" cx="50" cy="66" fx="50" fy="66" r="30" gradientTransform="translate(0 35) scale(1 0.5)" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="black" stop-opacity="0.3"></stop><stop offset="50%" stop-color="black" stop-opacity="0.1"></stop><stop offset="100%" stop-color="black" stop-opacity="0"></stop></radialGradient>
+      <radialGradient id="gradient-2" cx="55" cy="20" fx="55" fy="20" r="30" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"></stop><stop offset="50%" stop-color="white" stop-opacity="0.1"></stop><stop offset="100%" stop-color="white" stop-opacity="0"></stop></radialGradient>
+      <radialGradient id="gradient-3" cx="85" cy="50" fx="85" fy="50" xlink:href="#gradient-2"></radialGradient>
+      <radialGradient id="gradient-4" cx="50" cy="58" fx="50" fy="58" r="60" gradientTransform="translate(0 47) scale(1 0.2)" xlink:href="#gradient-3"></radialGradient>
+      <linearGradient id="gradient-5" x1="50" y1="90" x2="50" y2="10" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="black" stop-opacity="0.2"></stop><stop offset="40%" stop-color="black" stop-opacity="0"></stop></linearGradient>
+    </defs>
+    <g>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path>
+      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path>
+    </g>
+  </svg>
+  <svg id="pegtoptwo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path></g></svg>
+  <svg id="pegtopthree" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path></g></svg>
+      </div>
+      <div class="peg-loader-text" id="globalLoaderText">Yükleniyor...</div>
+    </div>
+  </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <div class="dashboard-layout">
@@ -187,19 +222,22 @@
     document.getElementById("sidebarBackdrop").classList.remove("show");
 
     const page = item.dataset.page;
-    if (page === "dashboard") renderDashboard();
-    else if (page === "users") renderUsers();
-    else if (page === "announcements") renderAnnouncements();
-    else if (page === "logs") renderLogs();
-    else if (page === "schools") renderSchools();
-    else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
-    else if (page === "surveys") { renderSurveys(); }
-    else if (page === "files") { renderFiles(); }
-    else if (page === "file-requests") { renderFileRequests(); }
-    else if (page === "requests") { renderRequests(); }
-    else if (page === "reports") { renderReports(); }
-    else if (page === "settings") { renderSettings(); }
-    else renderPlaceholder(page);
+    const run = async () => {
+      if (page === "dashboard") renderDashboard();
+      else if (page === "users") await renderUsers();
+      else if (page === "announcements") await renderAnnouncements();
+      else if (page === "logs") await renderLogs();
+      else if (page === "schools") await renderSchools();
+      else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
+      else if (page === "surveys") { renderSurveys(); }
+      else if (page === "files") { renderFiles(); }
+      else if (page === "file-requests") { renderFileRequests(); }
+      else if (page === "requests") { renderRequests(); }
+      else if (page === "reports") await renderReports();
+      else if (page === "settings") await renderSettings();
+      else renderPlaceholder(page);
+    };
+    withGlobalLoader(run);
         });
       });
     }
@@ -311,6 +349,8 @@
     document.getElementById("mobileLogoutBtn")?.addEventListener("click", logout);
 
     window.switchActiveRole = async function (newRole) {
+      showGlobalLoader("Yükleniyor...");
+      try {
       activeRole = newRole;
       const lb = roleLabels;
       document.getElementById("userRole").textContent = lb[newRole] || newRole;
@@ -324,16 +364,20 @@
       if (activePage) {
         const page = activePage.dataset.page;
         if (page === "dashboard") renderDashboard();
-        else if (page === "announcements") renderAnnouncements();
+        else if (page === "announcements") await renderAnnouncements();
         else if (page === "files") renderFiles();
         else if (page === "file-requests") renderFileRequests();
         else if (page === "surveys") renderSurveys();
         else if (page === "requests") renderRequests();
       }
+      } finally {
+        hideGlobalLoader();
+      }
     };
 
     // Fetch profile and dashboard data
     async function init() {
+      showGlobalLoader("Yükleniyor...");
       try {
         const [profileRes, dashRes] = await Promise.all([
           fetch("/api/profile", { headers: { Authorization: "Bearer " + token } }),
@@ -389,6 +433,8 @@
       } catch {
         document.getElementById("contentArea").innerHTML =
           '<div style="text-align:center;padding:60px;color:#dc2626;">Bağlantı hatası. Lütfen sayfayı yenileyin.</div>';
+      } finally {
+        hideGlobalLoader();
       }
     }
 
@@ -556,16 +602,86 @@
     }
 
     // Merkezi API çağrısı: token ekler, 401'de oturum uyarısı + girişe yönlendirir (pilot: duyurular)
+    // Otomatik loader: 250ms'yi aşan isteklerde overlay'i kendiliğinden gösterir (flicker önler)
     async function apiFetch(url, options) {
-      const opts = Object.assign({}, options || {});
-      opts.headers = Object.assign({}, opts.headers || {}, { Authorization: "Bearer " + token });
-      const res = await fetch(url, opts);
-      if (res.status === 401 && !window._sessionExpired) {
-        window._sessionExpired = true;
-        try { showToast("Oturumunuzun süresi doldu, giriş sayfasına yönlendiriliyorsunuz.", "warning"); } catch (_) {}
-        setTimeout(() => { try { localStorage.removeItem("token"); } catch (_) {} window.location.replace("/login.html"); }, 1200);
+      _autoLoaderStart();
+      try {
+        const opts = Object.assign({}, options || {});
+        opts.headers = Object.assign({}, opts.headers || {}, { Authorization: "Bearer " + token });
+        const res = await fetch(url, opts);
+        if (res.status === 401 && !window._sessionExpired) {
+          window._sessionExpired = true;
+          try { showToast("Oturumunuzun süresi doldu, giriş sayfasına yönlendiriliyorsunuz.", "warning"); } catch (_) {}
+          setTimeout(() => { try { localStorage.removeItem("token"); } catch (_) {} window.location.replace("/login.html"); }, 1200);
+        }
+        return res;
+      } finally {
+        _autoLoaderStop();
       }
-      return res;
+    }
+
+    // Peg Top global loader (Uiverse): tam ekran overlay, sayfa geçişlerinde kullan
+    // Otomatik mod: apiFetch + navigate sarmalayıcıları sayacı yönetir; manuel çağrı da desteklenir
+    let _globalLoaderTimer = null;
+    let _loaderDepth = 0;
+    let _loaderDelay = null;
+    function _loaderShowNow(text) {
+      try {
+        const ov = document.getElementById("globalLoader");
+        if (!ov) return;
+        const t = document.getElementById("globalLoaderText");
+        if (t && text) t.textContent = text;
+        ov.classList.add("show");
+        ov.setAttribute("aria-hidden", "false");
+        clearTimeout(_globalLoaderTimer);
+        // Kilitlenmeye karşı 15 sn güvenlik kapatması
+        _globalLoaderTimer = setTimeout(hideGlobalLoader, 15000);
+      } catch (_) {}
+    }
+    function showGlobalLoader(text) {
+      _loaderDepth++;
+      _loaderShowNow(text);
+    }
+    function hideGlobalLoader() {
+      try {
+        _loaderDepth = Math.max(0, _loaderDepth - 1);
+        if (_loaderDepth > 0) return;
+        const ov = document.getElementById("globalLoader");
+        if (!ov) return;
+        ov.classList.remove("show");
+        ov.setAttribute("aria-hidden", "true");
+        clearTimeout(_globalLoaderTimer);
+        clearTimeout(_loaderDelay);
+        _loaderDelay = null;
+      } catch (_) {}
+    }
+    function _autoLoaderStart() {
+      _loaderDepth++;
+      if (_loaderDelay) return;
+      _loaderDelay = setTimeout(() => {
+        if (_loaderDepth > 0) _loaderShowNow();
+      }, 250);
+    }
+    function _autoLoaderStop() {
+      _loaderDepth = Math.max(0, _loaderDepth - 1);
+      if (_loaderDepth === 0) {
+        clearTimeout(_loaderDelay);
+        _loaderDelay = null;
+        try {
+          const ov = document.getElementById("globalLoader");
+          if (ov) { ov.classList.remove("show"); ov.setAttribute("aria-hidden", "true"); }
+          clearTimeout(_globalLoaderTimer);
+        } catch (_) {}
+      }
+    }
+    // Sayfa geçiş sarmalayıcı: render bitene kadar overlay açık kalır
+    async function withGlobalLoader(fn, text) {
+      showGlobalLoader(text);
+      try {
+        await fn();
+      } finally {
+        hideGlobalLoader();
+      }
     }
 
     // Ortak onay penceresi (confirm() yerine modern modal: duyuru, dosya, talep, anket, dosya talebi silme)

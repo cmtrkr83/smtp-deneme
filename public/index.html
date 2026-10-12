@@ -16,6 +16,16 @@
   </script>
 </head>
 <body>
+  <div class="peg-loader-overlay" id="globalLoader" role="status" aria-live="polite" aria-hidden="true">
+    <div class="peg-loader-box">
+      <div class="peg-loader" aria-hidden="true">
+        <svg id="pegtopone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path></g></svg>
+        <svg id="pegtoptwo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path></g></svg>
+        <svg id="pegtopthree" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path></g></svg>
+      </div>
+      <div class="peg-loader-text">Yükleniyor...</div>
+    </div>
+  </div>
   <div class="container">
     <div class="card">
       <div class="card-header">
@@ -36,15 +46,29 @@
     const token = localStorage.getItem("token");
     const statusEl = document.getElementById("status");
     const buttons = document.getElementById("buttons");
+    function showGlobalLoader() {
+      try {
+        const ov = document.getElementById("globalLoader");
+        if (ov) { ov.classList.add("show"); ov.setAttribute("aria-hidden", "false"); }
+      } catch (_) {}
+    }
+    function hideGlobalLoader() {
+      try {
+        const ov = document.getElementById("globalLoader");
+        if (ov) { ov.classList.remove("show"); ov.setAttribute("aria-hidden", "true"); }
+      } catch (_) {}
+    }
 
     if (token) {
       statusEl.textContent = "Oturum kontrol ediliyor...";
       buttons.style.display = "none";
+      showGlobalLoader();
       fetch("/api/verify-token", {
         headers: { Authorization: "Bearer " + token },
       })
         .then((r) => r.json())
         .then((data) => {
+          hideGlobalLoader();
           if (data.valid) {
             window.location.replace("/dashboard.html");
             return;
@@ -56,6 +80,7 @@
           buttons.style.display = "flex";
         })
         .catch(() => {
+          hideGlobalLoader();
           statusEl.textContent = "Bağlantı hatası. Giriş yaparak devam edin.";
           buttons.style.display = "flex";
         });

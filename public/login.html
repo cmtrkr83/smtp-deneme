@@ -16,6 +16,16 @@
   </script>
 </head>
 <body>
+  <div class="peg-loader-overlay" id="globalLoader" role="status" aria-live="polite" aria-hidden="true">
+    <div class="peg-loader-box">
+      <div class="peg-loader" aria-hidden="true">
+        <svg id="pegtopone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path></g></svg>
+        <svg id="pegtoptwo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path></g></svg>
+        <svg id="pegtopthree" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path></g></svg>
+      </div>
+      <div class="peg-loader-text">Yükleniyor...</div>
+    </div>
+  </div>
     <div class="container">
     <div class="card">
       <div class="card-header">
@@ -103,6 +113,19 @@
       el.className = "message";
     }
 
+    function showGlobalLoader() {
+      try {
+        const ov = document.getElementById("globalLoader");
+        if (ov) { ov.classList.add("show"); ov.setAttribute("aria-hidden", "false"); }
+      } catch (_) {}
+    }
+    function hideGlobalLoader() {
+      try {
+        const ov = document.getElementById("globalLoader");
+        if (ov) { ov.classList.remove("show"); ov.setAttribute("aria-hidden", "true"); }
+      } catch (_) {}
+    }
+
     // MEB typo kontrolü: meb.k12.tr'ye benzeyip tam eşleşmeyen domaini baloncukla uyar
     function isMebTypo(email) {
       const norm = String(email || "").toLowerCase().trim();
@@ -179,6 +202,7 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
       hideMessage(msg);
+      showGlobalLoader();
 
       try {
         const res = await fetch("/api/send-otp", {
@@ -211,6 +235,7 @@
       } catch {
         showMessage(msg, "Bağlantı hatası.", "error");
       } finally {
+        hideGlobalLoader();
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> OTP Gönder';
       }
@@ -225,6 +250,7 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Doğrulanıyor...';
       hideMessage(msg);
+      showGlobalLoader();
 
       try {
         const res = await fetch("/api/verify-otp", {
@@ -247,6 +273,7 @@
       } catch {
         showMessage(msg, "Bağlantı hatası.", "error");
       } finally {
+        hideGlobalLoader();
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check"></i> Doğrula';
       }
