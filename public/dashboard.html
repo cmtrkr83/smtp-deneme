@@ -2235,10 +2235,34 @@
         const lise = users.filter((u) => u.role === "lise");
         const ortaokul = users.filter((u) => u.role === "ortaokul");
         const diger = users.filter((u) => u.role === "diger");
+        const total = users.length;
+        const resmiCount = users.filter((u) => (u.profile || {}).ownership === "resmi").length;
+        const ozelCount = users.filter((u) => (u.profile || {}).ownership === "ozel").length;
 
-        let html = "";
-        if (lise.length === 0 && ortaokul.length === 0 && diger.length === 0) {
-          html = `
+        // Üst şerit: vurgulu toplam kart + rol kartları (referans tasarımdaki stat şeridi)
+        let html = `
+          <div class="stats-grid">
+            <div class="stat-card stat-card--brand">
+              <div class="stat-icon" style="background:rgba(255,255,255,0.18);color:#fff;"><i class="fa-solid fa-school"></i></div>
+              <div class="stat-info"><div class="stat-value">${total}</div><div class="stat-label">Toplam Okul${resmiCount + ozelCount > 0 ? ` (${resmiCount} resmi • ${ozelCount} özel)` : ""}</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(245,158,11,0.12);color:#d97706;"><i class="fa-solid fa-school"></i></div>
+              <div class="stat-info"><div class="stat-value">${lise.length}</div><div class="stat-label">Lise Grubu</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(13,148,136,0.12);color:#0d9488;"><i class="fa-solid fa-school"></i></div>
+              <div class="stat-info"><div class="stat-value">${ortaokul.length}</div><div class="stat-label">Ortaokul Grubu</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(236,72,153,0.12);color:#ec4899;"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-info"><div class="stat-value">${diger.length}</div><div class="stat-label">Diğer</div></div>
+            </div>
+          </div>
+        `;
+
+        if (total === 0) {
+          html += `
             <div style="text-align:center;padding:60px 0;color:#ccc;">
               <i class="fa-solid fa-school" style="font-size:48px;margin-bottom:16px;display:block;"></i>
               <div style="font-size:14px;">Henüz okul eklenmemiş.</div>
@@ -2246,57 +2270,77 @@
             </div>
           `;
         } else {
-          const renderSchoolCard = (u, color) => {
+          // Dağılım halkası: rol payları (SVG donut, ortada toplam)
+          const segs = [
+            { label: "Lise", count: lise.length, color: "#d97706" },
+            { label: "Ortaokul", count: ortaokul.length, color: "#0d9488" },
+            { label: "Diğer", count: diger.length, color: "#ec4899" },
+          ].filter((s) => s.count > 0);
+          const CIRC = 2 * Math.PI * 70;
+          let acc = 0;
+          const rings = segs.map((s) => {
+            const len = Math.max((s.count / total) * CIRC - 4, 2);
+            const el = `<circle cx="90" cy="90" r="70" fill="none" stroke="${s.color}" stroke-width="22" stroke-dasharray="${len.toFixed(1)} ${(CIRC - len).toFixed(1)}" stroke-dashoffset="${(-acc).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 90 90)"></circle>`;
+            acc += (s.count / total) * CIRC;
+            return el;
+          }).join("");
+          const legend = segs.map((s) => `
+            <div class="donut-legend-row"><span class="donut-dot" style="background:${s.color};"></span>${s.label}<span class="donut-count">${s.count}</span></div>
+          `).join("");
+
+          // Star Students tarzı satırlar: ikon + ad/e-posta + kod/ilçe + rozetler
+          const roleMeta = {
+            lise: { label: "Lise", color: "#d97706", bg: "rgba(245,158,11,0.12)" },
+            ortaokul: { label: "Ortaokul", color: "#0d9488", bg: "rgba(13,148,136,0.12)" },
+            diger: { label: "Diğer", color: "#ec4899", bg: "rgba(236,72,153,0.12)" },
+          };
+          const renderSchoolRow = (u) => {
             const p = u.profile || {};
+            const m = roleMeta[u.role] || roleMeta.diger;
             const schoolCode = p.schoolCode || (u.email.match(/^(\d+)@/) ? u.email.match(/^(\d+)@/)[1] : null);
+            const meta = [schoolCode ? "Kod: " + escHtml(schoolCode) : null, p.district ? escHtml(p.district) : null, p.city ? escHtml(p.city) : null].filter(Boolean).join(" • ");
             return `
-              <div class="announcement-item" style="margin-bottom:0;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                  <div>
-                  <h4 style="color:${color};">${escHtml(p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email))}</h4>
-                    <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">${escHtml(u.email)}</p>
-                  </div>
-                  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-                    <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;">${u.role === "lise" ? "Lise" : u.role === "ortaokul" ? "Ortaokul" : "Diğer"}</span>
-                    ${p.ownership ? `<span class="ann-tag" style="font-size:10px;${p.ownership === "ozel" ? "background:#fef3c7;color:#92400e;border:1px solid #fcd34d;" : "background:#dcfce7;color:#166534;border:1px solid #86efac;"}">${p.ownership === "ozel" ? "Özel" : "Resmi"}</span>` : ""}
-                  </div>
+              <div class="announcement-item school-row">
+                <div class="school-avatar" style="background:${m.bg};color:${m.color};"><i class="fa-solid fa-school"></i></div>
+                <div class="school-row-main">
+                  <h4>${escHtml(p.schoolName || (schoolCode ? schoolCode + "@meb.k12.tr" : u.email))}</h4>
+                  <p style="margin-bottom:2px;">${escHtml(u.email)}</p>
+                  ${meta ? `<div class="school-row-meta">${meta}</div>` : ""}
+                  ${!p.schoolName ? '<div style="font-size:12px;color:#d97706;margin-top:2px;"><i class="fa-solid fa-triangle-exclamation"></i> Okul bilgileri henüz girilmemiş</div>' : ""}
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:13px;">
-                  <div><span style="color:var(--muted);">Kod:</span> ${escHtml(schoolCode || "-")}</div>
-                  ${p.city ? `<div><span style="color:var(--muted);">İl:</span> ${escHtml(p.city)}</div>` : ""}
-                  ${p.district ? `<div><span style="color:var(--muted);">İlçe:</span> ${escHtml(p.district)}</div>` : ""}
-                  ${p.principalName ? `<div><span style="color:var(--muted);">Müdür:</span> ${escHtml(p.principalName)}</div>` : ""}
-                  ${p.schoolPhone ? `<div><span style="color:var(--muted);">Okul Tel:</span> ${escHtml(p.schoolPhone)}</div>` : ""}
-                  ${p.principalPhone ? `<div><span style="color:var(--muted);">Müdür Tel:</span> ${escHtml(p.principalPhone)}</div>` : ""}
-                  ${p.studentCount ? `<div><span style="color:var(--muted);">Öğrenci:</span> ${escHtml(p.studentCount)}</div>` : ""}
-                  ${p.teacherCount ? `<div><span style="color:var(--muted);">Öğretmen:</span> ${escHtml(p.teacherCount)}</div>` : ""}
-                  ${p.classCount ? `<div><span style="color:var(--muted);">Şube:</span> ${escHtml(p.classCount)}</div>` : ""}
-                  <div><span style="color:var(--muted);">Kayıt:</span> ${u.created ? new Date(u.created).toLocaleDateString("tr-TR") : "-"}</div>
-                  <div><span style="color:var(--muted);">Son Giriş:</span> ${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("tr-TR") : "-"}</div>
+                <div class="school-row-side">
+                  <span class="ann-tag ${u.role === "diger" ? "ortaokul" : u.role}" style="font-size:10px;margin-bottom:0;">${m.label}</span>
+                  ${p.ownership ? `<span class="ann-tag" style="font-size:10px;margin-bottom:0;${p.ownership === "ozel" ? "background:#fef3c7;color:#92400e;border:1px solid #fcd34d;" : "background:#dcfce7;color:#166534;border:1px solid #86efac;"}">${p.ownership === "ozel" ? "Özel" : "Resmi"}</span>` : ""}
                 </div>
-                ${!p.schoolName ? '<div style="margin-top:8px;"><span style="font-size:12px;color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i> Okul bilgileri henüz girilmemiş</span></div>' : ""}
               </div>
             `;
           };
+          const groupBlock = (title, icon, color, list) => {
+            if (list.length === 0) return "";
+            return `<div class="section-title"><i class="fa-solid ${icon}" style="color:${color};"></i> ${title} (${list.length})</div>`
+              + `<div class="announcements-list">${list.map(renderSchoolRow).join("")}</div>`;
+          };
 
-          if (lise.length > 0) {
-            html += `
-              <div class="section-title" style="margin-top:0;"><i class="fa-solid fa-school" style="color:#d97706;"></i> Lise Grubu (${lise.length})</div>
-              <div class="schools-grid">${lise.map((u) => renderSchoolCard(u, "#d97706")).join("")}</div>
-            `;
-          }
-          if (ortaokul.length > 0) {
-            html += `
-              <div class="section-title"><i class="fa-solid fa-school" style="color:#9333ea;"></i> Ortaokul Grubu (${ortaokul.length})</div>
-              <div class="schools-grid">${ortaokul.map((u) => renderSchoolCard(u, "#9333ea")).join("")}</div>
-            `;
-          }
-          if (diger.length > 0) {
-            html += `
-              <div class="section-title"><i class="fa-solid fa-users" style="color:#ec4899;"></i> Diğer (${diger.length})</div>
-              <div class="schools-grid">${diger.map((u) => renderSchoolCard(u, "#ec4899")).join("")}</div>
-            `;
-          }
+          html += `
+            <div class="schools-layout">
+              <div class="donut-panel">
+                <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-chart-pie"></i> Grup Dağılımı</div>
+                <div class="donut-flex">
+                  <svg width="150" height="150" viewBox="0 0 180 180" role="img" aria-label="Okul grup dağılımı">
+                    ${rings}
+                    <text x="90" y="88" text-anchor="middle" class="donut-center-value">${total}</text>
+                    <text x="90" y="106" text-anchor="middle" class="donut-center-label">Okul</text>
+                  </svg>
+                  <div class="donut-legend">${legend}</div>
+                </div>
+              </div>
+              <div>
+                ${groupBlock("Lise Grubu", "fa-school", "#d97706", lise)}
+                ${groupBlock("Ortaokul Grubu", "fa-school", "#0d9488", ortaokul)}
+                ${groupBlock("Diğer", "fa-users", "#ec4899", diger)}
+              </div>
+            </div>
+          `;
         }
         document.getElementById("schoolsContent").innerHTML = html;
       } catch {

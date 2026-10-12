@@ -833,6 +833,123 @@ body.dashboard-body::before {
   }
 }
 
+/* Okullar genel bakış: vurgulu ilk kart + dağılım/liste düzeni */
+.stat-card--brand {
+  background: linear-gradient(135deg, #8b0000, #b91c1c);
+  border: none;
+  box-shadow: 0 8px 24px rgba(139, 0, 0, 0.28);
+}
+.stat-card--brand .stat-value,
+.stat-card--brand .stat-label {
+  color: #fff;
+}
+.stat-card--brand .stat-label {
+  opacity: 0.85;
+}
+.schools-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) {
+  .schools-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.donut-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 24px;
+}
+.donut-flex {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 8px;
+}
+.donut-center-value {
+  font-size: 26px;
+  font-weight: 700;
+  fill: var(--text);
+}
+.donut-center-label {
+  font-size: 11px;
+  fill: var(--muted);
+}
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.donut-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.donut-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.donut-count {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text);
+}
+/* Star Students tarzı okul satırı: ikon + bilgi + rozetler */
+.school-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+}
+.school-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.school-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.school-row-main h4 {
+  margin-bottom: 2px;
+}
+.school-row-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+.school-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .school-row {
+    flex-wrap: wrap;
+  }
+  .school-row-side {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
 .announcement-item {
   background: var(--surface);
   border: 1px solid var(--border);
