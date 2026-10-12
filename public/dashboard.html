@@ -2271,13 +2271,12 @@
               <i class="fa-solid fa-magnifying-glass icon"></i>
               <input type="text" id="schoolsSearch" class="form-control" placeholder="Okul adı / kod / ilçe / e-posta ara..." value="${escHtml(window.schoolsSearchText || "")}" oninput="setSchoolsSearch(this.value)" style="padding-left:40px;" aria-label="Okul ara" />
             </div>
-            <select id="schoolsOwnershipFilterSel" class="form-control" onchange="setSchoolsOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
-              style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
-              <option value="">Tümü (Resmi+Özel)</option>
-              <option value="resmi">Sadece Resmi</option>
-              <option value="ozel">Sadece Özel</option>
-              <option value="bos">Tür Belirsiz</option>
-            </select>
+            <div class="chart-radio" role="radiogroup" aria-label="Okul tür filtresi">
+              <label><input type="radio" name="schoolsOwnership" value="" checked onchange="setSchoolsOwnershipFilter(this.value)" /><span><i class="fa-solid fa-layer-group"></i> Tümü</span></label>
+              <label><input type="radio" name="schoolsOwnership" value="resmi" onchange="setSchoolsOwnershipFilter(this.value)" /><span><i class="fa-solid fa-landmark"></i> Resmi</span></label>
+              <label><input type="radio" name="schoolsOwnership" value="ozel" onchange="setSchoolsOwnershipFilter(this.value)" /><span><i class="fa-solid fa-building"></i> Özel</span></label>
+              <label><input type="radio" name="schoolsOwnership" value="bos" onchange="setSchoolsOwnershipFilter(this.value)" /><span><i class="fa-solid fa-circle-question"></i> Belirsiz</span></label>
+            </div>
           </div>
         </div>
         <div id="schoolsContent">
@@ -2414,9 +2413,11 @@
     }
 
     function paintSchoolsOwnershipFilter() {
-      // Kullanıcılar sayfasındaki açılır filtreyle aynı: seçili değeri listeye yansıtır
-      const sel = document.getElementById("schoolsOwnershipFilterSel");
-      if (sel) sel.value = window.schoolsOwnershipFilter || "";
+      // Hap grubunu mevcut filtreyle eşitler (sayfa yeniden çizimlerinde seçim korunur)
+      const cur = window.schoolsOwnershipFilter || "";
+      try {
+        document.querySelectorAll('input[name="schoolsOwnership"]').forEach((r) => { r.checked = ((r.value || "") === cur); });
+      } catch (_) {}
     }
 
     // Okul arama + sayfalama: arama tüm türe uygulanır, sayfa 25'lik dilimlerle listelenir (Türkçe uyumlu)
