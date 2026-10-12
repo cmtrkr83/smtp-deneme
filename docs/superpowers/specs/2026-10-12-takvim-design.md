@@ -14,7 +14,7 @@ Onaylı tasarımın yazılı hali. Kapsam: Genel Bakış'ta %50 takvim kutusu + 
 Dosya: `events.json` → `{ events: [...] }` (proje JSON kuralına uygun).
 
 Kayıt: `{ id, title, description, startDate, endDate, createdAt }`
-- `startDate`/`endDate`: `YYYY-MM-DD` (tek günlükte ikisi aynı).
+- `startDate`/`endDate`: saklamada `YYYY-MM-DD` (sıralama + `<input type="date">` uyumu), ekranda her zaman `DD-MM-YYYY` (örn. 12-10-2026).
 - Yazma her zaman `atomicSaveJson()` ile.
 
 ## 3. API
@@ -31,7 +31,7 @@ Kayıt: `{ id, title, description, startDate, endDate, createdAt }`
 
 ## 4. Arayüz
 
-- **Kutu:** ay ızgarası (hafta başı Pazartesi), ay ileri/geri + Bugün düğmesi, bugün vurgulu.
+- **Kutu:** ay ızgarası (hafta başı Pazartesi), ay ileri/geri + Bugün düğmesi, bugün vurgulu. Referans görseldeki minimal çizgi esas alınır: başlık + kare gezgin düğmeler, seçili gün marka kırmızısı yuvarlak-kare + gölge, komşu ay günleri sönük.
 - **İşaretleme:** etkinlikli günlerde renkli nokta + gün arkaplanı; çok günlük etkinlik aralığın her gününü boyar.
 - **Popup:** hover / odak / dokunma ile açılır; başlık + tarih aralığı + açıklama. `tabindex` + `focus-within` ile klavye erişilebilir.
 - **Admin:** kutu başlığında `+ Ekle` (modal: başlık, başlangıç/bitiş, açıklama); kutu altı "Yaklaşanlar" listesinde satır başına düzenle/sil (liste tüm rollerde görünür, ikonlar sadece adminde). Yaklaşanlar: bitmemiş etkinliklerden ilk 5 (tarihe göre).
