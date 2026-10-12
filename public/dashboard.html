@@ -574,8 +574,6 @@
         return `<button type="button" class="${cls.join(" ")}" data-ymd="${c.ymd}" onclick="calSelect('${c.ymd}', this)" aria-label="${c.day} ${CAL_MONTHS_TR[m]}${evs.length ? ", " + evs.length + " etkinlik" : ""}">${c.day}${pop}</button>`;
       }).join("");
       box.innerHTML = `
-        <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Takvim</div>
-        <div style="font-size:13px;color:var(--muted);margin:-8px 0 12px;">Yaklaşan Etkinlikler</div>
         <div class="cal-head">
           <div class="cal-title">${CAL_MONTHS_TR[m]} ${y}</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -819,8 +817,8 @@
           opsLinks.forEach((l) => { html += linkCard(l, data.links.indexOf(l)); });
           html += `</div>`;
         }
-        // Sağ sütun: takvim kutusu (içi renderCalendar ile dolar)
-        html += `</div><div class="cal-box" id="calBox" aria-live="polite"></div></div>`;
+        // Sağ sütun: başlıklar kutunun dışında (sol sütundaki Hızlı Erişim/Modüller gibi) + takvim kutusu
+        html += `</div><div><div class="section-title"><i class="fa-solid fa-calendar-days"></i> Takvim</div><div style="font-size:13px;color:var(--muted);margin:-8px 0 12px;">Yaklaşan Etkinlikler</div><div class="cal-box" id="calBox" aria-live="polite"></div></div></div>`;
       }
 
       // Announcements (only for admin)
