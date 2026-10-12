@@ -1094,6 +1094,18 @@ body.dashboard-body::before {
   outline: 2px solid var(--brand-ink);
   outline-offset: 2px;
 }
+/* Kullanıcı başlığı: arama + haplar, add-btn (40px) ile aynı yükseklik */
+.users-toolbar .form-control {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 13px;
+}
+.users-toolbar .chart-radio span {
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
 /* SVG grafikler: tema uyumlu eksen/yazı, yatay kaydırmalı kap */
 .chart-scroll {
   overflow-x: auto;
