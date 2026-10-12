@@ -492,6 +492,21 @@
       // Dize karşılaştırma: YYYY-MM-DD sözlüksel sıralanır, Date ayrıştırma yok (TZ tuzağı yok)
       return (events || []).filter((e) => e.startDate <= ymd && ymd <= e.endDate);
     }
+    function upcomingEvents(events, todayYmd) {
+      // Bitmemiş etkinlikler (bitiş >= bugün), tarihe göre ilk 5
+      return (events || [])
+        .filter((e) => e.endDate >= todayYmd)
+        .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
+        .slice(0, 5);
+    }
+    function validateEventInput({ title, start, end }) {
+      // Kaydetmeden önce istemci engeli (sunucu aynı kuralları 400 ile korur)
+      if (!String(title || "").trim()) return "Başlık gerekli.";
+      const ymd = /^\d{4}-\d{2}-\d{2}$/;
+      if (!ymd.test(start || "") || (end && !ymd.test(end))) return "Tarih biçimi hatalı.";
+      if ((end || start) < start) return "Bitiş tarihi başlangıçtan önce olamaz.";
+      return "";
+    }
     function nowYm() {
       const n = new Date();
       return { y: n.getFullYear(), m: n.getMonth() };
@@ -542,6 +557,7 @@
       const today = ymdLocal(n.getFullYear(), n.getMonth(), n.getDate());
       if (!window.calCursor) window.calCursor = { y: n.getFullYear(), m: n.getMonth() };
       if (!window.calSelected) window.calSelected = today;
+      const isAdmin = currentUser && currentUser.role === "admin";
       const { y, m } = window.calCursor;
       const days = calCells(y, m).map((c) => {
         const evs = eventsOnDay(c.ymd, window._events);
@@ -560,10 +576,13 @@
       box.innerHTML = `
         <div class="cal-head">
           <div class="cal-title">${CAL_MONTHS_TR[m]} ${y}</div>
-          <div class="cal-nav">
-            <button type="button" class="cal-today-btn" onclick="calToday()">Bugün</button>
-            <button type="button" class="cal-nav-btn" onclick="calMove(-1)" aria-label="Önceki ay">‹</button>
-            <button type="button" class="cal-nav-btn" onclick="calMove(1)" aria-label="Sonraki ay">›</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            ${isAdmin ? `<button type="button" class="add-btn add-btn--sm" onclick="showEventModal()" aria-label="Etkinlik ekle"><span class="add-btn__text">Ekle</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span></button>` : ""}
+            <div class="cal-nav">
+              <button type="button" class="cal-today-btn" onclick="calToday()">Bugün</button>
+              <button type="button" class="cal-nav-btn" onclick="calMove(-1)" aria-label="Önceki ay">‹</button>
+              <button type="button" class="cal-nav-btn" onclick="calMove(1)" aria-label="Sonraki ay">›</button>
+            </div>
           </div>
         </div>
         <div class="cal-grid" id="calGrid" role="grid" aria-label="Takvim">
@@ -571,6 +590,154 @@
           ${days}
         </div>
         <div class="cal-upcoming" id="calUpcoming"></div>`;
+      renderUpcoming();
+    }
+
+    // Yaklaşanlar: bitmemiş ilk 5 etkinlik; düzenle/sil ikonları yalnızca adminde
+    function renderUpcoming() {
+      const el = document.getElementById("calUpcoming");
+      if (!el) return;
+      const n = new Date();
+      const today = ymdLocal(n.getFullYear(), n.getMonth(), n.getDate());
+      const up = upcomingEvents(window._events, today);
+      const isAdmin = currentUser && currentUser.role === "admin";
+      let h = `<div class="section-title" style="font-size:13px;"><i class="fa-solid fa-bell"></i> Yaklaşanlar</div>`;
+      if (!up.length) {
+        h += `<div style="font-size:12px;color:var(--muted);">Yaklaşan etkinlik yok.</div>`;
+      } else {
+        h += up.map((ev) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);">
+            <div style="min-width:88px;font-size:12px;font-weight:700;color:var(--brand-ink);">${fmtDDMMYYYY(ev.startDate)}${ev.endDate !== ev.startDate ? `<br><span style="font-weight:400;color:var(--muted);">– ${fmtDDMMYYYY(ev.endDate)}</span>` : ""}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(ev.title)}</div>
+              ${ev.description ? `<div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(ev.description)}</div>` : ""}
+            </div>
+            ${isAdmin ? `<button class="btn-icon" onclick="showEventModal('${ev.id}')" title="Düzenle" aria-label="Etkinliği düzenle"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn-icon btn-icon-danger" onclick="deleteEvent('${ev.id}')" title="Sil" aria-label="Etkinliği sil"><i class="fa-solid fa-trash-can"></i></button>` : ""}
+          </div>`).join("");
+      }
+      el.innerHTML = h;
+    }
+
+    let editingEventId = null;
+    function showEventModal(id) {
+      closeEventModal();
+      const ev = id ? (window._events || []).find((e) => e.id === id) : null;
+      editingEventId = id || null;
+      const div = document.createElement("div");
+      div.id = "eventModalOverlay";
+      div.className = "modal-overlay";
+      div.style.display = "flex";
+      div.onclick = (e) => { if (e.target === div) closeEventModal(); };
+      div.innerHTML = `
+        <div class="modal" style="max-width:480px;" role="dialog" aria-modal="true" aria-label="Etkinlik">
+          <div class="modal-header">
+            <h3>${ev ? "Etkinliği Düzenle" : "Etkinlik Ekle"}</h3>
+            <button class="modal-close" onclick="closeEventModal()" aria-label="Kapat"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="evTitle">Başlık</label>
+              <input type="text" id="evTitle" class="form-control" style="padding-left:16px;" maxlength="200" value="${escHtml(ev ? ev.title : "")}" />
+            </div>
+            <div style="display:flex;gap:12px;">
+              <div class="form-group" style="flex:1;">
+                <label for="evStart">Başlangıç</label>
+                <input type="date" id="evStart" class="form-control" style="padding-left:16px;" value="${ev ? ev.startDate : ""}" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label for="evEnd">Bitiş (opsiyonel)</label>
+                <input type="date" id="evEnd" class="form-control" style="padding-left:16px;" value="${ev && ev.endDate !== ev.startDate ? ev.endDate : ""}" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="evDesc">Açıklama (opsiyonel)</label>
+              <textarea id="evDesc" class="form-control" style="padding-left:16px;min-height:60px;resize:vertical;">${escHtml(ev ? ev.description : "")}</textarea>
+            </div>
+            <div id="evMessage" class="message" role="status" aria-live="polite"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeEventModal()">
+              <span class="add-btn__text">İptal</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            </button>
+            <button type="button" class="add-btn" id="evSaveBtn" onclick="saveEvent()">
+              <span class="add-btn__text">Kaydet</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+            </button>
+          </div>
+        </div>`;
+      document.body.appendChild(div);
+      setTimeout(() => { try { document.getElementById("evTitle").focus(); } catch (_) {} }, 50);
+    }
+    function closeEventModal() {
+      try { document.getElementById("eventModalOverlay")?.remove(); } catch (_) {}
+      editingEventId = null;
+    }
+    async function saveEvent() {
+      const title = document.getElementById("evTitle").value.trim();
+      const start = document.getElementById("evStart").value;
+      const end = document.getElementById("evEnd").value || start;
+      const desc = document.getElementById("evDesc").value.trim();
+      const msg = document.getElementById("evMessage");
+      const btn = document.getElementById("evSaveBtn");
+      const err = validateEventInput({ title, start, end });
+      if (err) {
+        msg.textContent = err;
+        msg.className = "message error show";
+        return;
+      }
+      btn.disabled = true;
+      setAddBtnLabel(btn, "Kaydediliyor...");
+      try {
+        const method = editingEventId ? "PUT" : "POST";
+        const url = editingEventId ? "/api/events/" + editingEventId : "/api/events";
+        const res = await apiFetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, startDate: start, endDate: end, description: desc }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          closeEventModal();
+          await fetchEvents();
+          renderCalendar();
+          showToast(editingEventId ? "Etkinlik güncellendi." : "Etkinlik eklendi.", "success");
+        } else if (res.status !== 401) {
+          msg.textContent = data.error || "Kaydedilemedi.";
+          msg.className = "message error show";
+        }
+      } catch {
+        msg.textContent = "Bağlantı hatası.";
+        msg.className = "message error show";
+      } finally {
+        if (document.getElementById("evSaveBtn")) {
+          btn.disabled = false;
+          setAddBtnLabel(btn, "Kaydet");
+        }
+      }
+    }
+    function deleteEvent(id) {
+      const ev = (window._events || []).find((e) => e.id === id);
+      showConfirmModal({
+        title: "Etkinliği Sil",
+        message: `"${ev ? ev.title : ""}" silinsin mi?`,
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/events/" + id, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Etkinlik silindi.", "success");
+              await fetchEvents();
+              renderCalendar();
+            } else if (res.status !== 401) {
+              showToast("Silinemedi.", "error");
+            }
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
     }
 
     function renderDashboard() {
