@@ -3433,17 +3433,24 @@
             <h2>Talep/İtiraz Yönetimi</h2>
             <p>Kurumlardan gelen talepleri görüntüleyin ve cevaplayın.</p>
           </div>
-          <div style="display:flex;gap:8px;">
-            <select id="adminReqFilter" onchange="loadAdminRequests()" style="padding:8px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);min-width:130px;">
-              <option value="all">Tümü</option>
-              <option value="open">Açık Olanlar</option>
-              <option value="closed">Kapalı Olanlar</option>
-            </select>
+          <div class="chart-radio" role="radiogroup" aria-label="Talep durum filtresi">
+            <label><input type="radio" name="adminReqFilter" value="all" checked onchange="setAdminReqFilter(this.value)" /><span><i class="fa-solid fa-layer-group"></i> Tümü</span></label>
+            <label><input type="radio" name="adminReqFilter" value="open" onchange="setAdminReqFilter(this.value)" /><span><i class="fa-solid fa-envelope-open"></i> Açık</span></label>
+            <label><input type="radio" name="adminReqFilter" value="closed" onchange="setAdminReqFilter(this.value)" /><span><i class="fa-solid fa-archive"></i> Kapalı</span></label>
           </div>
         </div>
         <div id="adminRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yukleniyor...</div>
       `;
+      try {
+        const cur = window.adminReqFilter || "all";
+        document.querySelectorAll('input[name="adminReqFilter"]').forEach((r) => { r.checked = ((r.value || "") === cur); });
+      } catch (_) {}
       await loadAdminRequests();
+    }
+
+    function setAdminReqFilter(val) {
+      window.adminReqFilter = val || "all";
+      loadAdminRequests();
     }
 
     async function loadAdminRequests() {
@@ -3453,7 +3460,7 @@
         });
         if (!res.ok) throw new Error();
         let list = await res.json();
-        const filter = document.getElementById("adminReqFilter")?.value || "all";
+        const filter = window.adminReqFilter || "all";
         if (filter !== "all") list = list.filter((r) => r.status === filter);
 
         const container = document.getElementById("adminRequestsContent");
