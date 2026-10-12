@@ -862,14 +862,6 @@ body.dashboard-body::before {
   border-radius: 14px;
   padding: 20px 24px;
 }
-.donut-flex {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  margin-top: 8px;
-  flex: 1;
-}
 .donut-center-value {
   font-size: 26px;
   font-weight: 700;
@@ -878,6 +870,32 @@ body.dashboard-body::before {
 .donut-center-label {
   font-size: 11px;
   fill: var(--muted);
+}
+/* İkili halka: grup + tür dağılımı aynı kartta, taşmadan yan yana */
+.donut-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.donut-item {
+  min-width: 0;
+  text-align: center;
+}
+.donut-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 2px;
+}
+.donut-item .donut-legend {
+  margin-top: 6px;
+  text-align: left;
+}
+@media (max-width: 480px) {
+  .donut-duo {
+    grid-template-columns: 1fr;
+  }
 }
 .donut-legend {
   display: flex;

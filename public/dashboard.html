@@ -2334,36 +2334,56 @@
             </div>
           `;
         } else {
-          // Dağılım halkası: rol payları (SVG donut, ortada toplam)
-          const segs = [
+          // Dağılım halkaları: rol payları + tür payları (SVG donut, ortada toplam)
+          const CIRC = 2 * Math.PI * 70;
+          const buildDonut = (segs) => {
+            let acc = 0;
+            const rings = segs.map((s) => {
+              const len = Math.max((s.count / total) * CIRC - 4, 2);
+              const el = `<circle cx="90" cy="90" r="70" fill="none" stroke="${s.color}" stroke-width="22" stroke-dasharray="${len.toFixed(1)} ${(CIRC - len).toFixed(1)}" stroke-dashoffset="${(-acc).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 90 90)"></circle>`;
+              acc += (s.count / total) * CIRC;
+              return el;
+            }).join("");
+            const legend = segs.map((s) => `
+              <div class="donut-legend-row"><span class="donut-dot" style="background:${s.color};"></span>${s.label}<span class="donut-count">${s.count}</span></div>
+            `).join("");
+            return { rings, legend };
+          };
+          const roleDonut = buildDonut([
             { label: "Lise", count: lise.length, color: "#d97706" },
             { label: "Ortaokul", count: ortaokul.length, color: "#0d9488" },
             { label: "Diğer", count: diger.length, color: "#ec4899" },
-          ].filter((s) => s.count > 0);
-          const CIRC = 2 * Math.PI * 70;
-          let acc = 0;
-          const rings = segs.map((s) => {
-            const len = Math.max((s.count / total) * CIRC - 4, 2);
-            const el = `<circle cx="90" cy="90" r="70" fill="none" stroke="${s.color}" stroke-width="22" stroke-dasharray="${len.toFixed(1)} ${(CIRC - len).toFixed(1)}" stroke-dashoffset="${(-acc).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 90 90)"></circle>`;
-            acc += (s.count / total) * CIRC;
-            return el;
-          }).join("");
-          const legend = segs.map((s) => `
-            <div class="donut-legend-row"><span class="donut-dot" style="background:${s.color};"></span>${s.label}<span class="donut-count">${s.count}</span></div>
-          `).join("");
+          ].filter((s) => s.count > 0));
+          const typeDonut = buildDonut([
+            { label: "Resmi", count: resmiCount, color: "#16a34a" },
+            { label: "Özel", count: ozelCount, color: "#d97706" },
+            { label: "Belirsiz", count: total - resmiCount - ozelCount, color: "#9ca3af" },
+          ].filter((s) => s.count > 0));
 
           html = `
             <div class="schools-top">
               ${statsHtml}
               <div class="donut-panel">
-                <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-chart-pie"></i> Grup Dağılımı</div>
-                <div class="donut-flex">
-                  <svg width="150" height="150" viewBox="0 0 180 180" role="img" aria-label="Okul grup dağılımı">
-                    ${rings}
-                    <text x="90" y="88" text-anchor="middle" class="donut-center-value">${total}</text>
-                    <text x="90" y="106" text-anchor="middle" class="donut-center-label">Okul</text>
-                  </svg>
-                  <div class="donut-legend">${legend}</div>
+                <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-chart-pie"></i> Dağılım</div>
+                <div class="donut-duo">
+                  <div class="donut-item">
+                    <div class="donut-sub">Grup Dağılımı</div>
+                    <svg width="120" height="120" viewBox="0 0 180 180" role="img" aria-label="Okul grup dağılımı">
+                      ${roleDonut.rings}
+                      <text x="90" y="88" text-anchor="middle" class="donut-center-value">${total}</text>
+                      <text x="90" y="106" text-anchor="middle" class="donut-center-label">Okul</text>
+                    </svg>
+                    <div class="donut-legend">${roleDonut.legend}</div>
+                  </div>
+                  <div class="donut-item">
+                    <div class="donut-sub">Tür Dağılımı</div>
+                    <svg width="120" height="120" viewBox="0 0 180 180" role="img" aria-label="Okul tür dağılımı">
+                      ${typeDonut.rings}
+                      <text x="90" y="88" text-anchor="middle" class="donut-center-value">${total}</text>
+                      <text x="90" y="106" text-anchor="middle" class="donut-center-label">Okul</text>
+                    </svg>
+                    <div class="donut-legend">${typeDonut.legend}</div>
+                  </div>
                 </div>
               </div>
             </div>
