@@ -177,8 +177,14 @@
         <div id="frMessage" class="message"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost" style="width:auto;" onclick="closeFrModal()">İptal</button>
-        <button class="btn btn-primary" style="width:auto;background:#8b0000;border-color:#8b0000;" id="frSaveBtn" onclick="saveFr()">Oluştur</button>
+        <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeFrModal()">
+          <span class="add-btn__text">İptal</span>
+          <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+        </button>
+        <button type="button" class="add-btn" id="frSaveBtn" onclick="saveFr()">
+          <span class="add-btn__text">Oluştur</span>
+          <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
+        </button>
       </div>
     </div>
   </div>
@@ -702,6 +708,16 @@
       }
     }
 
+    // add-btn uyumluluğu: düğme yazısını span üzerinden günceller (kayan ikon yapısını bozmaz)
+    function setAddBtnLabel(btn, text) {
+      if (!btn) return;
+      try {
+        const t = btn.querySelector ? btn.querySelector(".add-btn__text") : null;
+        if (t) t.textContent = text;
+        else btn.textContent = text;
+      } catch (_) { try { btn.textContent = text; } catch (_) {} }
+    }
+
     // Ortak onay penceresi (confirm() yerine modern modal: duyuru, dosya, talep, anket, dosya talebi silme)
     let _confirmCb = null;
     function showConfirmModal(o) {
@@ -716,14 +732,14 @@
             + '<div class="modal-header"><h3 id="confirmTitle"></h3>'
             + '<button class="modal-close" onclick="closeConfirmModal()"><i class="fa-solid fa-xmark"></i></button></div>'
             + '<div class="modal-body"><p id="confirmMsg" style="font-size:14px;color:var(--text-2);line-height:1.6;"></p></div>'
-            + '<div class="modal-footer"><button class="btn btn-ghost" style="width:auto;" onclick="closeConfirmModal()">Vazgeç</button>'
-            + '<button class="btn btn-danger" style="width:auto;" id="confirmOkBtn">Sil</button></div></div>';
+            + '<div class="modal-footer"><button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeConfirmModal()"><span class="add-btn__text">Vazgeç</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span></button>'
+            + '<button type="button" class="add-btn add-btn--sm add-btn--red" id="confirmOkBtn"><span class="add-btn__text">Sil</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span></button></div></div>';
           ov.addEventListener("click", (e) => { if (e.target === ov) closeConfirmModal(); });
           document.body.appendChild(ov);
         }
         document.getElementById("confirmTitle").textContent = (o && o.title) || "Emin misiniz?";
         document.getElementById("confirmMsg").textContent = (o && o.message) || "";
-        document.getElementById("confirmOkBtn").textContent = (o && o.confirmText) || "Sil";
+        setAddBtnLabel(document.getElementById("confirmOkBtn"), (o && o.confirmText) || "Sil");
         _confirmCb = (o && o.onConfirm) || null;
         document.getElementById("confirmOkBtn").onclick = async () => {
           const cb = _confirmCb; _confirmCb = null;
@@ -919,8 +935,9 @@
             <h4><i class="fa-solid fa-power-off" style="color:#8b0000;"></i> Bakım Modu</h4>
             <p id="maintenanceDesc">Yükleniyor...</p>
           </div>
-          <button class="btn" style="width:auto;padding:10px 22px;font-size:13px;" id="maintenanceBtn" onclick="toggleMaintenance()" disabled>
-            Yükleniyor...
+          <button type="button" class="add-btn" id="maintenanceBtn" onclick="toggleMaintenance()" disabled>
+            <span class="add-btn__text">Yükleniyor...</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span>
           </button>
         </div>
         <div id="settingsMessage" class="message" style="margin-top:12px;"></div>
@@ -939,14 +956,16 @@
             <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="settings" checked /> Sistem Ayarları</label>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="downloadBackup()">
-              <i class="fa-solid fa-download"></i> Yedeği İndir
+            <button type="button" class="add-btn add-btn--teal" onclick="downloadBackup()">
+              <span class="add-btn__text">Yedeği İndir</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
             </button>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;">
             <input type="file" id="bkFile" accept=".zip" style="font-size:13px;" />
-            <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;" onclick="restoreBackup()">
-              <i class="fa-solid fa-upload"></i> Yedeği Geri Yükle
+            <button type="button" class="add-btn add-btn--red" onclick="restoreBackup()">
+              <span class="add-btn__text">Yedeği Geri Yükle</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="12" x2="12" x1="12"></line><polyline points="6 11 12 5 18 11"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
             </button>
           </div>
           <div id="backupMessage" class="message" style="margin-top:12px;"></div>
@@ -1042,16 +1061,12 @@
       btn.disabled = false;
       if (maintenanceState) {
         desc.textContent = "Sistem şu an KAPALI. Okullar giriş yapamaz, yöneticiler girebilir. Açmak için düğmeye basın.";
-        btn.textContent = "Sistemi Aç";
-        btn.className = "btn btn-primary";
-        btn.style.background = "#16a34a";
-        btn.style.borderColor = "#16a34a";
+        setAddBtnLabel(btn, "Sistemi Aç");
+        btn.className = "add-btn";
       } else {
         desc.textContent = "Sistem şu an AÇIK. Herkes normal giriş yapabilir. Bakıma almak için düğmeye basın.";
-        btn.textContent = "Sistemi Kapat";
-        btn.className = "btn btn-danger";
-        btn.style.background = "";
-        btn.style.borderColor = "";
+        setAddBtnLabel(btn, "Sistemi Kapat");
+        btn.className = "add-btn add-btn--red";
       }
     }
 
@@ -1177,8 +1192,14 @@
               <div id="modalMessage" class="message"></div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-ghost" style="width:auto;" onclick="closeUserModal()">İptal</button>
-              <button class="btn btn-primary" style="width:auto;" id="modalSaveBtn" onclick="saveUser()">Kaydet</button>
+              <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeUserModal()">
+                <span class="add-btn__text">İptal</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+              </button>
+              <button type="button" class="add-btn" id="modalSaveBtn" onclick="saveUser()">
+                <span class="add-btn__text">Kaydet</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+              </button>
             </div>
           </div>
         </div>
@@ -1195,8 +1216,14 @@
               <div id="deleteMessage" class="message"></div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-ghost" style="width:auto;" onclick="closeDeleteModal()">İptal</button>
-              <button class="btn btn-danger" style="width:auto;" id="deleteConfirmBtn" onclick="confirmDelete()">Sil</button>
+              <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeDeleteModal()">
+                <span class="add-btn__text">İptal</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+              </button>
+              <button type="button" class="add-btn add-btn--red" id="deleteConfirmBtn" onclick="confirmDelete()">
+                <span class="add-btn__text">Sil</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
+              </button>
             </div>
           </div>
         </div>
@@ -1371,7 +1398,7 @@
     function showAddUserModal() {
       editEmail = null;
       document.getElementById("modalTitle").textContent = "Kullanıcı Ekle";
-      document.getElementById("modalSaveBtn").textContent = "Kaydet";
+      setAddBtnLabel(document.getElementById("modalSaveBtn"), "Kaydet");
       document.getElementById("modalEmail").value = "";
       document.getElementById("modalEmail").disabled = false;
       document.getElementById("modalRole").value = "admin";
@@ -1405,7 +1432,7 @@
       }
 
       btn.disabled = true;
-      btn.textContent = " Kaydediliyor...";
+      setAddBtnLabel(btn, "Kaydediliyor...");
 
       try {
         const res = await fetch("/api/users", {
@@ -1426,7 +1453,7 @@
         msg.className = "message error show";
       } finally {
         btn.disabled = false;
-        btn.textContent = "Kaydet";
+        setAddBtnLabel(btn, "Kaydet");
       }
     }
 
@@ -1486,7 +1513,7 @@
       document.getElementById("deleteMessage").className = "message";
       const btn = document.getElementById("deleteConfirmBtn");
       btn.disabled = false;
-      btn.textContent = "Sil";
+      setAddBtnLabel(btn, "Sil");
       document.getElementById("deleteModal").style.display = "flex";
     }
 
@@ -1501,7 +1528,7 @@
       const btn = document.getElementById("deleteConfirmBtn");
 
       btn.disabled = true;
-      btn.textContent = " Siliniyor...";
+      setAddBtnLabel(btn, "Siliniyor...");
 
       try {
         const res = await fetch("/api/users/" + encodeURIComponent(deleteTarget), {
@@ -1516,13 +1543,13 @@
           msg.textContent = data.error || "Hata oluştu.";
           msg.className = "message error show";
           btn.disabled = false;
-          btn.textContent = "Sil";
+          setAddBtnLabel(btn, "Sil");
         }
       } catch {
         msg.textContent = "Bağlantı hatası.";
         msg.className = "message error show";
         btn.disabled = false;
-        btn.textContent = "Sil";
+        setAddBtnLabel(btn, "Sil");
       }
     }
 
@@ -1554,9 +1581,13 @@
             <div id="importResult" style="display:none;margin-top:12px;padding:16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;"></div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-ghost" style="width:auto;" onclick="closeImportModal()">İptal</button>
-            <button class="btn btn-primary" style="width:auto;" id="importBtn" onclick="importUsers()">
-              <i class="fa-solid fa-upload"></i> Yükle
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeImportModal()">
+              <span class="add-btn__text">İptal</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            </button>
+            <button type="button" class="add-btn add-btn--teal" id="importBtn" onclick="importUsers()">
+              <span class="add-btn__text">Yükle</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="12" x2="12" x1="12"></line><polyline points="6 11 12 5 18 11"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
             </button>
           </div>
         </div>
@@ -1582,7 +1613,8 @@
       }
 
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+      btn.disabled = true;
+      setAddBtnLabel(btn, "Yükleniyor...");
       msg.className = "message";
       msg.textContent = "";
 
@@ -1604,19 +1636,19 @@
           if (data.errors && data.errors.length > 0) {
             resultDiv.innerHTML += '<div style="margin-top:8px;font-size:12px;color:#ef4444;">Hatalar: ' + data.errors.join(", ") + '</div>';
           }
-          btn.textContent = ' Yükle';
+          setAddBtnLabel(btn, "Yükle");
           btn.disabled = false;
           loadUsersTable();
         } else {
           msg.className = "message error show";
           msg.textContent = data.error || "Yükleme başarısız.";
-          btn.innerHTML = '<i class="fa-solid fa-upload"></i> Yükle';
+          setAddBtnLabel(btn, "Yükle");
           btn.disabled = false;
         }
       } catch (e) {
         msg.className = "message error show";
         msg.textContent = "Bir hata oluştu: " + e.message;
-        btn.innerHTML = '<i class="fa-solid fa-upload"></i> Yükle';
+        setAddBtnLabel(btn, "Yükle");
         btn.disabled = false;
       }
     }
@@ -1647,8 +1679,9 @@
                   <option value="ortaokul">Ortaokul</option>
                   <option value="diger">Diğer</option>
                 </select>
-                <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;white-space:nowrap;" onclick="clearUsersByRole(this)">
-                  <i class="fa-solid fa-trash-can"></i> Sil
+                <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="clearUsersByRole(this)">
+                  <span class="add-btn__text">Sil</span>
+                  <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
                 </button>
               </div>
               <div id="clearByRoleMessage" class="message" style="margin-top:8px;"></div>
@@ -1656,9 +1689,13 @@
             <div id="clearMessage" class="message"></div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-ghost" style="width:auto;" onclick="closeClearModal()">İptal</button>
-            <button class="btn btn-danger" style="width:auto;padding:10px 20px;font-size:13px;" onclick="clearUsers()">
-              <i class="fa-solid fa-trash-can"></i> Tümünü Sil
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeClearModal()">
+              <span class="add-btn__text">İptal</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            </button>
+            <button type="button" class="add-btn add-btn--red" onclick="clearUsers()">
+              <span class="add-btn__text">Tümünü Sil</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
             </button>
           </div>
         </div>
@@ -1676,7 +1713,7 @@
         return;
       }
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Siliniyor...';
+      setAddBtnLabel(btn, "Siliniyor...");
       try {
         const res = await fetch("/api/users/by-role/" + role, {
           method: "DELETE",
@@ -1697,7 +1734,7 @@
         msg.textContent = "Bağlantı hatası.";
       }
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Sil';
+      setAddBtnLabel(btn, "Sil");
     }
 
     function closeClearModal() {
@@ -1707,10 +1744,10 @@
 
     async function clearUsers() {
       const msg = document.getElementById("clearMessage");
-      const btn = document.querySelector("#clearModalOverlay .modal-footer .btn-danger");
+      const btn = document.querySelector("#clearModalOverlay .modal-footer .add-btn--red");
       if (!btn) return;
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Siliniyor...';
+      setAddBtnLabel(btn, "Siliniyor...");
       try {
         const res = await fetch("/api/users/clear", {
           method: "DELETE",
@@ -1724,13 +1761,13 @@
           msg.className = "message error show";
           msg.textContent = data.error || "Hata oluştu.";
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Tümünü Sil';
+          setAddBtnLabel(btn, "Tümünü Sil");
         }
       } catch {
         msg.className = "message error show";
         msg.textContent = "Bağlantı hatası.";
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Tümünü Sil';
+        setAddBtnLabel(btn, "Tümünü Sil");
       }
     }
 
@@ -1802,8 +1839,14 @@
                 <div id="annModalMessage" class="message"></div>
               </div>
               <div class="modal-footer">
-                <button class="btn btn-ghost" style="width:auto;" onclick="closeAnnModal()">İptal</button>
-                <button class="btn btn-primary" style="width:auto;" id="annSaveBtn" onclick="saveAnnouncement()">Kaydet</button>
+                <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeAnnModal()">
+                  <span class="add-btn__text">İptal</span>
+                  <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+                </button>
+                <button type="button" class="add-btn" id="annSaveBtn" onclick="saveAnnouncement()">
+                  <span class="add-btn__text">Kaydet</span>
+                  <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                </button>
               </div>
             </div>
           </div>
@@ -1817,7 +1860,10 @@
                 <p id="readModalContent" style="color:var(--text-2);font-size:14px;line-height:1.6;"></p>
               </div>
               <div class="modal-footer">
-                <button class="btn btn-ghost" style="width:auto;" onclick="closeReadModal()">Kapat</button>
+                <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeReadModal()">
+                  <span class="add-btn__text">Kapat</span>
+                  <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+                </button>
               </div>
             </div>
           </div>
@@ -1933,7 +1979,7 @@
     function showAnnModal() {
       editingAnnId = null;
       document.getElementById("annModalTitle").textContent = "Duyuru Ekle";
-      document.getElementById("annSaveBtn").textContent = "Kaydet";
+      setAddBtnLabel(document.getElementById("annSaveBtn"), "Kaydet");
       document.getElementById("annTitle").value = "";
       document.getElementById("annContent").value = "";
       document.getElementById("annTargetWrap").innerHTML = targetSelectorHtml("ann", { ownership: "all", roles: [] });
@@ -1959,7 +2005,7 @@
         if (!ann) return;
         editingAnnId = id;
         document.getElementById("annModalTitle").textContent = "Duyuru Düzenle";
-        document.getElementById("annSaveBtn").textContent = "Güncelle";
+        setAddBtnLabel(document.getElementById("annSaveBtn"), "Güncelle");
         document.getElementById("annTitle").value = ann.title;
         document.getElementById("annContent").value = ann.content;
         document.getElementById("annTargetWrap").innerHTML = targetSelectorHtml("ann", normalizeTarget(ann));
@@ -1991,7 +2037,7 @@
       }
 
       btn.disabled = true;
-      btn.textContent = " Kaydediliyor...";
+      setAddBtnLabel(btn, "Kaydediliyor...");
 
       try {
         const method = editingAnnId ? "PUT" : "POST";
@@ -2015,7 +2061,7 @@
         msg.className = "message error show";
       } finally {
         btn.disabled = false;
-        btn.textContent = editingAnnId ? "Güncelle" : "Kaydet";
+        setAddBtnLabel(btn, editingAnnId ? "Güncelle" : "Kaydet");
       }
     }
 
@@ -2052,8 +2098,9 @@
             <h2>Log Kayıtları</h2>
             <p>Sistem hareketlerini görüntüleyin ve dışa aktarın.</p>
           </div>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportLogs()">
-            <i class="fa-solid fa-download"></i> TXT İndir
+          <button type="button" class="add-btn add-btn--teal" onclick="exportLogs()">
+            <span class="add-btn__text">TXT İndir</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
           </button>
         </div>
         <div class="users-table-wrapper">
@@ -2335,8 +2382,14 @@
             <div id="spMessage" class="message"></div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-ghost" style="width:auto;" onclick="closeSchoolProfileForm()">İptal</button>
-            <button class="btn btn-primary" style="width:auto;" id="spSaveBtn" onclick="saveSchoolProfile()">Kaydet</button>
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="closeSchoolProfileForm()">
+              <span class="add-btn__text">İptal</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            </button>
+            <button type="button" class="add-btn" id="spSaveBtn" onclick="saveSchoolProfile()">
+              <span class="add-btn__text">Kaydet</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+            </button>
           </div>
         </div>
       `;
@@ -2372,7 +2425,7 @@
       }
 
       btn.disabled = true;
-      btn.textContent = " Kaydediliyor...";
+      setAddBtnLabel(btn, "Kaydediliyor...");
 
       try {
         const res = await fetch("/api/profile", {
@@ -2394,7 +2447,7 @@
         msg.className = "message error show";
       } finally {
         btn.disabled = false;
-        btn.textContent = "Kaydet";
+        setAddBtnLabel(btn, "Kaydet");
       }
     }
 
@@ -2516,7 +2569,10 @@
             <h2>Dosya Yükle</h2>
             <p>Sadece ZIP dosyası kabul edilir, maksimum 10 MB.</p>
           </div>
-          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminFiles()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+          <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminFiles()">
+            <span class="add-btn__text">Geri</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+          </button>
         </div>
         <div style="max-width:600px;margin:20px auto;background:var(--panel);padding:28px;border-radius:12px;">
           <div id="uploadMsg" class="message"></div>
@@ -2555,8 +2611,9 @@
                 <input type="datetime-local" id="fileExpiresAt" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" />
               </div>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;align-self:flex-start;" onclick="uploadFile()">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Yükle
+            <button type="submit" class="add-btn add-btn--teal" onclick="uploadFile()">
+              <span class="add-btn__text">Yükle</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="12" x2="12" x1="12"></line><polyline points="6 11 12 5 18 11"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
             </button>
           </form>
         </div>
@@ -2614,7 +2671,7 @@
       if (targetType.value === "users") formData.append("targetUsers", targetUsers.value);
 
       const uploadBtn = document.querySelector('button[onclick="uploadFile()"]');
-      if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...'; }
+      if (uploadBtn) { uploadBtn.disabled = true; setAddBtnLabel(uploadBtn, "Yükleniyor..."); }
 
       try {
         const res = await fetch("/api/files", {
@@ -2635,7 +2692,7 @@
         msg.className = "message error show";
         msg.textContent = "Bir hata oluştu: " + e.message;
       } finally {
-        if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Yükle'; }
+        if (uploadBtn) { uploadBtn.disabled = false; setAddBtnLabel(uploadBtn, "Yükle"); }
       }
     }
 
@@ -2705,8 +2762,8 @@
 
         let html = '<div class="content-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h2><i class="fa-solid fa-file-zipper"></i> ' + escHtml(fileName) + '</h2><p>Indirme durumu: ' + data.downloaded + '/' + data.total + ' kullanici indirdi.</p></div>'
           + '<div style="display:flex;gap:10px;">'
-          + '<button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderAdminFiles()"><i class="fa-solid fa-arrow-left"></i> Geri</button>'
-          + '<button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:13px;" onclick="exportFileCSV(\'' + id + '\')"><i class="fa-solid fa-download"></i> CSV</button>'
+          + '<button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminFiles()"><span class="add-btn__text">Geri</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span></button>'
+          + '<button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="exportFileCSV(\'' + id + '\')"><span class="add-btn__text">CSV</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span></button>'
           + '</div></div>'
           + '<div class="users-table-wrapper"><table class="users-table"><thead><tr><th>Kullanici</th><th>Rol</th><th>Okul</th><th>İlçe</th><th>Durum</th><th>Indirme Tarihi</th></tr></thead><tbody>';
         if (data.users.length === 0) {
@@ -2801,8 +2858,9 @@
                   ${f.downloaded ? '<span style="color:#6366f1;"><i class="fa-solid fa-check-circle"></i> İndirildi</span>' : ''}
                 </div>
               </div>
-              <button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:13px;flex-shrink:0;" onclick="downloadFile('${f.id}')" ${!canDownload ? 'disabled' : ''}>
-                <i class="fa-solid fa-download"></i> İndir
+              <button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="downloadFile('${f.id}')" ${!canDownload ? 'disabled' : ''}>
+                <span class="add-btn__text">İndir</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
               </button>
             </div>
           `;
@@ -2988,8 +3046,11 @@
               <p><span class="ann-tag ${r.status === "open" ? "lise" : "all"}" style="font-size:11px;">${r.status === "open" ? "Açık" : "Kapalı"}</span> &middot; ${r.typeLabel} &middot; ${date}</p>
             </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderUserRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
-              ${r.status === "open" ? '<button class="btn btn-danger" style="width:auto;padding:10px 18px;font-size:13px;" onclick="deleteRequest(\'' + r.id + '\',true)"><i class="fa-solid fa-trash"></i> Sil</button>' : ''}
+              <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderUserRequests()">
+                <span class="add-btn__text">Geri</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+              </button>
+              ${r.status === "open" ? '<button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteRequest(\'' + r.id + '\',true)"><span class="add-btn__text">Sil</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span></button>' : ''}
             </div>
           </div>
           <div style="max-width:800px;margin:20px 0;">
@@ -3033,7 +3094,10 @@
             <h2>Yeni Talep</h2>
             <p>Talebinizi, önerinizi, şikayetinizi veya itirazınızı iletin.</p>
           </div>
-          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUserRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+          <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderUserRequests()">
+            <span class="add-btn__text">Geri</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+          </button>
         </div>
         <div style="max-width:650px;margin:20px auto;background:var(--panel);padding:28px;border-radius:12px;">
           <div id="createRequestMsg" class="message"></div>
@@ -3063,8 +3127,9 @@
               <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Ek Dosya <span style="font-weight:400;color:var(--muted);">(opsiyonel, max 10 MB)</span></label>
               <input type="file" id="reqFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);" />
             </div>
-            <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;align-self:flex-start;" onclick="submitRequest()">
-              <i class="fa-solid fa-paper-plane"></i> Gonder
+            <button type="submit" class="add-btn" onclick="submitRequest()">
+              <span class="add-btn__text">Gonder</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span>
             </button>
           </form>
         </div>
@@ -3094,7 +3159,7 @@
 
       const submitBtn = document.querySelector('#createRequestMsg')?.parentElement?.querySelector('button[onclick="submitRequest()"]')
         || document.querySelector('button[onclick="submitRequest()"]');
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gonderiliyor...'; }
+      if (submitBtn) { submitBtn.disabled = true; setAddBtnLabel(submitBtn, "Gonderiliyor..."); }
 
       try {
         const res = await fetch("/api/requests", {
@@ -3115,7 +3180,7 @@
         msg.className = "message error show";
         msg.textContent = "Bir hata olustu: " + e.message;
       } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gonder'; }
+        if (submitBtn) { submitBtn.disabled = false; setAddBtnLabel(submitBtn, "Gonder"); }
       }
     }
 
@@ -3293,8 +3358,14 @@
               <p><span class="ann-tag ${r.status === "open" ? "lise" : "all"}" style="font-size:11px;">${r.status === "open" ? "Açık" : "Kapalı"}</span> &middot; ${r.typeLabel} &middot; ${date}</p>
             </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderAdminRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
-              <button class="btn btn-danger" style="width:auto;padding:10px 18px;font-size:13px;" onclick="deleteRequest('${r.id}',false)"><i class="fa-solid fa-trash"></i> Sil</button>
+              <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminRequests()">
+                <span class="add-btn__text">Geri</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+              </button>
+              <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteRequest('${r.id}',false)">
+                <span class="add-btn__text">Sil</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
+              </button>
             </div>
           </div>
           <div style="max-width:800px;margin:20px 0;">
@@ -3335,7 +3406,10 @@
               <div id="respondMsg" class="message"></div>
               <textarea id="respondText" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:100px;resize:vertical;margin-bottom:12px;" placeholder="Cevabinizi yazin..."></textarea>
               <div style="display:flex;gap:12px;align-items:center;">
-                <button class="btn btn-primary" style="width:auto;padding:10px 24px;font-size:13px;" onclick="respondToRequest('${r.id}')"><i class="fa-solid fa-paper-plane"></i> Cevapla</button>
+                <button type="button" class="add-btn add-btn--sm" onclick="respondToRequest('${r.id}')">
+                  <span class="add-btn__text">Cevapla</span>
+                  <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span>
+                </button>
                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;">
                   <input type="checkbox" id="respondClose" checked /> Cevapla ve Kapat
                 </label>
@@ -3755,8 +3829,9 @@
             <h2>${isEdit ? "Formu Düzenle" : "Yeni Form"}</h2>
             <p>Soruları ekleyin ve hedef kitleyi belirleyin.</p>
           </div>
-          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminSurveys()">
-            <i class="fa-solid fa-arrow-left"></i> Geri
+          <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminSurveys()">
+            <span class="add-btn__text">Geri</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
           </button>
         </div>
         <div class="announcement-item" style="margin-bottom:24px;">
@@ -3803,11 +3878,13 @@
         <div id="questionsContainer" class="announcements-list">${questionsHtml}</div>
 
         <div style="display:flex;gap:12px;margin-top:8px;margin-bottom:28px;">
-          <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="addQuestion()">
-            <i class="fa-solid fa-plus"></i> Soru Ekle
+          <button type="button" class="add-btn add-btn--sm" onclick="addQuestion()">
+            <span class="add-btn__text">Soru Ekle</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
-          <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="saveSurvey()">
-            <i class="fa-solid fa-floppy-disk"></i> ${isEdit ? "Güncelle" : "Kaydet"}
+          <button type="button" class="add-btn" onclick="saveSurvey()">
+            <span class="add-btn__text">${isEdit ? "Güncelle" : "Kaydet"}</span>
+            <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></span>
           </button>
         </div>
         <div id="surveyMessage" class="message"></div>
@@ -4010,7 +4087,7 @@
       }
 
       const saveBtn = document.querySelector('button[onclick="saveSurvey()"]');
-      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...'; }
+      if (saveBtn) { saveBtn.disabled = true; setAddBtnLabel(saveBtn, "Kaydediliyor..."); }
 
       try {
         const method = editSurveyId ? "PUT" : "POST";
@@ -4031,7 +4108,7 @@
         msg.textContent = "Bağlantı hatası.";
         msg.className = "message error show";
       } finally {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ' + (editSurveyId ? "Güncelle" : "Kaydet"); }
+        if (saveBtn) { saveBtn.disabled = false; setAddBtnLabel(saveBtn, editSurveyId ? "Güncelle" : "Kaydet"); }
       }
     }
 
@@ -4058,9 +4135,18 @@
               <p>${status.submitted} / ${status.total} yanıtlandı — Bitiş: ${new Date(survey.expiresAt).toLocaleDateString("tr-TR")}</p>
             </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderAdminSurveys()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
-              <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportStatusXlsx('${id}')"><i class="fa-solid fa-file-excel"></i> Durum Kontrol</button>
-              <button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:13px;" onclick="exportSurveyCSV('${id}')"><i class="fa-solid fa-download"></i> Sonuç Kontrol</button>
+              <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminSurveys()">
+                <span class="add-btn__text">Geri</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+              </button>
+              <button type="button" class="add-btn add-btn--teal" onclick="exportStatusXlsx('${id}')">
+                <span class="add-btn__text">Durum Kontrol</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+              </button>
+              <button type="button" class="add-btn add-btn--teal" onclick="exportSurveyCSV('${id}')">
+                <span class="add-btn__text">Sonuç Kontrol</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
+              </button>
             </div>
           </div>
 
@@ -4230,7 +4316,10 @@
                 ${s.submitted
                   ? `<span style="font-size:12px;color:#22c55e;"><i class="fa-solid fa-check-circle"></i> Yanıtlandı</span>
                      ${s.canEdit ? `<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;" onclick="renderSurveyFill('${s.id}')"><i class="fa-solid fa-pen"></i> Düzelt</button>` : ''}`
-                  : `<button class="btn btn-primary" style="width:auto;padding:8px 14px;font-size:12px;" onclick="renderSurveyFill('${s.id}')"><i class="fa-solid fa-pen-to-square"></i> Yanıtla</button>`}
+                  : `<button type="button" class="add-btn add-btn--sm" onclick="renderSurveyFill('${s.id}')">
+                      <span class="add-btn__text">Yanıtla</span>
+                      <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>
+                    </button>`}
               </div>
             </div>
           `;
@@ -4306,15 +4395,17 @@
               ${survey.description ? `<p>${escHtml(survey.description)}</p>` : ''}
               <p style="font-size:12px;color:var(--muted);margin-top:4px;">Son: ${new Date(survey.expiresAt).toLocaleDateString("tr-TR")}</p>
             </div>
-            <button class="btn btn-ghost" style="width:auto;padding:10px 20px;font-size:13px;" onclick="renderUserSurveys()">
-              <i class="fa-solid fa-arrow-left"></i> Geri
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderUserSurveys()">
+              <span class="add-btn__text">Geri</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
             </button>
           </div>
           <form id="surveyForm" onsubmit="return false;">
             ${questionsHtml}
             <div style="display:flex;gap:12px;margin-top:20px;">
-              <button type="submit" class="btn btn-primary" style="width:auto;padding:12px 28px;font-size:14px;" onclick="submitSurvey('${id}')">
-                <i class="fa-solid fa-paper-plane"></i> Gönder
+              <button type="submit" class="add-btn add-btn--sm" onclick="submitSurvey('${id}')">
+                <span class="add-btn__text">Gönder</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span>
               </button>
             </div>
             <div id="surveyFillMessage" class="message"></div>
@@ -4499,9 +4590,9 @@
       }
     }
 
-    window.showCreateFrModal = function () {
+      window.showCreateFrModal = function () {
       document.getElementById("frModalTitle").textContent = "Dosya Talebi Oluştur";
-      document.getElementById("frSaveBtn").textContent = "Oluştur";
+      setAddBtnLabel(document.getElementById("frSaveBtn"), "Oluştur");
       document.getElementById("frTitle").value = "";
       document.getElementById("frDescription").value = "";
       document.getElementById("frTargetType").value = "all";
@@ -4547,7 +4638,7 @@
       if (targetType === "users") body.targetUsers = targetUsersRaw.split(",").map((e) => e.trim()).filter(Boolean);
 
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
+      setAddBtnLabel(btn, "Kaydediliyor...");
       try {
         const res = await fetch("/api/file-requests", {
           method: "POST",
@@ -4567,7 +4658,7 @@
         msg.className = "message error show";
       } finally {
         btn.disabled = false;
-        btn.textContent = "Oluştur";
+        setAddBtnLabel(btn, "Oluştur");
       }
     }
 
@@ -4602,10 +4693,19 @@
         }
 
         area.innerHTML = `
-          <div style="margin-bottom:20px;">
-            <button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderAdminFileRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
-            <button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:13px;float:right;margin-left:8px;background:#8b0000;border-color:#8b0000;" onclick="downloadAllFrFiles('${fr.id}')"><i class="fa-solid fa-file-zipper"></i> Toplu İndir</button>
-            <button class="btn btn-danger" style="width:auto;padding:10px 18px;font-size:13px;float:right;" onclick="deleteFr('${fr.id}')"><i class="fa-solid fa-trash-can"></i> Talebi Sil</button>
+          <div style="margin-bottom:20px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminFileRequests()">
+              <span class="add-btn__text">Geri</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+            </button>
+            <button type="button" class="add-btn add-btn--teal" onclick="downloadAllFrFiles('${fr.id}')">
+              <span class="add-btn__text">Toplu İndir</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
+            </button>
+            <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteFr('${fr.id}')">
+              <span class="add-btn__text">Talebi Sil</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
+            </button>
           </div>
           <div class="content-header">
             <h2>${escHtml(fr.title)}</h2>
@@ -4641,7 +4741,10 @@
 
         area.innerHTML = `
           <div style="margin-bottom:20px;">
-            <button class="btn btn-ghost" style="width:auto;padding:10px 18px;font-size:13px;" onclick="renderUserFileRequests()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+            <button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderUserFileRequests()">
+              <span class="add-btn__text">Geri</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span>
+            </button>
           </div>
           <div class="content-header">
             <h2>${escHtml(fr.title)}</h2>
@@ -4674,8 +4777,9 @@
               <form id="frUploadForm">
                 <input type="file" id="frFileInput" multiple accept=".zip" style="margin-bottom:12px;" />
                 <div id="frUploadMessage" class="message"></div>
-                <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 20px;background:#8b0000;border-color:#8b0000;">
-                  <i class="fa-solid fa-upload"></i> Gönder
+                <button type="submit" class="add-btn add-btn--sm add-btn--teal">
+                  <span class="add-btn__text">Gönder</span>
+                  <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="12" x2="12" x1="12"></line><polyline points="6 11 12 5 18 11"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span>
                 </button>
               </form>
             </div>
@@ -4696,7 +4800,7 @@
             }
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+            setAddBtnLabel(btn, "Yükleniyor...");
 
             const formData = new FormData();
             for (const f of input.files) formData.append("files", f);
@@ -4721,7 +4825,7 @@
               msg.className = "message error show";
             } finally {
               btn.disabled = false;
-              btn.innerHTML = '<i class="fa-solid fa-upload"></i> Gönder';
+              setAddBtnLabel(btn, "Gönder");
             }
           });
         }

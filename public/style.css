@@ -1328,6 +1328,47 @@ body.dashboard-body::before {
   --add-hover: #0f766e;
   --add-active: #115e59;
 }
+/* Gri varyant (İptal / Vazgeç / Kapat / Geri) */
+.add-btn--gray {
+  --add-bg: #6b7280;
+  --add-border: #4b5563;
+  --add-icon-bg: #4b5563;
+  --add-hover: #4b5563;
+  --add-active: #374151;
+}
+/* Kompakt boy (modal altlıkları, kısa yazılar: Sil/Kaydet/İptal/Geri/CSV/...) */
+.add-btn.add-btn--sm {
+  width: 150px;
+}
+.add-btn.add-btn--sm .add-btn__text {
+  transform: translateX(30px);
+}
+.add-btn.add-btn--sm .add-btn__icon {
+  transform: translateX(109px);
+}
+.add-btn.add-btn--sm:hover .add-btn__icon {
+  width: 148px;
+}
+/* Devre dışı durumu */
+.add-btn:disabled,
+.add-btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.add-btn:disabled:hover .add-btn__text,
+.add-btn[disabled]:hover .add-btn__text {
+  color: #fff;
+}
+.add-btn:disabled:hover .add-btn__icon,
+.add-btn[disabled]:hover .add-btn__icon {
+  width: 39px;
+  transform: translateX(134px);
+}
+.add-btn--sm:disabled:hover .add-btn__icon,
+.add-btn--sm[disabled]:hover .add-btn__icon {
+  width: 39px;
+  transform: translateX(109px);
+}
 .add-btn, .add-btn__icon, .add-btn__text {
   transition: all 0.3s;
 }
