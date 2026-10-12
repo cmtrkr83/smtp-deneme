@@ -1048,6 +1048,79 @@ body.dashboard-body::before {
   color: var(--muted);
   margin: 0 6px;
 }
+/* Grafik türü seçici: radyo haplar (rapor ilçe görünümü) */
+.chart-radio {
+  display: inline-flex;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+.chart-radio label {
+  margin: 0;
+}
+.chart-radio input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.chart-radio span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.chart-radio span:hover {
+  color: var(--text);
+}
+.chart-radio input:checked + span {
+  background: #8b0000;
+  color: #fff;
+}
+.chart-radio input:focus-visible + span {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+}
+/* SVG grafikler: tema uyumlu eksen/yazı, yatay kaydırmalı kap */
+.chart-scroll {
+  overflow-x: auto;
+}
+.chart-scroll svg {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+}
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.chart-axis-text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.chart-bar-label {
+  fill: var(--text-2);
+  font-size: 11px;
+}
+.chart-point-label {
+  fill: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+}
 .school-avatar {
   width: 44px;
   height: 44px;

@@ -3765,9 +3765,14 @@
       if (surveyed.length === 0) {
         html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz anket bulunmuyor.</div>';
       } else {
-        html += '<div style="margin:12px 0;max-width:480px;"><select id="districtSurveySelect" class="form-control" onchange="loadDistrictStats()">'
+        html += '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:12px 0;"><div style="flex:1;min-width:220px;max-width:480px;"><select id="districtSurveySelect" class="form-control" onchange="loadDistrictStats()">'
           + surveyed.map((s, i) => '<option value="' + s.id + '">' + escHtml(s.title) + '</option>').join("")
           + '</select></div>'
+          + '<div class="chart-radio" role="radiogroup" aria-label="İlçe görünümü">'
+          + '<label><input type="radio" name="districtView" value="table" checked onchange="setDistrictView(\'table\')" /><span><i class="fa-solid fa-table"></i> Tablo</span></label>'
+          + '<label><input type="radio" name="districtView" value="bar" onchange="setDistrictView(\'bar\')" /><span><i class="fa-solid fa-chart-column"></i> Sütun</span></label>'
+          + '<label><input type="radio" name="districtView" value="line" onchange="setDistrictView(\'line\')" /><span><i class="fa-solid fa-chart-line"></i> Çizgi</span></label>'
+          + '</div></div>'
           + '<div id="districtStatsContent" style="text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>';
       }
       html += '</div>';
@@ -3777,37 +3782,129 @@
       if (surveyed.length > 0) loadDistrictStats();
     }
 
+    // İlçe görünümü: tablo/sütun/çizgi — veri bir kez çekilir, sekmeler yeniden çizim yapar
+    window.districtView = window.districtView || "table";
+    window._districtStats = null;
+    function setDistrictView(v) {
+      window.districtView = v;
+      renderDistrictView();
+    }
+    function renderDistrictView() {
+      const box = document.getElementById("districtStatsContent");
+      const d = window._districtStats;
+      if (!box || !d) return;
+      const v = window.districtView || "table";
+      try {
+        document.querySelectorAll('input[name="districtView"]').forEach((r) => { r.checked = (r.value === v); });
+      } catch (_) {}
+      let h = districtSummary(d);
+      if (v === "bar") h += districtBarChart(d);
+      else if (v === "line") h += districtLineChart(d);
+      else h += districtTable(d);
+      box.innerHTML = h;
+      box.style.textAlign = "";
+    }
+    function districtSummary(d) {
+      return '<div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;text-align:left;">'
+        + '<span style="font-size:13px;color:var(--text-2);">Hedef: <b>' + d.total + '</b></span>'
+        + '<span style="font-size:13px;color:#22c55e;">Yanıtlayan: <b>' + d.submitted + '</b></span>'
+        + '<span style="font-size:13px;color:#ef4444;">Yanıtlamayan: <b>' + (d.total - d.submitted) + '</b></span>'
+        + '<span style="font-size:13px;color:var(--text);">Genel: <b>%' + d.rate + '</b></span></div>';
+    }
+    function districtTable(d) {
+      let h = '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
+        + '<th>İlçe</th><th>Hedef</th><th>Yanıtlayan</th><th>Yanıtlamayan</th><th>Oran</th></tr></thead><tbody>';
+      d.districts.forEach((x) => {
+        const barColor = x.rate >= 70 ? "#22c55e" : x.rate >= 40 ? "#f59e0b" : "#ef4444";
+        h += '<tr><td class="cell-email">' + escHtml(x.district) + '</td>'
+          + '<td>' + x.total + '</td>'
+          + '<td style="color:#22c55e;font-weight:600;">' + x.submitted + '</td>'
+          + '<td style="color:#ef4444;">' + x.pending + '</td>'
+          + '<td style="min-width:140px;"><div style="display:flex;align-items:center;gap:8px;">'
+          + '<div style="flex:1;height:16px;background:#f0f0f5;border-radius:4px;overflow:hidden;">'
+          + '<div style="height:100%;width:' + x.rate + '%;background:' + barColor + ';border-radius:4px;"></div></div>'
+          + '<span style="font-size:12px;font-weight:600;">%' + x.rate + '</span></div></td></tr>';
+      });
+      h += '</tbody></table></div>';
+      return h;
+    }
+    function districtBarChart(d) {
+      // Gruplu sütunlar: yanıtlayan (yeşil) + yanıtlamayan (kırmızı), saf SVG
+      const districts = d.districts || [];
+      if (!districts.length) return '<div style="padding:20px;color:var(--muted);">Grafik için veri yok.</div>';
+      const W = 720, H = 300, padL = 40, padB = 72, padT = 30;
+      const plotH = H - padT - padB, plotW = W - padL - 16;
+      const max = Math.max(...districts.map((x) => x.total), 1);
+      const slot = plotW / districts.length;
+      const bw = Math.max(6, Math.min(20, (slot - 16) / 2));
+      const y = (v) => padT + plotH - (v / max) * plotH;
+      let g = "";
+      [0, 0.5, 1].forEach((f) => {
+        const yy = y(max * f).toFixed(1);
+        g += '<line x1="' + padL + '" y1="' + yy + '" x2="' + (W - 8) + '" y2="' + yy + '" class="chart-grid"/>'
+          + '<text x="' + (padL - 6) + '" y="' + (+yy + 4) + '" text-anchor="end" class="chart-axis-text">' + Math.round(max * f) + '</text>';
+      });
+      let bars = "";
+      districts.forEach((x, i) => {
+        const cx = padL + slot * i + slot / 2;
+        const sh = (x.submitted / max) * plotH;
+        const ph = ((x.total - x.submitted) / max) * plotH;
+        const lx = cx.toFixed(1), ly = (H - padB + 16).toFixed(1);
+        bars += '<rect x="' + (cx - bw - 2).toFixed(1) + '" y="' + (padT + plotH - sh).toFixed(1) + '" width="' + bw + '" height="' + Math.max(sh, 2).toFixed(1) + '" rx="3" fill="#22c55e"><title>' + escHtml(x.district) + ': ' + x.submitted + ' yanıtlayan</title></rect>'
+          + '<rect x="' + (cx + 2).toFixed(1) + '" y="' + (padT + plotH - ph).toFixed(1) + '" width="' + bw + '" height="' + Math.max(ph, 2).toFixed(1) + '" rx="3" fill="#ef4444"><title>' + escHtml(x.district) + ': ' + (x.total - x.submitted) + ' yanıtlamayan</title></rect>'
+          + '<text x="' + lx + '" y="' + ly + '" text-anchor="end" transform="rotate(-35 ' + lx + ' ' + ly + ')" class="chart-bar-label">' + escHtml(x.district) + '</text>';
+      });
+      const legend = '<div style="display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:12px;color:var(--text-2);">'
+        + '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:6px;"></span>Yanıtlayan</span>'
+        + '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444;margin-right:6px;"></span>Yanıtlamayan</span></div>';
+      return '<div class="chart-scroll"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="İlçe yanıtlayan yanıtlamayan sütun grafiği">' + g + bars + '</svg></div>' + legend;
+    }
+    function districtLineChart(d) {
+      // Çizgi: ilçe yanıtlama oranı % (alan dolgulu, saf SVG)
+      const districts = d.districts || [];
+      if (!districts.length) return '<div style="padding:20px;color:var(--muted);">Grafik için veri yok.</div>';
+      const W = 720, H = 280, padL = 40, padB = 62, padT = 26;
+      const plotH = H - padT - padB, plotW = W - padL - 16;
+      const slot = plotW / districts.length;
+      const X = (i) => padL + slot * i + slot / 2;
+      const Y = (r) => padT + (1 - r / 100) * plotH;
+      let g = "";
+      [0, 25, 50, 75, 100].forEach((v) => {
+        const yy = Y(v).toFixed(1);
+        g += '<line x1="' + padL + '" y1="' + yy + '" x2="' + (W - 8) + '" y2="' + yy + '" class="chart-grid"/>'
+          + '<text x="' + (padL - 6) + '" y="' + (+yy + 4) + '" text-anchor="end" class="chart-axis-text">%' + v + '</text>';
+      });
+      const pts = districts.map((x, i) => X(i).toFixed(1) + "," + Y(x.rate).toFixed(1)).join(" ");
+      const area = "M" + X(0).toFixed(1) + "," + Y(districts[0].rate).toFixed(1)
+        + districts.map((x, i) => "L" + X(i).toFixed(1) + "," + Y(x.rate).toFixed(1)).join("")
+        + "L" + X(districts.length - 1).toFixed(1) + "," + (padT + plotH) + "L" + X(0).toFixed(1) + "," + (padT + plotH) + "Z";
+      let dots = "";
+      districts.forEach((x, i) => {
+        const lx = X(i).toFixed(1), ly = (H - padB + 16).toFixed(1);
+        dots += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(x.rate).toFixed(1) + '" r="4" fill="#6366f1"><title>' + escHtml(x.district) + ': %' + x.rate + '</title></circle>'
+          + '<text x="' + X(i).toFixed(1) + '" y="' + (Y(x.rate) - 9).toFixed(1) + '" text-anchor="middle" class="chart-point-label">%' + x.rate + '</text>'
+          + '<text x="' + lx + '" y="' + ly + '" text-anchor="end" transform="rotate(-35 ' + lx + ' ' + ly + ')" class="chart-bar-label">' + escHtml(x.district) + '</text>';
+      });
+      return '<div class="chart-scroll"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="İlçe yanıtlama oranı çizgi grafiği">'
+        + '<defs><linearGradient id="distArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/><stop offset="100%" stop-color="#6366f1" stop-opacity="0.02"/></linearGradient></defs>'
+        + g + '<path d="' + area + '" fill="url(#distArea)"/>'
+        + '<polyline points="' + pts + '" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+        + dots + '</svg></div>';
+    }
+
     async function loadDistrictStats() {
       const sel = document.getElementById("districtSurveySelect");
       const box = document.getElementById("districtStatsContent");
       if (!sel || !box) return;
+      box.style.textAlign = "center";
       box.innerHTML = '<div style="padding:20px;color:var(--muted);">Yükleniyor...</div>';
       try {
         const res = await fetch("/api/surveys/" + sel.value + "/district-stats", {
           headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error();
-        const d = await res.json();
-        let h = '<div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">'
-          + '<span style="font-size:13px;color:var(--text-2);">Hedef: <b>' + d.total + '</b></span>'
-          + '<span style="font-size:13px;color:#22c55e;">Yanıtlayan: <b>' + d.submitted + '</b></span>'
-          + '<span style="font-size:13px;color:#ef4444;">Yanıtlamayan: <b>' + (d.total - d.submitted) + '</b></span>'
-          + '<span style="font-size:13px;color:var(--text);">Genel: <b>%' + d.rate + '</b></span></div>';
-        h += '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
-          + '<th>İlçe</th><th>Hedef</th><th>Yanıtlayan</th><th>Yanıtlamayan</th><th>Oran</th></tr></thead><tbody>';
-        d.districts.forEach((x) => {
-          const barColor = x.rate >= 70 ? "#22c55e" : x.rate >= 40 ? "#f59e0b" : "#ef4444";
-          h += '<tr><td class="cell-email">' + escHtml(x.district) + '</td>'
-            + '<td>' + x.total + '</td>'
-            + '<td style="color:#22c55e;font-weight:600;">' + x.submitted + '</td>'
-            + '<td style="color:#ef4444;">' + x.pending + '</td>'
-            + '<td style="min-width:140px;"><div style="display:flex;align-items:center;gap:8px;">'
-            + '<div style="flex:1;height:16px;background:#f0f0f5;border-radius:4px;overflow:hidden;">'
-            + '<div style="height:100%;width:' + x.rate + '%;background:' + barColor + ';border-radius:4px;"></div></div>'
-            + '<span style="font-size:12px;font-weight:600;">%' + x.rate + '</span></div></td></tr>';
-        });
-        h += '</tbody></table></div>';
-        box.innerHTML = h;
+        window._districtStats = await res.json();
+        renderDistrictView();
       } catch {
         box.innerHTML = '<div style="padding:20px;color:#dc2626;">İlçe raporu yüklenemedi.</div>';
       }
