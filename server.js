@@ -53,6 +53,8 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+// Veri konumu: normalde proje kökü, Docker'da DATA_DIR=/app/data (volume).
+// Tüm kalıcı veri aşağıdaki JSON dosyalarındadır; yazma her zaman atomicSaveJson() ile yapılır.
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
@@ -130,6 +132,7 @@ if (!JWT_SECRET || JWT_SECRET === "degistirin-buraya-gizli-anahtar-yazin") {
   console.warn("[UYARI] JWT_SECRET zayif! .env dosyasinda guclu bir anahtar belirleyin.");
 }
 
+// OTP/captcha belleği: kod 3 dk, captcha 5 dk yaşar; OTP gönderimi 60 sn arayla (kötüye kullanımı önler)
 const OTP_EXPIRY_MS = 3 * 60 * 1000;
 const OTP_COOLDOWN_MS = 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -301,6 +304,7 @@ function makeLog(action, user, detail, req) {
   };
 }
 
+// Hız sınırları: genel 15 dk/600 istek, OTP gönderimi 15 dk/20, doğrulama 3 dk/10 (kaba kuvvet koruması)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 600,
@@ -755,6 +759,7 @@ app.get("/api/dashboard", (req, res) => {
   }
 });
 
+// JWT çözümle: geçersiz/eksik token'da null döner (korumalı route'ların giriş kapısı)
 function authUser(req) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith("Bearer ")) return null;
@@ -763,6 +768,7 @@ function authUser(req) {
   } catch { return null; }
 }
 
+// Rol çözümleme: ?asRole= ile kullanıcının crossRoles listesindeki rollere geçişe izin verir
 function resolveRole(user, req) {
   const asRole = req.query && req.query.asRole;
   if (asRole) {
@@ -772,6 +778,7 @@ function resolveRole(user, req) {
   return user.role;
 }
 
+// Admin koruması: yetkisizde 401/403 yazar ve null döner (kullanan route hemen çıkmalı)
 function requireAdmin(req, res) {
   const decoded = authUser(req);
   if (!decoded) {
@@ -1948,6 +1955,7 @@ const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => cb(null, crypto.randomUUID() + ".zip"),
 });
+// Dosya Dağıtım yüklemesi: yalnızca .zip, dosya başına en fazla 10 MB
 const fileUpload = multer({
   storage: fileStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -2372,6 +2380,7 @@ const requestStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, REQUESTS_UPLOADS_DIR),
   filename: (req, file, cb) => cb(null, crypto.randomUUID() + path.extname(file.originalname)),
 });
+// Talep/İtiraz eki: en fazla 10 MB, belge/fotoğraf türleri (pdf, office, jpg/png, zip)
 const requestUpload = multer({
   storage: requestStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -2661,6 +2670,7 @@ function saveFileRequests(list) {
 
 const frTempDir = path.join(FILE_REQUESTS_UPLOADS_DIR, "temp");
 if (!fs.existsSync(frTempDir)) fs.mkdirSync(frTempDir, { recursive: true });
+// Belge İstekleri teslimi: yalnızca .zip, dosya başına en fazla 10 MB (en fazla 10 dosya route'ta denetlenir)
 const frUpload = multer({
   dest: frTempDir,
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -3059,6 +3069,7 @@ app.post("/api/backup", (req, res) => {
   archive.finalize();
 });
 
+// Yedek geri yükleme: yalnızca .zip, en fazla 512 MB (manifest bozuksa hiçbir şeye dokunulmaz)
 const backupRestoreUpload = multer({
   dest: BACKUP_TMP_DIR,
   limits: { fileSize: 512 * 1024 * 1024 },

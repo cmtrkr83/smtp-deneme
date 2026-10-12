@@ -30,7 +30,7 @@
 <body class="dashboard-body">
   <a class="skip-link" href="#contentArea">İçeriğe atla</a>
   <!-- Peg Top Global Loader -->
-  <div class="peg-loader-overlay" id="globalLoader" role="status" aria-live="polite" aria-hidden="true">
+  <div class="peg-loader-overlay" id="globalLoader" role="status" aria-live="polite" aria-hidden="true" aria-label="Yükleniyor">
     <div class="peg-loader-box">
       <div class="peg-loader" aria-hidden="true">
   <svg
@@ -61,7 +61,6 @@
   <svg id="pegtoptwo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path></g></svg>
   <svg id="pegtopthree" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path></g></svg>
       </div>
-      <div class="peg-loader-text" id="globalLoaderText">Yükleniyor...</div>
     </div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -126,8 +125,9 @@
             </div>
           </div>
         </label>
-        <button class="btn-logout" id="logoutBtn">
-          <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+        <button type="button" class="add-btn add-btn--sm add-btn--red" id="logoutBtn" title="Çıkış Yap" aria-label="Çıkış yap">
+          <span class="add-btn__text">Çıkış</span>
+          <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span>
         </button>
       </header>
 
@@ -190,6 +190,7 @@
   </div>
 
   <script>
+    // Oturum koruması: token yoksa panele girilmez, girişe atılır. Tüm istekler Bearer token taşır.
     const token = localStorage.getItem("token");
     if (!token) {
       window.location.replace("/login.html");
@@ -199,11 +200,13 @@
     let activeRole = null;
     let dashboardData = null;
 
+    // Rol geçişi: kendi rolündeyken boş döner, başka role bakılırken ?asRole= ekler
     function asRoleQuery() {
       if (!activeRole) return "";
       return activeRole !== currentUser.role ? "?asRole=" + activeRole : "";
     }
 
+    // Sidebar: role göre Genel Bakış + Modüller + İşlemler gruplarını kurar, tıklamada ilgili sayfayı loader eşliğinde açar
     function buildSidebar(role) {
       const nav = document.getElementById("sidebarNav");
       const overviewItems = [
@@ -251,7 +254,8 @@
       else if (page === "users") await renderUsers();
       else if (page === "announcements") await renderAnnouncements();
       else if (page === "logs") await renderLogs();
-      else if (page === "schools") await renderSchools();
+      // Okullar her açılışta filtresiz başlar: önceki seçim takılı kalırsa liste boş görünebilir
+      else if (page === "schools") { window.schoolsOwnershipFilter = ""; await renderSchools(); }
       else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
       else if (page === "surveys") { renderSurveys(); }
       else if (page === "files") { renderFiles(); }
@@ -372,6 +376,7 @@
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("mobileLogoutBtn")?.addEventListener("click", logout);
 
+    // Aktif rol değiştirme (üst bardaki seçici): gösterge panelini yeniler, açık sayfayı yeni rolle tekrar çizer
     window.switchActiveRole = async function (newRole) {
       showGlobalLoader("Yükleniyor...");
       try {
@@ -585,6 +590,7 @@
     }
 
     async function renderPresenceSection() {
+      // Şu An Aktif kartı: son 5 dk hareket edenleri listeler (salt bilgilendirici, hata sessiz geçilir)
       const area = document.getElementById("contentArea");
       if (!area) return;
       try {
@@ -798,6 +804,7 @@
       } catch (_) {}
     }
 
+    // Tema: açık/koyu seçimi localStorage'da saklanır, switch konumu buna göre eşitlenir
     function applyTheme(t) {
       const theme = t === "dark" ? "dark" : "light";
       document.documentElement.dataset.theme = theme;
@@ -2894,6 +2901,7 @@
     }
 
     async function hydrateAttachments(root) {
+      // Ek önizleme: korumalı dosyaları token'lı blob olarak yükler (doğrudan link 401 verirdi)
       // Önceki önizleme URL'lerini serbest bırak (contentArea her render'da yenilenir, blob'lar RAM'de kalmasın)
       try {
         const holder = root || document.getElementById("contentArea");
@@ -3878,7 +3886,7 @@
         <div id="questionsContainer" class="announcements-list">${questionsHtml}</div>
 
         <div style="display:flex;gap:12px;margin-top:8px;margin-bottom:28px;">
-          <button type="button" class="add-btn add-btn--sm" onclick="addQuestion()">
+          <button type="button" class="add-btn add-btn--sm add-btn--orange" onclick="addQuestion()">
             <span class="add-btn__text">Soru Ekle</span>
             <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>

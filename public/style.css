@@ -1336,6 +1336,14 @@ body.dashboard-body::before {
   --add-hover: #4b5563;
   --add-active: #374151;
 }
+/* Turuncu varyant (Soru Ekle) */
+.add-btn--orange {
+  --add-bg: #f59e0b;
+  --add-border: #d97706;
+  --add-icon-bg: #d97706;
+  --add-hover: #d97706;
+  --add-active: #b45309;
+}
 /* Kompakt boy (modal altlıkları, kısa yazılar: Sil/Kaydet/İptal/Geri/CSV/...) */
 .add-btn.add-btn--sm {
   width: 150px;
