@@ -2266,11 +2266,13 @@
           <h2>Okullar</h2>
           <p>Sisteme kayıtlı okulları gruplarına göre görüntüleyin.</p>
           </div>
-          <div style="display:flex;gap:8px;" id="schoolsOwnershipFilter">
-            <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" data-own="" onclick="setSchoolsOwnershipFilter('')">Tümü</button>
-            <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" data-own="resmi" onclick="setSchoolsOwnershipFilter('resmi')">Resmi</button>
-            <button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:12px;" data-own="ozel" onclick="setSchoolsOwnershipFilter('ozel')">Özel</button>
-          </div>
+          <select id="schoolsOwnershipFilterSel" class="form-control" onchange="setSchoolsOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
+            style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+            <option value="">Tümü (Resmi+Özel)</option>
+            <option value="resmi">Sadece Resmi</option>
+            <option value="ozel">Sadece Özel</option>
+            <option value="bos">Tür Belirsiz</option>
+          </select>
         </div>
         <div id="schoolsContent">
           <div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
@@ -2283,7 +2285,10 @@
         });
         if (!res.ok) throw new Error();
         const allUsers = await res.json();
-        const users = !window.schoolsOwnershipFilter ? allUsers : allUsers.filter((u) => ((u.profile || {}).ownership || "") === window.schoolsOwnershipFilter);
+        const ownFilter = window.schoolsOwnershipFilter || "";
+        const users = !ownFilter ? allUsers
+          : ownFilter === "bos" ? allUsers.filter((u) => !((u.profile || {}).ownership))
+          : allUsers.filter((u) => ((u.profile || {}).ownership || "") === ownFilter);
         const lise = users.filter((u) => u.role === "lise");
         const ortaokul = users.filter((u) => u.role === "ortaokul");
         const diger = users.filter((u) => u.role === "diger");
@@ -2387,14 +2392,9 @@
     }
 
     function paintSchoolsOwnershipFilter() {
-      const wrap = document.getElementById("schoolsOwnershipFilter");
-      if (!wrap) return;
-      const cur = window.schoolsOwnershipFilter || "";
-      wrap.querySelectorAll("button").forEach((b) => {
-        const active = (b.dataset.own || "") === cur;
-        b.style.border = active ? "1px solid var(--brand-ink)" : "";
-        b.style.fontWeight = active ? "700" : "";
-      });
+      // Kullanıcılar sayfasındaki açılır filtreyle aynı: seçili değeri listeye yansıtır
+      const sel = document.getElementById("schoolsOwnershipFilterSel");
+      if (sel) sel.value = window.schoolsOwnershipFilter || "";
     }
 
     // Okul arama + sayfalama: arama tüm türe uygulanır, sayfa 25'lik dilimlerle listelenir (Türkçe uyumlu)

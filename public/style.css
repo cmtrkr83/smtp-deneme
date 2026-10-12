@@ -846,10 +846,10 @@ body.dashboard-body::before {
 .stat-card--brand .stat-label {
   opacity: 0.85;
 }
-/* Okullar üst bölümü: solda 2x2 stat kartları, sağda dağılım halkası */
+/* Okullar üst bölümü: yarıda 2x2 stat kartları, yarıda dağılım halkası */
 .schools-top {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: stretch;
   margin-bottom: 16px;
@@ -878,8 +878,10 @@ body.dashboard-body::before {
 .donut-flex {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: 28px;
   margin-top: 8px;
+  flex: 1;
 }
 .donut-center-value {
   font-size: 26px;
