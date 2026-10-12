@@ -34,7 +34,7 @@ Kayıt: `{ id, title, description, startDate, endDate, createdAt }`
 - **Kutu:** ay ızgarası (hafta başı Pazartesi), ay ileri/geri + Bugün düğmesi, bugün vurgulu. Referans görseldeki minimal çizgi esas alınır: başlık + kare gezgin düğmeler, seçili gün marka kırmızısı yuvarlak-kare + gölge, komşu ay günleri sönük.
 - **İşaretleme:** etkinlikli günlerde renkli nokta + gün arkaplanı; çok günlük etkinlik aralığın her gününü boyar.
 - **Popup:** hover / odak / dokunma ile açılır; başlık + tarih aralığı + açıklama. `tabindex` + `focus-within` ile klavye erişilebilir.
-- **Admin:** kutu başlığında `+ Ekle` (modal: başlık, başlangıç/bitiş, açıklama); kutu altı "Yaklaşanlar" listesinde satır başına düzenle/sil (liste tüm rollerde görünür, ikonlar sadece adminde). Yaklaşanlar: bitmemiş etkinliklerden ilk 5 (tarihe göre).
+- **Admin:** kutu başlığında `+ Ekle` (modal: başlık, başlangıç/bitiş, açıklama); kutu altı "Yaklaşanlar" listesinde satır başına düzenle/sil (liste tüm rollerde görünür, ikonlar sadece adminde). Yaklaşanlar: bitmemiş etkinliklerden ilk 3 (tarihe göre).
 - **Yerleşim:** `.overview-split { grid-template-columns: 1fr 1fr; }`, 900px altında tek sütun. Tema değişkenleri (`var(--...)`) kullanılır, sabit renk yok.
 
 ## 5. Test

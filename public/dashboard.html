@@ -493,11 +493,11 @@
       return (events || []).filter((e) => e.startDate <= ymd && ymd <= e.endDate);
     }
     function upcomingEvents(events, todayYmd) {
-      // Bitmemiş etkinlikler (bitiş >= bugün), tarihe göre ilk 5
+      // Bitmemiş etkinlikler (bitiş >= bugün), tarihe göre ilk 3
       return (events || [])
         .filter((e) => e.endDate >= todayYmd)
         .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
-        .slice(0, 5);
+        .slice(0, 3);
     }
     function validateEventInput({ title, start, end }) {
       // Kaydetmeden önce istemci engeli (sunucu aynı kuralları 400 ile korur)
@@ -574,10 +574,12 @@
         return `<button type="button" class="${cls.join(" ")}" data-ymd="${c.ymd}" onclick="calSelect('${c.ymd}', this)" aria-label="${c.day} ${CAL_MONTHS_TR[m]}${evs.length ? ", " + evs.length + " etkinlik" : ""}">${c.day}${pop}</button>`;
       }).join("");
       box.innerHTML = `
+        <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Takvim</div>
+        <div style="font-size:13px;color:var(--muted);margin:-8px 0 12px;">Yaklaşan Etkinlikler</div>
         <div class="cal-head">
           <div class="cal-title">${CAL_MONTHS_TR[m]} ${y}</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            ${isAdmin ? `<button type="button" class="add-btn add-btn--sm" onclick="showEventModal()" aria-label="Etkinlik ekle"><span class="add-btn__text">Ekle</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span></button>` : ""}
+            ${isAdmin ? `<button type="button" class="add-btn add-btn--xs" onclick="showEventModal()" aria-label="Etkinlik ekle"><span class="add-btn__text">Ekle</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span></button>` : ""}
             <div class="cal-nav">
               <button type="button" class="cal-today-btn" onclick="calToday()">Bugün</button>
               <button type="button" class="cal-nav-btn" onclick="calMove(-1)" aria-label="Önceki ay">‹</button>
@@ -593,7 +595,7 @@
       renderUpcoming();
     }
 
-    // Yaklaşanlar: bitmemiş ilk 5 etkinlik; düzenle/sil ikonları yalnızca adminde
+    // Yaklaşanlar: bitmemiş ilk 3 etkinlik; düzenle/sil ikonları yalnızca adminde
     function renderUpcoming() {
       const el = document.getElementById("calUpcoming");
       if (!el) return;

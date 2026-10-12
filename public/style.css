@@ -1897,6 +1897,21 @@ body.dashboard-body::before {
 .add-btn.add-btn--sm:hover .add-btn__icon {
   width: 148px;
 }
+/* Ekstra kompakt (takvim başlığı: Bugün düğmesiyle aynı yükseklik 32px) */
+.add-btn.add-btn--xs {
+  width: 120px;
+  height: 32px;
+  font-size: 12px;
+}
+.add-btn.add-btn--xs .add-btn__text {
+  transform: translateX(14px);
+}
+.add-btn.add-btn--xs .add-btn__icon {
+  transform: translateX(79px);
+}
+.add-btn.add-btn--xs:hover .add-btn__icon {
+  width: 118px;
+}
 /* Devre dışı durumu */
 .add-btn:disabled,
 .add-btn[disabled] {
