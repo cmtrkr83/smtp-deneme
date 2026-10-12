@@ -833,19 +833,6 @@ body.dashboard-body::before {
   }
 }
 
-/* Okullar genel bakış: vurgulu ilk kart + dağılım/liste düzeni */
-.stat-card--brand {
-  background: linear-gradient(135deg, #8b0000, #b91c1c);
-  border: none;
-  box-shadow: 0 8px 24px rgba(139, 0, 0, 0.28);
-}
-.stat-card--brand .stat-value,
-.stat-card--brand .stat-label {
-  color: #fff;
-}
-.stat-card--brand .stat-label {
-  opacity: 0.85;
-}
 /* Okullar üst bölümü: yarıda 2x2 stat kartları, yarıda dağılım halkası */
 .schools-top {
   display: grid;
@@ -979,17 +966,14 @@ body.dashboard-body::before {
   font-size: 13px;
   color: var(--text-2);
 }
-/* Okul araç çubuğu: arama (esnek) + sonuç sayacı */
+/* Okul araç çubuğu: sonuç sayacı (arama + tür filtresi başlıkta, Kullanıcılar ile aynı) */
 .schools-toolbar {
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   margin-bottom: 16px;
-}
-.schools-toolbar .input-wrapper {
-  flex: 1;
-  min-width: 220px;
 }
 .schools-count {
   font-size: 12px;

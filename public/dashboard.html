@@ -2266,13 +2266,19 @@
           <h2>Okullar</h2>
           <p>Sisteme kayıtlı okulları gruplarına göre görüntüleyin.</p>
           </div>
-          <select id="schoolsOwnershipFilterSel" class="form-control" onchange="setSchoolsOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
-            style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
-            <option value="">Tümü (Resmi+Özel)</option>
-            <option value="resmi">Sadece Resmi</option>
-            <option value="ozel">Sadece Özel</option>
-            <option value="bos">Tür Belirsiz</option>
-          </select>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="input-wrapper" style="width:auto;min-width:220px;">
+              <i class="fa-solid fa-magnifying-glass icon"></i>
+              <input type="text" id="schoolsSearch" class="form-control" placeholder="Okul adı / kod / ilçe / e-posta ara..." value="${escHtml(window.schoolsSearchText || "")}" oninput="setSchoolsSearch(this.value)" style="padding-left:40px;" aria-label="Okul ara" />
+            </div>
+            <select id="schoolsOwnershipFilterSel" class="form-control" onchange="setSchoolsOwnershipFilter(this.value)" title="Resmi / Özel filtresi"
+              style="width:auto;padding:10px 14px;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+              <option value="">Tümü (Resmi+Özel)</option>
+              <option value="resmi">Sadece Resmi</option>
+              <option value="ozel">Sadece Özel</option>
+              <option value="bos">Tür Belirsiz</option>
+            </select>
+          </div>
         </div>
         <div id="schoolsContent">
           <div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
@@ -2299,8 +2305,8 @@
         // Üst bölüm: solda 2x2 stat kartları, sağda dağılım halkası (üstte), altta filtre + liste
         let statsHtml = `
           <div class="stats-grid">
-            <div class="stat-card stat-card--brand">
-              <div class="stat-icon" style="background:rgba(255,255,255,0.18);color:#fff;"><i class="fa-solid fa-school"></i></div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(139,0,0,0.1);color:var(--brand-ink);"><i class="fa-solid fa-school"></i></div>
               <div class="stat-info"><div class="stat-value">${total}</div><div class="stat-label">Toplam Okul${resmiCount + ozelCount > 0 ? ` (${resmiCount} resmi • ${ozelCount} özel)` : ""}</div></div>
             </div>
             <div class="stat-card">
@@ -2362,10 +2368,6 @@
               </div>
             </div>
             <div class="schools-toolbar">
-              <div class="input-wrapper">
-                <i class="fa-solid fa-magnifying-glass icon"></i>
-                <input type="text" id="schoolsSearch" class="form-control" placeholder="Okul adı / kod / ilçe / e-posta ara..." value="${escHtml(window.schoolsSearchText || "")}" oninput="setSchoolsSearch(this.value)" style="padding-left:40px;" aria-label="Okul ara" />
-              </div>
               <span id="schoolsCount" class="schools-count" role="status" aria-live="polite"></span>
             </div>
             <div class="schools-list-panel">
