@@ -467,6 +467,112 @@
       }
     }
 
+    // Takvim yardımcıları: saf fonksiyonlar (ızgara + tarih biçimi + aralık eşleşmesi)
+    const CAL_MONTHS_TR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    function fmtDDMMYYYY(ymd) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd || "");
+      if (!m) return "";
+      return m[3] + "-" + m[2] + "-" + m[1];
+    }
+    function ymdLocal(y, m0, d) {
+      return y + "-" + String(m0 + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+    }
+    function calCells(year, month0) {
+      // Pazartesi başlı 6x7 sabit ızgara (ay kaç çekerse çeksin kayma yok)
+      const first = new Date(year, month0, 1);
+      const lead = (first.getDay() + 6) % 7;
+      const cells = [];
+      for (let i = 0; i < 42; i++) {
+        const dt = new Date(year, month0, 1 - lead + i);
+        cells.push({ ymd: ymdLocal(dt.getFullYear(), dt.getMonth(), dt.getDate()), day: dt.getDate(), dim: dt.getMonth() !== month0 });
+      }
+      return cells;
+    }
+    function eventsOnDay(ymd, events) {
+      // Dize karşılaştırma: YYYY-MM-DD sözlüksel sıralanır, Date ayrıştırma yok (TZ tuzağı yok)
+      return (events || []).filter((e) => e.startDate <= ymd && ymd <= e.endDate);
+    }
+    function nowYm() {
+      const n = new Date();
+      return { y: n.getFullYear(), m: n.getMonth() };
+    }
+    window._events = window._events || [];
+    window.calCursor = window.calCursor || null;
+    window.calSelected = window.calSelected || null;
+    async function fetchEvents() {
+      try {
+        const res = await apiFetch("/api/events" + asRoleQuery());
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.events || []);
+        window._events = list.slice().sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
+      } catch (_) {}
+    }
+    function calMove(dir) {
+      const c = window.calCursor || nowYm();
+      const d = new Date(c.y, c.m + dir, 1);
+      window.calCursor = { y: d.getFullYear(), m: d.getMonth() };
+      renderCalendar();
+    }
+    function calToday() {
+      window.calCursor = nowYm();
+      const n = new Date();
+      window.calSelected = ymdLocal(n.getFullYear(), n.getMonth(), n.getDate());
+      renderCalendar();
+    }
+    function calSelect(ymd, el) {
+      // Seçimi güncelle; dokunmatikte popup'ı açık tut (yeniden çizim yok)
+      window.calSelected = ymd;
+      try {
+        document.querySelectorAll("#calGrid .cal-day").forEach((b) => {
+          b.classList.toggle("is-selected", b.dataset.ymd === ymd);
+          if (b !== el) b.classList.remove("pop-open");
+        });
+        if (el) el.classList.toggle("pop-open");
+      } catch (_) {}
+    }
+    function calRangeLabel(ev) {
+      if (!ev.endDate || ev.endDate === ev.startDate) return fmtDDMMYYYY(ev.startDate);
+      return fmtDDMMYYYY(ev.startDate) + " – " + fmtDDMMYYYY(ev.endDate);
+    }
+    function renderCalendar() {
+      const box = document.getElementById("calBox");
+      if (!box) return;
+      const n = new Date();
+      const today = ymdLocal(n.getFullYear(), n.getMonth(), n.getDate());
+      if (!window.calCursor) window.calCursor = { y: n.getFullYear(), m: n.getMonth() };
+      if (!window.calSelected) window.calSelected = today;
+      const { y, m } = window.calCursor;
+      const days = calCells(y, m).map((c) => {
+        const evs = eventsOnDay(c.ymd, window._events);
+        const cls = ["cal-day"];
+        if (c.dim) cls.push("is-dim");
+        if (c.ymd === today) cls.push("is-today");
+        if (c.ymd === window.calSelected) cls.push("is-selected");
+        if (evs.length) cls.push("has-event");
+        const pop = evs.length
+          ? `<span class="cal-pop" role="status"><h5>${fmtDDMMYYYY(c.ymd)}</h5>` + evs.map((ev) =>
+            `<div class="cal-pop-item"><strong>${escHtml(ev.title)}</strong><div class="cal-pop-date">${calRangeLabel(ev)}</div>`
+            + (ev.description ? `<div>${escHtml(ev.description)}</div>` : "") + `</div>`).join("") + `</span>`
+          : "";
+        return `<button type="button" class="${cls.join(" ")}" data-ymd="${c.ymd}" onclick="calSelect('${c.ymd}', this)" aria-label="${c.day} ${CAL_MONTHS_TR[m]}${evs.length ? ", " + evs.length + " etkinlik" : ""}">${c.day}${pop}</button>`;
+      }).join("");
+      box.innerHTML = `
+        <div class="cal-head">
+          <div class="cal-title">${CAL_MONTHS_TR[m]} ${y}</div>
+          <div class="cal-nav">
+            <button type="button" class="cal-today-btn" onclick="calToday()">Bugün</button>
+            <button type="button" class="cal-nav-btn" onclick="calMove(-1)" aria-label="Önceki ay">‹</button>
+            <button type="button" class="cal-nav-btn" onclick="calMove(1)" aria-label="Sonraki ay">›</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid" role="grid" aria-label="Takvim">
+          ${["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => `<div class="cal-dow">${d}</div>`).join("")}
+          ${days}
+        </div>
+        <div class="cal-upcoming" id="calUpcoming"></div>`;
+    }
+
     function renderDashboard() {
       const area = document.getElementById("contentArea");
       const data = dashboardData;
@@ -500,7 +606,7 @@
         html += `</div>`;
       }
 
-      // Links (Modüller / İşlemler gruplu)
+      // Links (Modüller / İşlemler gruplu) + Takvim: iki sütunlu genel bakış
       if (data.links) {
         const cardColors = [
           { bg: "rgba(59, 130, 246, 0.1)", color: "#2563eb" },
@@ -510,6 +616,8 @@
           { bg: "rgba(236, 72, 153, 0.1)", color: "#db2777" },
           { bg: "rgba(14, 165, 233, 0.1)", color: "#0284c7" },
         ];
+        html += `<div class="overview-split"><div>`;
+        html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
         const modulePages = ["announcements", "surveys", "files", "file-requests", "requests"];
         const linkCard = (l, i) => {
           const isNav = l.url.startsWith("/navigate/");
@@ -530,7 +638,6 @@
         const isModule = (l) => l.url.startsWith("/navigate/") && modulePages.includes(l.url.replace("/navigate/", ""));
         const modLinks = data.links.filter(isModule);
         const opsLinks = data.links.filter((l) => !isModule(l));
-        html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
         if (modLinks.length) {
           html += `<div class="section-title" style="font-size:13px;"><i class="fa-solid fa-cubes"></i> Modüller</div>`;
           html += `<div class="cards-grid" id="quickLinksModules">`;
@@ -543,6 +650,8 @@
           opsLinks.forEach((l) => { html += linkCard(l, data.links.indexOf(l)); });
           html += `</div>`;
         }
+        // Sağ sütun: takvim kutusu (içi renderCalendar ile dolar)
+        html += `</div><div class="cal-box" id="calBox" aria-live="polite"></div></div>`;
       }
 
       // Announcements (only for admin)
@@ -574,6 +683,9 @@
       }
 
       area.innerHTML = html;
+
+      // Takvim: etkinlikleri çekip kutuyu çiz (tüm roller; kutu yoksa sessiz geçilir)
+      fetchEvents().then(() => renderCalendar());
 
       // Aktif kullanicilar (sadece admin)
       if (currentUser.role === "admin") renderPresenceSection();

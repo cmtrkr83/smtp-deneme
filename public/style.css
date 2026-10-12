@@ -1048,6 +1048,198 @@ body.dashboard-body::before {
   color: var(--muted);
   margin: 0 6px;
 }
+/* Genel Bakış ikiye bölünme: Hızlı Erişim + Takvim */
+.overview-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) {
+  .overview-split {
+    grid-template-columns: 1fr;
+  }
+}
+/* Takvim kutusu (referans minimal ay ızgarası, marka kırmızısı vurgu) */
+.cal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.cal-nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cal-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(139, 0, 0, 0.08);
+  color: var(--brand-ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+.cal-nav-btn:hover {
+  background: rgba(139, 0, 0, 0.16);
+}
+.cal-today-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--btn-bg);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cal-today-btn:hover {
+  background: var(--btn-bg-hover);
+  color: var(--text);
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-dow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 0;
+}
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  max-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  padding: 0;
+}
+.cal-day:hover {
+  background: var(--btn-bg);
+}
+.cal-day.is-dim {
+  color: var(--muted);
+  opacity: 0.55;
+}
+.cal-day.is-today {
+  border-color: var(--brand-ink);
+  font-weight: 700;
+}
+.cal-day.is-selected {
+  background: #8b0000;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(139, 0, 0, 0.4);
+}
+.cal-day.has-event::after {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b91c1c;
+}
+.cal-day.is-selected.has-event::after {
+  background: #fff;
+}
+.cal-day.has-event {
+  background: rgba(139, 0, 0, 0.07);
+}
+.cal-day.is-selected.has-event {
+  background: #8b0000;
+}
+.cal-day:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+}
+/* Gün detay kartı: hover/odak/dokunma ile açılır */
+.cal-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  width: max-content;
+  max-width: 240px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 400;
+}
+.cal-day:hover .cal-pop,
+.cal-day:focus-within .cal-pop,
+.cal-day.pop-open .cal-pop {
+  display: block;
+}
+.cal-pop h5 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.cal-pop-item {
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.cal-pop-item:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.cal-pop-date {
+  font-size: 11px;
+  color: var(--muted);
+}
+.cal-upcoming {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
 /* Grafik türü seçici: radyo haplar (rapor ilçe görünümü) */
 .chart-radio {
   display: inline-flex;
