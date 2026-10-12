@@ -1290,6 +1290,65 @@ body.dashboard-body::before {
   transform: translateY(-50%);
 }
 
+/* Add-item button (Uiverse by andrew-demchenk0) - oluşturma düğmeleri için */
+.add-btn {
+  position: relative;
+  width: 175px;
+  height: 40px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #34974d;
+  background-color: #3aa856;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.add-btn, .add-btn__icon, .add-btn__text {
+  transition: all 0.3s;
+}
+.add-btn .add-btn__text {
+  transform: translateX(16px);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.add-btn .add-btn__icon {
+  position: absolute;
+  transform: translateX(134px);
+  height: 100%;
+  width: 39px;
+  background-color: #34974d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-btn .svg {
+  width: 30px;
+  stroke: #fff;
+}
+.add-btn:hover {
+  background: #34974d;
+}
+.add-btn:hover .add-btn__text {
+  color: transparent;
+}
+.add-btn:hover .add-btn__icon {
+  width: 173px;
+  transform: translateX(0);
+}
+.add-btn:active .add-btn__icon {
+  background-color: #2e8644;
+}
+.add-btn:active {
+  border: 1px solid #2e8644;
+}
+.add-btn:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar {
