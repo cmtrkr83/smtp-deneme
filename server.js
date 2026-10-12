@@ -448,6 +448,7 @@ function getDashboardData(role, users, email) {
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
         { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını görüntüleyin ve yanıtlayın" },
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
+        { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Talep ve itirazlarınızı iletin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
     },
@@ -458,6 +459,7 @@ function getDashboardData(role, users, email) {
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
         { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını görüntüleyin ve yanıtlayın" },
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
+        { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Talep ve itirazlarınızı iletin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
     },
@@ -468,6 +470,7 @@ function getDashboardData(role, users, email) {
         { title: "Duyurular", url: "/navigate/announcements", icon: "fa-bullhorn", desc: "Güncel duyuru ve haberler" },
         { title: "Veri Toplama", url: "/navigate/surveys", icon: "fa-square-poll-vertical", desc: "Veri toplama formlarını görüntüleyin ve yanıtlayın" },
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
+        { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Talep ve itirazlarınızı iletin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
       ],
     },
@@ -495,12 +498,13 @@ function getDashboardData(role, users, email) {
       roleData[role].links[0].badge = unreadAnn;
       roleData[role].links[1].badge = unansweredSurveys;
       roleData[role].links[2].badge = undownloadedFiles;
-      const frLink = roleData[role].links[3];
+      roleData[role].links[3].badge = loadRequests().filter((r) => r.status === "open" && r.submittedBy === email).length;
+      const frLink = roleData[role].links[4];
       if (pendingFr > 0) {
         frLink.badge = pendingFr;
         frLink.highlight = true;
       } else {
-        roleData[role].links.splice(3, 1);
+        roleData[role].links.splice(4, 1);
       }
     }
   }
