@@ -1360,6 +1360,119 @@ app.post("/api/announcements/:id/read", (req, res) => {
   res.json({ message: "Okundu." });
 });
 
+// ---- Takvim Etkinlikleri (herkese acik liste, yazma yalnizca admin) ----
+
+const EVENTS_FILE = path.join(DATA_DIR, "events.json");
+
+function loadEvents() {
+  try {
+    if (fs.existsSync(EVENTS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(EVENTS_FILE, "utf-8"));
+      const list = Array.isArray(data) ? data : (data.events || []);
+      return Array.isArray(list) ? list : [];
+    }
+  } catch (_) {}
+  return [];
+}
+
+function saveEvents(list) {
+  atomicSaveJson(EVENTS_FILE, JSON.stringify({ events: list }, null, 2));
+}
+
+// Yalnızca YYYY-MM-DD biçimi kabul edilir (ekranda DD-MM-YYYY gösterilir).
+function isValidYmd(s) {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+function sortEvents(list) {
+  return list.slice().sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
+}
+
+app.get("/api/events", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+  res.json({ events: sortEvents(loadEvents()) });
+});
+
+app.post("/api/events", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const title = String(req.body.title || "").trim();
+  const startDate = req.body.startDate;
+  const endDate = req.body.endDate || req.body.startDate;
+  const description = String(req.body.description || "").trim();
+  if (!title) return res.status(400).json({ error: "Başlık gerekli." });
+  if (title.length > 200) return res.status(400).json({ error: "Başlık en fazla 200 karakter olabilir." });
+  if (!isValidYmd(startDate) || !isValidYmd(endDate)) {
+    return res.status(400).json({ error: "Tarih YYYY-MM-DD biçiminde olmalı." });
+  }
+  if (endDate < startDate) return res.status(400).json({ error: "Bitiş tarihi başlangıçtan önce olamaz." });
+
+  const list = loadEvents();
+  const ev = {
+    id: crypto.randomUUID(),
+    title,
+    description: description.slice(0, 2000),
+    startDate,
+    endDate,
+    createdAt: Date.now(),
+  };
+  list.push(ev);
+  saveEvents(list);
+  appendLog(makeLog("event_add", decoded.email, `"${title}" etkinliği eklendi (${startDate}).`, req));
+  res.status(201).json(ev);
+});
+
+app.put("/api/events/:id", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const list = loadEvents();
+  const idx = list.findIndex((e) => e.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Etkinlik bulunamadı." });
+
+  const ev = list[idx];
+  if (req.body.title !== undefined) {
+    const t = String(req.body.title).trim();
+    if (!t) return res.status(400).json({ error: "Başlık gerekli." });
+    if (t.length > 200) return res.status(400).json({ error: "Başlık en fazla 200 karakter olabilir." });
+    ev.title = t;
+  }
+  if (req.body.description !== undefined) ev.description = String(req.body.description).slice(0, 2000);
+  if (req.body.startDate !== undefined) {
+    if (!isValidYmd(req.body.startDate)) return res.status(400).json({ error: "Tarih YYYY-MM-DD biçiminde olmalı." });
+    ev.startDate = req.body.startDate;
+  }
+  if (req.body.endDate !== undefined) {
+    if (!isValidYmd(req.body.endDate)) return res.status(400).json({ error: "Tarih YYYY-MM-DD biçiminde olmalı." });
+    ev.endDate = req.body.endDate;
+  }
+  if (ev.endDate < ev.startDate) return res.status(400).json({ error: "Bitiş tarihi başlangıçtan önce olamaz." });
+
+  saveEvents(list);
+  appendLog(makeLog("event_update", decoded.email, `"${ev.title}" etkinliği güncellendi.`, req));
+  res.json(ev);
+});
+
+app.delete("/api/events/:id", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+
+  const list = loadEvents();
+  const idx = list.findIndex((e) => e.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Etkinlik bulunamadı." });
+
+  const [deleted] = list.splice(idx, 1);
+  saveEvents(list);
+  appendLog(makeLog("event_delete", decoded.email, `"${deleted.title}" etkinliği silindi.`, req));
+  res.json({ ok: true });
+});
+
 // ---- Logs ----
 
 const actionLabels = {
@@ -1389,6 +1502,9 @@ const actionLabels = {
   file_request_create: "Belge İstek Oluşturma",
   file_request_submit: "Belge İstek Yükleme",
   file_request_delete: "Belge İstek Silme",
+  event_add: "Takvim Etkinliği Ekleme",
+  event_update: "Takvim Etkinliği Düzenleme",
+  event_delete: "Takvim Etkinliği Silme",
   maintenance_on: "Bakım Modu Açma",
   maintenance_off: "Bakım Modu Kapatma",
 };
