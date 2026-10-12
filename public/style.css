@@ -1185,8 +1185,8 @@ html[data-theme="dark"] .ann-tag.diger { color: #f9a8d4; }
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 20, 31, 0.55);
-  backdrop-filter: blur(2px);
+  background: transparent;
+  pointer-events: none;
 }
 .peg-loader-overlay.show { display: flex; }
 .peg-loader-overlay .peg-loader-box {
@@ -1194,13 +1194,13 @@ html[data-theme="dark"] .ann-tag.diger { color: #f9a8d4; }
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 28px 36px;
-  border-radius: 16px;
-  background: #212121;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .peg-loader-overlay .peg-loader-text {
-  color: #fff;
+  color: var(--text);
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.02em;
