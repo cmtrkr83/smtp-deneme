@@ -958,6 +958,15 @@ body.dashboard-body::before {
   color: var(--muted);
   font-weight: 400;
 }
+/* Ayarlar yedek kartları: düğmeler düşeyde aynı hizada */
+.settings-split {
+  display: flex;
+  flex-direction: column;
+}
+.settings-split .add-btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
 /* Star Students tarzı okul satırı: ikon + bilgi + rozetler */
 .school-row {
   display: flex;
