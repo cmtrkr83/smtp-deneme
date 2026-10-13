@@ -1361,6 +1361,54 @@ body.dashboard-body::before {
   font-size: 10px;
   font-weight: 600;
 }
+/* İlçe grafik giriş animasyonları: sütunlar yükselir, çizgi çizilir, satırlar belirir */
+.chart-bar-anim {
+  transform: scaleY(0);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: chartBarRise 0.5s cubic-bezier(0.22, 0.9, 0.3, 1.15) backwards;
+}
+@keyframes chartBarRise {
+  to {
+    transform: scaleY(1);
+  }
+}
+.chart-dot-anim {
+  opacity: 0;
+  transform: scale(0);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chartDotPop 0.3s ease-out backwards;
+}
+@keyframes chartDotPop {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.chart-area-anim {
+  opacity: 0;
+  animation: chartFadeIn 0.6s ease-out 0.5s backwards;
+}
+@keyframes chartFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+.district-row-anim {
+  opacity: 0;
+  animation: chartFadeIn 0.35s ease-out backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar-anim,
+  .chart-dot-anim,
+  .chart-area-anim,
+  .district-row-anim {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
 .school-avatar {
   width: 44px;
   height: 44px;

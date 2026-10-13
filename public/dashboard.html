@@ -4139,6 +4139,21 @@
       else h += districtTable(d);
       box.innerHTML = h;
       box.style.textAlign = "";
+      animateDistrictLine(box);
+    }
+    // Çizgi grafiği soldan sağa çizilme efekti (gerçek uzunluk üzerinden, reduced-motion'a saygılı)
+    function animateDistrictLine(box) {
+      if (!box || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+      const line = box.querySelector(".chart-line-anim");
+      if (!line) return;
+      let len = 0;
+      try { len = line.getTotalLength(); } catch (_) { return; }
+      if (!len) return;
+      line.style.strokeDasharray = String(len);
+      line.style.strokeDashoffset = String(len);
+      void line.getBoundingClientRect();
+      line.style.transition = "stroke-dashoffset 0.9s ease-out 0.1s";
+      line.style.strokeDashoffset = "0";
     }
     function districtSummary(d) {
       return '<div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;text-align:left;">'
@@ -4150,9 +4165,9 @@
     function districtTable(d) {
       let h = '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
         + '<th>İlçe</th><th>Hedef</th><th>Yanıtlayan</th><th>Yanıtlamayan</th><th>Oran</th></tr></thead><tbody>';
-      d.districts.forEach((x) => {
+      d.districts.forEach((x, i) => {
         const barColor = x.rate >= 70 ? "#22c55e" : x.rate >= 40 ? "#f59e0b" : "#ef4444";
-        h += '<tr><td class="cell-email">' + escHtml(x.district) + '</td>'
+        h += '<tr class="district-row-anim" style="animation-delay:' + (i * 30) + 'ms"><td class="cell-email">' + escHtml(x.district) + '</td>'
           + '<td>' + x.total + '</td>'
           + '<td style="color:#22c55e;font-weight:600;">' + x.submitted + '</td>'
           + '<td style="color:#ef4444;">' + x.pending + '</td>'
@@ -4186,8 +4201,8 @@
         const sh = (x.submitted / max) * plotH;
         const ph = ((x.total - x.submitted) / max) * plotH;
         const lx = cx.toFixed(1), ly = (H - padB + 16).toFixed(1);
-        bars += '<rect x="' + (cx - bw - 2).toFixed(1) + '" y="' + (padT + plotH - sh).toFixed(1) + '" width="' + bw + '" height="' + Math.max(sh, 2).toFixed(1) + '" rx="3" fill="#22c55e"><title>' + escHtml(x.district) + ': ' + x.submitted + ' yanıtlayan</title></rect>'
-          + '<rect x="' + (cx + 2).toFixed(1) + '" y="' + (padT + plotH - ph).toFixed(1) + '" width="' + bw + '" height="' + Math.max(ph, 2).toFixed(1) + '" rx="3" fill="#ef4444"><title>' + escHtml(x.district) + ': ' + (x.total - x.submitted) + ' yanıtlamayan</title></rect>'
+        bars += '<rect class="chart-bar-anim" style="animation-delay:' + (i * 60) + 'ms" x="' + (cx - bw - 2).toFixed(1) + '" y="' + (padT + plotH - sh).toFixed(1) + '" width="' + bw + '" height="' + Math.max(sh, 2).toFixed(1) + '" rx="3" fill="#22c55e"><title>' + escHtml(x.district) + ': ' + x.submitted + ' yanıtlayan</title></rect>'
+          + '<rect class="chart-bar-anim" style="animation-delay:' + (i * 60) + 'ms" x="' + (cx + 2).toFixed(1) + '" y="' + (padT + plotH - ph).toFixed(1) + '" width="' + bw + '" height="' + Math.max(ph, 2).toFixed(1) + '" rx="3" fill="#ef4444"><title>' + escHtml(x.district) + ': ' + (x.total - x.submitted) + ' yanıtlamayan</title></rect>'
           + '<text x="' + lx + '" y="' + ly + '" text-anchor="end" transform="rotate(-35 ' + lx + ' ' + ly + ')" class="chart-bar-label">' + escHtml(x.district) + '</text>';
       });
       const legend = '<div style="display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:12px;color:var(--text-2);">'
@@ -4217,14 +4232,14 @@
       let dots = "";
       districts.forEach((x, i) => {
         const lx = X(i).toFixed(1), ly = (H - padB + 16).toFixed(1);
-        dots += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(x.rate).toFixed(1) + '" r="4" fill="#6366f1"><title>' + escHtml(x.district) + ': %' + x.rate + '</title></circle>'
-          + '<text x="' + X(i).toFixed(1) + '" y="' + (Y(x.rate) - 9).toFixed(1) + '" text-anchor="middle" class="chart-point-label">%' + x.rate + '</text>'
+        dots += '<circle class="chart-dot-anim" style="animation-delay:' + (350 + i * 70) + 'ms" cx="' + X(i).toFixed(1) + '" cy="' + Y(x.rate).toFixed(1) + '" r="4" fill="#6366f1"><title>' + escHtml(x.district) + ': %' + x.rate + '</title></circle>'
+          + '<text x="' + X(i).toFixed(1) + '" y="' + (Y(x.rate) - 9).toFixed(1) + '" text-anchor="middle" class="chart-point-label chart-area-anim" style="animation-delay:' + (400 + i * 70) + 'ms">%' + x.rate + '</text>'
           + '<text x="' + lx + '" y="' + ly + '" text-anchor="end" transform="rotate(-35 ' + lx + ' ' + ly + ')" class="chart-bar-label">' + escHtml(x.district) + '</text>';
       });
       return '<div class="chart-scroll"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="İlçe yanıtlama oranı çizgi grafiği">'
         + '<defs><linearGradient id="distArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/><stop offset="100%" stop-color="#6366f1" stop-opacity="0.02"/></linearGradient></defs>'
-        + g + '<path d="' + area + '" fill="url(#distArea)"/>'
-        + '<polyline points="' + pts + '" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+        + g + '<path class="chart-area-anim" d="' + area + '" fill="url(#distArea)"/>'
+        + '<polyline class="chart-line-anim" points="' + pts + '" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
         + dots + '</svg></div>';
     }
 
