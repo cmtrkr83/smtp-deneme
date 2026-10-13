@@ -926,6 +926,38 @@ body.dashboard-body::before {
   font-weight: 700;
   color: var(--text);
 }
+/* Donut etkileşimi: hover'da dilim kalınlaşır, diğerleri solar + imleç baloncuğu */
+.donut-seg {
+  transition: stroke-width 0.18s ease, opacity 0.18s ease;
+  cursor: pointer;
+}
+.donut-seg:hover {
+  stroke-width: 30;
+}
+.donut-item svg:hover .donut-seg:not(:hover) {
+  opacity: 0.35;
+}
+.donut-tip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  display: none;
+}
+.donut-tip.show {
+  display: block;
+}
+.donut-tip .muted {
+  color: var(--muted);
+  font-weight: 400;
+}
 /* Star Students tarzı okul satırı: ikon + bilgi + rozetler */
 .school-row {
   display: flex;

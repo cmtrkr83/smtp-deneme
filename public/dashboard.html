@@ -2617,7 +2617,8 @@
             let acc = 0;
             const rings = segs.map((s) => {
               const len = Math.max((s.count / total) * CIRC - 4, 2);
-              const el = `<circle cx="90" cy="90" r="70" fill="none" stroke="${s.color}" stroke-width="22" stroke-dasharray="${len.toFixed(1)} ${(CIRC - len).toFixed(1)}" stroke-dashoffset="${(-acc).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 90 90)"></circle>`;
+              const pct = Math.round((s.count / total) * 100);
+              const el = `<circle class="donut-seg" data-label="${s.label}" data-count="${s.count}" data-pct="${pct}" cx="90" cy="90" r="70" fill="none" stroke="${s.color}" stroke-width="22" stroke-dasharray="${len.toFixed(1)} ${(CIRC - len).toFixed(1)}" stroke-dashoffset="${(-acc).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 90 90)"></circle>`;
               acc += (s.count / total) * CIRC;
               return el;
             }).join("");
@@ -3954,7 +3955,7 @@
         + '<span style="font-weight:600;font-size:13px;color:var(--text);text-align:right;">' + r.count + '</span>'
         + '<span style="font-size:12px;color:var(--muted);text-align:right;">(' + pct + '%)</span></div>';
       html += '<div class="report-card"><h4><i class="fa-solid fa-users"></i> Kullanıcı Dağılımı</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
-        + '<canvas id="userPieChart" width="160" height="160"></canvas><div style="width:100%;">';
+        + '<canvas id="userPieChart" width="160" height="160" role="img" aria-label="Kullanıcı dağılımı grafiği"></canvas><div style="width:100%;">';
       const roles = [
         { label: "Admin", count: d.users.admin, color: "#6366f1" },
         { label: "Lise", count: d.users.lise, color: "#22c55e" },
@@ -3970,7 +3971,7 @@
       // 1b) School distribution pie (türe göre)
       const schools = d.schools || { total: 0, resmi: 0, ozel: 0, belirsiz: 0 };
       html += '<div class="report-card"><h4><i class="fa-solid fa-school"></i> Okul Dağılımı</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
-        + '<canvas id="schoolPieChart" width="160" height="160"></canvas><div style="width:100%;">';
+        + '<canvas id="schoolPieChart" width="160" height="160" role="img" aria-label="Okul dağılımı grafiği"></canvas><div style="width:100%;">';
       const schoolTypes = [
         { label: "Resmi", count: schools.resmi, color: "#16a34a" },
         { label: "Özel", count: schools.ozel, color: "#d97706" },
@@ -4245,33 +4246,99 @@
       }
     }
 
-    function drawSegmentedDonut(canvasId, segments, total, centerLabel) {
+    // Donut ortakları: imleç baloncuğu + saf vuruş testi (rapor canvas'ı, okul SVG'si)
+    const _donutState = {};
+    function ensureDonutTip() {
+      let tip = document.getElementById("donutTip");
+      if (!tip) {
+        tip = document.createElement("div");
+        tip.id = "donutTip";
+        tip.className = "donut-tip";
+        tip.setAttribute("role", "status");
+        document.body.appendChild(tip);
+      }
+      return tip;
+    }
+    function showDonutTip(x, y, html) {
+      const tip = ensureDonutTip();
+      tip.innerHTML = html;
+      tip.classList.add("show");
+      const pad = 14;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      let lx = x + pad, ly = y + pad;
+      if (lx + w > window.innerWidth - 8) lx = x - w - pad;
+      if (ly + h > window.innerHeight - 8) ly = y - h - pad;
+      tip.style.left = Math.max(8, lx) + "px";
+      tip.style.top = Math.max(8, ly) + "px";
+    }
+    function hideDonutTip() {
+      const tip = document.getElementById("donutTip");
+      if (tip) tip.classList.remove("show");
+    }
+    function donutTipHtml(label, count, pct) {
+      return "<b>" + escHtml(label) + "</b> " + count + " <span class='muted'>(" + pct + "%)</span>";
+    }
+    // Saf geometri: halka üzerindeki (x, y) noktasının dilim indisi (yoksa -1)
+    function donutHitTest(st, x, y) {
+      const dx = x - st.cx, dy = y - st.cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (Math.abs(dist - st.ringR) > st.ringW / 2 + 6) return -1;
+      let ang = Math.atan2(dy, dx);
+      if (ang < -Math.PI / 2) ang += 2 * Math.PI;
+      for (let i = 0; i < st.segs.length; i++) {
+        if (ang >= st.segs[i].a0 && ang <= st.segs[i].a1) return i;
+      }
+      return -1;
+    }
+    // SVG halka baloncuğu (okullar sayfası) — sayfa yüklenmesinde bir kez bağlanır
+    if (!window._donutSvgBound) {
+      window._donutSvgBound = true;
+      document.addEventListener("mousemove", (e) => {
+        const t = e.target;
+        const seg = t && t.closest ? t.closest(".donut-seg") : null;
+        if (!seg) {
+          if (!(t && t.closest && t.closest("canvas[data-donut-bound]"))) hideDonutTip();
+          return;
+        }
+        showDonutTip(e.clientX, e.clientY, donutTipHtml(seg.dataset.label, seg.dataset.count, seg.dataset.pct));
+      });
+      document.addEventListener("mouseout", (e) => {
+        const t = e.target;
+        const seg = t && t.closest ? t.closest(".donut-seg") : null;
+        if (seg && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".donut-seg") === seg)) hideDonutTip();
+      });
+    }
+
+    function renderDonut(canvasId) {
+      const st = _donutState[canvasId];
+      if (!st) return;
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
-      const w = canvas.width, h = canvas.height;
-      const cx = w / 2, cy = h / 2;
+      // Retina keskinliği: piksel oranına göre ölçekle, CSS boyutu sabit
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const W = 160, H = 160;
+      if (canvas.width !== Math.round(W * dpr)) {
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        canvas.style.width = W + "px";
+        canvas.style.height = H + "px";
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
 
-      ctx.clearRect(0, 0, w, h);
-
-      const t = total || 1;
-      const visible = segments.filter((s) => s.count > 0);
-      const gap = visible.length > 1 ? 0.07 : 0;
-      const ringR = 52, ringW = 30;
-      let startAngle = -Math.PI / 2;
-
-      visible.forEach((s) => {
-        const sliceAngle = (s.count / t) * 2 * Math.PI;
-        const a0 = startAngle + gap / 2;
-        const a1 = startAngle + sliceAngle - gap / 2;
+      const cx = W / 2, cy = H / 2;
+      st.cx = cx; st.cy = cy;
+      st.segs.forEach((s, i) => {
         ctx.beginPath();
-        ctx.arc(cx, cy, ringR, a0, Math.max(a1, a0 + 0.02));
+        ctx.arc(cx, cy, st.ringR, s.a0, Math.max(s.a1, s.a0 + 0.02));
         ctx.strokeStyle = s.color;
-        ctx.lineWidth = ringW;
+        ctx.lineWidth = st.ringW + (i === st.hover ? 8 : 0);
         ctx.lineCap = "butt";
+        ctx.globalAlpha = st.hover === -1 || i === st.hover ? 1 : 0.3;
         ctx.stroke();
-        startAngle += sliceAngle;
       });
+      ctx.globalAlpha = 1;
 
       // Center text
       const isDarkChart = document.documentElement.dataset.theme === "dark";
@@ -4279,10 +4346,61 @@
       ctx.font = "bold 18px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(t, cx, cy - 6);
+      ctx.fillText(st.total, cx, cy - 6);
       ctx.font = "10px sans-serif";
       ctx.fillStyle = isDarkChart ? "#8d96a9" : "#888";
-      ctx.fillText(centerLabel, cx, cy + 14);
+      ctx.fillText(st.centerLabel, cx, cy + 14);
+    }
+
+    function drawSegmentedDonut(canvasId, segments, total, centerLabel) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const t = total || 1;
+      const visible = segments.filter((s) => s.count > 0);
+      const gap = visible.length > 1 ? 0.07 : 0;
+      const ringR = 52, ringW = 30;
+      let acc = -Math.PI / 2;
+      const segs = visible.map((s) => {
+        const slice = (s.count / t) * 2 * Math.PI;
+        const o = {
+          a0: acc + gap / 2, a1: acc + slice - gap / 2,
+          label: s.label, count: s.count, color: s.color,
+          pct: Math.round((s.count / t) * 100),
+        };
+        acc += slice;
+        return o;
+      });
+      _donutState[canvasId] = { cx: 80, cy: 80, ringR, ringW, segs, total: t, centerLabel, hover: -1 };
+      renderDonut(canvasId);
+      if (!canvas.dataset.donutBound) {
+        canvas.dataset.donutBound = "1";
+        const pointHover = (clientX, clientY) => {
+          const st = _donutState[canvasId];
+          if (!st) return;
+          const r = canvas.getBoundingClientRect();
+          const idx = donutHitTest(st, clientX - r.left, clientY - r.top);
+          if (idx !== st.hover) { st.hover = idx; renderDonut(canvasId); }
+          if (idx === -1) { hideDonutTip(); canvas.style.cursor = ""; }
+          else {
+            const s = st.segs[idx];
+            canvas.style.cursor = "pointer";
+            showDonutTip(clientX, clientY, donutTipHtml(s.label, s.count, s.pct));
+          }
+        };
+        const clearHover = () => {
+          const st = _donutState[canvasId];
+          if (st && st.hover !== -1) { st.hover = -1; renderDonut(canvasId); }
+          hideDonutTip();
+          canvas.style.cursor = "";
+        };
+        canvas.addEventListener("mousemove", (e) => pointHover(e.clientX, e.clientY));
+        canvas.addEventListener("mouseleave", clearHover);
+        canvas.addEventListener("touchstart", (e) => {
+          const tc = e.touches && e.touches[0];
+          if (tc) pointHover(tc.clientX, tc.clientY);
+        }, { passive: true });
+        canvas.addEventListener("touchend", clearHover);
+      }
     }
 
     async function renderAdminSurveys() {
