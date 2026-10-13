@@ -2455,6 +2455,17 @@ app.get("/api/reports", (req, res) => {
   const totalFileUploads = allFiles.length;
   const totalFileDownloads = allFiles.reduce((sum, f) => sum + (f.downloads || []).length, 0);
 
+  // School ownership breakdown (non-admin users; Okullar sayfasıyla aynı mantık)
+  const schoolUsers = userList.filter((u) => u.role !== "admin");
+  const resmiSchools = schoolUsers.filter((u) => (u.profile || {}).ownership === "resmi").length;
+  const ozelSchools = schoolUsers.filter((u) => (u.profile || {}).ownership === "ozel").length;
+  const schools = {
+    total: schoolUsers.length,
+    resmi: resmiSchools,
+    ozel: ozelSchools,
+    belirsiz: schoolUsers.length - resmiSchools - ozelSchools,
+  };
+
   // Overall avg read rate
   const totalAnnReads = allAnn.reduce((s, a) => s + (a.readBy || []).length, 0);
   const totalAnnTargets = allAnn.reduce((s, a) => {
@@ -2470,6 +2481,7 @@ app.get("/api/reports", (req, res) => {
       ortaokul: roleCounts.ortaokul,
       diger: roleCounts.diger,
     },
+    schools,
     monthlyActivity,
     dailyActivity,
     activityByAction,

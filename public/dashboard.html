@@ -3946,9 +3946,15 @@
       });
       html += '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
 
-      // 1) User distribution pie
-      html += '<div class="report-card"><h4><i class="fa-solid fa-users"></i> Kullanici Dagilimi</h4><div style="display:flex;align-items:center;gap:20px;">'
-        + '<canvas id="userPieChart" width="160" height="160"></canvas><div style="flex:1;">';
+      // 1) User + school distribution pies (sol yarida yan yana iki kart)
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+      const legendRow = (r, pct) => '<div style="display:grid;grid-template-columns:12px minmax(0,1fr) 44px 56px;align-items:center;gap:10px;margin-bottom:8px;">'
+        + '<span style="width:12px;height:12px;border-radius:3px;background:' + r.color + ';"></span>'
+        + '<span style="font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.label + '</span>'
+        + '<span style="font-weight:600;font-size:13px;color:var(--text);text-align:right;">' + r.count + '</span>'
+        + '<span style="font-size:12px;color:var(--muted);text-align:right;">(' + pct + '%)</span></div>';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-users"></i> Kullanici Dagilimi</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
+        + '<canvas id="userPieChart" width="160" height="160"></canvas><div style="width:100%;">';
       const roles = [
         { label: "Admin", count: d.users.admin, color: "#6366f1" },
         { label: "Lise", count: d.users.lise, color: "#22c55e" },
@@ -3957,13 +3963,25 @@
       ];
       roles.forEach((r) => {
         const pct = d.users.total > 0 ? Math.round((r.count / d.users.total) * 100) : 0;
-        html += '<div style="display:grid;grid-template-columns:12px minmax(0,1fr) 44px 56px;align-items:center;gap:10px;margin-bottom:8px;">'
-          + '<span style="width:12px;height:12px;border-radius:3px;background:' + r.color + ';"></span>'
-          + '<span style="font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.label + '</span>'
-          + '<span style="font-weight:600;font-size:13px;color:var(--text);text-align:right;">' + r.count + '</span>'
-          + '<span style="font-size:12px;color:var(--muted);text-align:right;">(' + pct + '%)</span></div>';
+        html += legendRow(r, pct);
       });
       html += '</div></div></div>';
+
+      // 1b) School distribution pie (türe göre)
+      const schools = d.schools || { total: 0, resmi: 0, ozel: 0, belirsiz: 0 };
+      html += '<div class="report-card"><h4><i class="fa-solid fa-school"></i> Okul Dagilimi</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
+        + '<canvas id="schoolPieChart" width="160" height="160"></canvas><div style="width:100%;">';
+      const schoolTypes = [
+        { label: "Resmi", count: schools.resmi, color: "#16a34a" },
+        { label: "Özel", count: schools.ozel, color: "#d97706" },
+        { label: "Belirsiz", count: schools.belirsiz, color: "#9ca3af" },
+      ];
+      schoolTypes.forEach((r) => {
+        const pct = schools.total > 0 ? Math.round((r.count / schools.total) * 100) : 0;
+        html += legendRow(r, pct);
+      });
+      html += '</div></div></div>';
+      html += '</div>';
 
       // 2) Daily activity (last 7 days)
       html += '<div class="report-card"><h4><i class="fa-solid fa-chart-line"></i> Son 7 Gun Aktivite</h4><div style="margin-top:8px;">';
@@ -4065,7 +4083,18 @@
       html += '</div>';
 
       container.innerHTML = html;
-      drawUserPieChart(d.users);
+      drawSegmentedDonut("userPieChart", [
+        { count: d.users.admin, color: "#6366f1", label: "Admin" },
+        { count: d.users.lise, color: "#22c55e", label: "Lise" },
+        { count: d.users.ortaokul, color: "#f59e0b", label: "Ortaokul" },
+        { count: d.users.diger, color: "#ec4899", label: "Diğer" },
+      ], d.users.total, "Kullanıcı");
+      const sch = d.schools || { total: 0, resmi: 0, ozel: 0, belirsiz: 0 };
+      drawSegmentedDonut("schoolPieChart", [
+        { count: sch.resmi, color: "#16a34a", label: "Resmi" },
+        { count: sch.ozel, color: "#d97706", label: "Özel" },
+        { count: sch.belirsiz, color: "#9ca3af", label: "Belirsiz" },
+      ], sch.total, "Okul");
       if (surveyed.length > 0) loadDistrictStats();
     }
 
@@ -4197,8 +4226,8 @@
       }
     }
 
-    function drawUserPieChart(users) {
-      const canvas = document.getElementById("userPieChart");
+    function drawSegmentedDonut(canvasId, segments, total, centerLabel) {
+      const canvas = document.getElementById(canvasId);
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const w = canvas.width, h = canvas.height;
@@ -4206,20 +4235,14 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      const segments = [
-        { count: users.admin, color: "#6366f1", label: "Admin" },
-        { count: users.lise, color: "#22c55e", label: "Lise" },
-        { count: users.ortaokul, color: "#f59e0b", label: "Ortaokul" },
-        { count: users.diger, color: "#ec4899", label: "Diğer" },
-      ];
-      const total = users.total || 1;
+      const t = total || 1;
       const visible = segments.filter((s) => s.count > 0);
       const gap = visible.length > 1 ? 0.07 : 0;
       const ringR = 52, ringW = 30;
       let startAngle = -Math.PI / 2;
 
       visible.forEach((s) => {
-        const sliceAngle = (s.count / total) * 2 * Math.PI;
+        const sliceAngle = (s.count / t) * 2 * Math.PI;
         const a0 = startAngle + gap / 2;
         const a1 = startAngle + sliceAngle - gap / 2;
         ctx.beginPath();
@@ -4237,10 +4260,10 @@
       ctx.font = "bold 18px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(total, cx, cy - 6);
+      ctx.fillText(t, cx, cy - 6);
       ctx.font = "10px sans-serif";
       ctx.fillStyle = isDarkChart ? "#8d96a9" : "#888";
-      ctx.fillText("Kullanıcı", cx, cy + 14);
+      ctx.fillText(centerLabel, cx, cy + 14);
     }
 
     async function renderAdminSurveys() {
