@@ -3197,18 +3197,18 @@
         const file = files.find((f) => f.id === id);
         const fileName = file ? file.originalName : "Dosya";
 
-        let html = '<div class="content-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h2><i class="fa-solid fa-file-zipper"></i> ' + escHtml(fileName) + '</h2><p>Indirme durumu: ' + data.downloaded + '/' + data.total + ' kullanici indirdi.</p></div>'
+        let html = '<div class="content-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h2><i class="fa-solid fa-file-zipper"></i> ' + escHtml(fileName) + '</h2><p>İndirme durumu: ' + data.downloaded + '/' + data.total + ' kullanıcı indirdi.</p></div>'
           + '<div style="display:flex;gap:10px;">'
           + '<button type="button" class="add-btn add-btn--sm add-btn--gray" onclick="renderAdminFiles()"><span class="add-btn__text">Geri</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></span></button>'
           + '<button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="exportFileCSV(\'' + id + '\')"><span class="add-btn__text">CSV</span><span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="5" x2="12" x1="12"></line><polyline points="6 13 12 19 18 13"></polyline><line y2="21" y1="21" x2="4" x1="20"></line></svg></span></button>'
           + '</div></div>'
-          + '<div class="users-table-wrapper"><table class="users-table"><thead><tr><th>Kullanici</th><th>Rol</th><th>Okul</th><th>İlçe</th><th>Durum</th><th>Indirme Tarihi</th></tr></thead><tbody>';
+          + '<div class="users-table-wrapper"><table class="users-table"><thead><tr><th>Kullanıcı</th><th>Rol</th><th>Okul</th><th>İlçe</th><th>Durum</th><th>İndirme Tarihi</th></tr></thead><tbody>';
         if (data.users.length === 0) {
-          html += '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Hedef kullanici bulunmuyor.</td></tr>';
+          html += '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Hedef kullanıcı bulunmuyor.</td></tr>';
         } else {
           data.users.forEach((u) => {
             const statusClass = u.downloaded ? "ann-tag all" : "ann-tag lise";
-            const statusText = u.downloaded ? "Indirdi" : "Indirmedi";
+            const statusText = u.downloaded ? "İndirdi" : "İndirmedi";
             const date = u.downloadedAt ? new Date(u.downloadedAt).toLocaleDateString("tr-TR") + " " + new Date(u.downloadedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "-";
             html += '<tr style="' + (u.downloaded ? '' : 'opacity:0.6;') + '">'
               + '<td class="cell-email">' + escHtml(u.email) + '</td>'
@@ -3223,7 +3223,7 @@
         html += '</tbody></table></div>';
         area.innerHTML = html;
       } catch {
-        document.getElementById("fileStatusContent").innerHTML = '<div style="color:#dc2626;padding:40px;">Durum yuklenirken hata olustu.</div>';
+        document.getElementById("fileStatusContent").innerHTML = '<div style="color:#dc2626;padding:40px;">Durum yüklenirken hata oluştu.</div>';
       }
     }
 
@@ -3232,7 +3232,7 @@
         const res = await fetch("/api/files/" + id + "/export", {
           headers: { Authorization: "Bearer " + token },
         });
-        if (!res.ok) { alert("CSV export basarisiz."); return; }
+        if (!res.ok) { alert("CSV dışa aktarma başarısız."); return; }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -3314,7 +3314,7 @@
       const isImage = ['jpg','jpeg','png','gif','webp','bmp'].includes(ext);
       const isPdf = ext === 'pdf';
       var name = escHtml(r.originalName);
-      var dlLink = '<a href="#" onclick="downloadRequestAttachment(\'' + r.id + '\');return false;" style="color:#6366f1;font-size:12px;"><i class="fa-solid fa-download"></i> Indir</a>';
+      var dlLink = '<a href="#" onclick="downloadRequestAttachment(\'' + r.id + '\');return false;" style="color:#6366f1;font-size:12px;"><i class="fa-solid fa-download"></i> İndir</a>';
       if (isImage) {
         return '<div style="margin-top:8px;">'
           + '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;"><i class="fa-solid fa-paperclip"></i> ' + name + '</div>'
@@ -3326,7 +3326,7 @@
           + '<div class="attach-preview" data-attach-id="' + r.id + '" data-attach-type="pdf" style="width:100%;max-width:500px;height:300px;border-radius:8px;border:1px solid var(--border);background:#f3f4f6;"></div>'
           + '<br>' + dlLink + '</div>';
       } else {
-        return '<div style="margin-top:8px;"><a href="#" onclick="downloadRequestAttachment(\'' + r.id + '\');return false;" style="color:#6366f1;font-size:13px;"><i class="fa-solid fa-paperclip"></i> ' + name + ' (indir)</a></div>';
+        return '<div style="margin-top:8px;"><a href="#" onclick="downloadRequestAttachment(\'' + r.id + '\');return false;" style="color:#6366f1;font-size:13px;"><i class="fa-solid fa-paperclip"></i> ' + name + ' (İndir)</a></div>';
       }
     }
 
@@ -3378,12 +3378,12 @@
         const res = await fetch("/api/requests/" + id + "/attachment?preview=1", {
           headers: { Authorization: "Bearer " + token },
         });
-        if (!res.ok) { alert("Dosya yuklenemedi."); return; }
+        if (!res.ok) { alert("Dosya yüklenemedi."); return; }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         if (type === "image") {
           const w = window.open("");
-          w.document.write('<html><head><title>Onizleme</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#222;}img{max-width:100%;max-height:100vh;object-fit:contain;}</style></head><body><img src="' + url + '" /></body></html>');
+          w.document.write('<html><head><title>Önizleme</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#222;}img{max-width:100%;max-height:100vh;object-fit:contain;}</style></head><body><img src="' + url + '" /></body></html>');
           setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} }, 60000);
         }
       } catch (e) {
@@ -3412,7 +3412,7 @@
             <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
-        <div id="userRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yukleniyor...</div>
+        <div id="userRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
       await loadUserRequests();
     }
@@ -3496,7 +3496,7 @@
               <p style="font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${escHtml(r.description)}</p>
               ${r.officialDocNo ? '<div style="margin-top:12px;font-size:13px;color:var(--text-2);"><strong>Resmi Yazi No:</strong> ' + escHtml(r.officialDocNo) + '</div>' : ''}
               ${r.hasAttachment ? '<div style="margin-top:12px;">' + buildAttachmentHtml(r) + '</div>' : ''}
-              <div style="margin-top:12px;font-size:12px;color:var(--muted);">Gonderen: ${escHtml(r.submittedBy)}${r.schoolName ? ' (' + escHtml(r.schoolName) + ')' : ''}${r.district ? ' - ' + escHtml(r.district) : ''}</div>
+              <div style="margin-top:12px;font-size:12px;color:var(--muted);">Gönderen: ${escHtml(r.submittedBy)}${r.schoolName ? ' (' + escHtml(r.schoolName) + ')' : ''}${r.district ? ' - ' + escHtml(r.district) : ''}</div>
             </div>
         `;
 
@@ -3507,7 +3507,7 @@
             html += `
               <div style="background:#eef2ff;padding:16px 20px;border-radius:12px;margin-bottom:12px;border-left:3px solid #6366f1;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                  <strong style="font-size:13px;color:#6366f1;"><i class="fa-solid fa-user-shield"></i> Yonetici</strong>
+                  <strong style="font-size:13px;color:#6366f1;"><i class="fa-solid fa-user-shield"></i> Yönetici</strong>
                   <span style="font-size:11px;color:var(--muted);">${respDate}</span>
                 </div>
                 <p style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;margin:0;">${escHtml(resp.message)}</p>
@@ -3541,7 +3541,7 @@
           <div id="createRequestMsg" class="message"></div>
           <form id="createRequestForm" style="display:flex;flex-direction:column;gap:16px;" onsubmit="return false;">
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Talep Turu</label>
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Talep Türü</label>
               <select id="reqType" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;background:var(--surface);color:var(--text);">
                 <option value="talep">Talep</option>
                 <option value="oneri">Öneri</option>
@@ -3550,12 +3550,12 @@
               </select>
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Baslik</label>
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Başlık</label>
               <input type="text" id="reqTitle" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;" placeholder="Talep basligi..." maxlength="200" />
             </div>
             <div>
-              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Aciklama</label>
-              <textarea id="reqDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:120px;resize:vertical;" placeholder="Detayli aciklama..."></textarea>
+              <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Açıklama</label>
+              <textarea id="reqDesc" style="width:100%;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:inherit;min-height:120px;resize:vertical;" placeholder="Detaylı açıklama..."></textarea>
             </div>
             <div>
               <label style="display:block;font-weight:600;font-size:13px;color:var(--text);margin-bottom:6px;">Resmi Yazi No <span style="font-weight:400;color:var(--muted);">(varsa)</span></label>
@@ -3566,7 +3566,7 @@
               <input type="file" id="reqFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);" />
             </div>
             <button type="submit" class="add-btn" onclick="submitRequest()">
-              <span class="add-btn__text">Gonder</span>
+              <span class="add-btn__text">Gönder</span>
               <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span>
             </button>
           </form>
@@ -3582,8 +3582,8 @@
       const docNo = document.getElementById("reqDocNo");
       const fileInput = document.getElementById("reqFile");
 
-      if (!title.value.trim()) { msg.className = "message error show"; msg.textContent = "Baslik zorunlu."; return; }
-      if (!desc.value.trim()) { msg.className = "message error show"; msg.textContent = "Aciklama zorunlu."; return; }
+      if (!title.value.trim()) { msg.className = "message error show"; msg.textContent = "Başlık zorunlu."; return; }
+      if (!desc.value.trim()) { msg.className = "message error show"; msg.textContent = "Açıklama zorunlu."; return; }
       if (fileInput.files[0] && fileInput.files[0].size > 10 * 1024 * 1024) {
         msg.className = "message error show"; msg.textContent = "Dosya boyutu 10 MB'i gecemez."; return;
       }
@@ -3597,7 +3597,7 @@
 
       const submitBtn = document.querySelector('#createRequestMsg')?.parentElement?.querySelector('button[onclick="submitRequest()"]')
         || document.querySelector('button[onclick="submitRequest()"]');
-      if (submitBtn) { submitBtn.disabled = true; setAddBtnLabel(submitBtn, "Gonderiliyor..."); }
+      if (submitBtn) { submitBtn.disabled = true; setAddBtnLabel(submitBtn, "Gönderiliyor..."); }
 
       try {
         const res = await fetch("/api/requests", {
@@ -3608,17 +3608,17 @@
         const data = await res.json();
         if (res.ok) {
           msg.className = "message success show";
-          msg.textContent = "Talebiniz basariyla gonderildi!";
+          msg.textContent = "Talebiniz başarıyla gönderildi!";
           setTimeout(() => renderUserRequests(), 1000);
         } else {
           msg.className = "message error show";
-          msg.textContent = data.error || "Gonderilemedi.";
+          msg.textContent = data.error || "Gönderilemedi.";
         }
       } catch (e) {
         msg.className = "message error show";
-        msg.textContent = "Bir hata olustu: " + e.message;
+        msg.textContent = "Bir hata oluştu: " + e.message;
       } finally {
-        if (submitBtn) { submitBtn.disabled = false; setAddBtnLabel(submitBtn, "Gonder"); }
+        if (submitBtn) { submitBtn.disabled = false; setAddBtnLabel(submitBtn, "Gönder"); }
       }
     }
 
@@ -3718,7 +3718,7 @@
             <label><input type="radio" name="adminReqFilter" value="closed" onchange="setAdminReqFilter(this.value)" /><span><i class="fa-solid fa-archive"></i> Kapalı</span></label>
           </div>
         </div>
-        <div id="adminRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yukleniyor...</div>
+        <div id="adminRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
       `;
       try {
         const cur = window.adminReqFilter || "all";
@@ -3782,7 +3782,7 @@
 
     async function renderAdminRequestDetail(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div class="content-header"><h2>Talep Detayi</h2><p>Yukleniyor...</p></div><div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
+      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p>Yükleniyor...</p></div><div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
       try {
         const res = await fetch("/api/requests/" + id, {
           headers: { Authorization: "Bearer " + token },
@@ -3817,7 +3817,7 @@
               <div style="background:var(--panel);padding:20px;border-radius:12px;margin-bottom:20px;">
               <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
                 <div style="font-size:12px;color:var(--muted);">
-                  <strong>Gonderen:</strong> ${escHtml(r.submittedBy)}
+                  <strong>Gönderen:</strong> ${escHtml(r.submittedBy)}
                   ${r.schoolName ? '<br><strong>Kurum:</strong> ' + escHtml(r.schoolName) : ''}
                   ${r.district ? '<br><strong>İlçe:</strong> ' + escHtml(r.district) : ''}
                   ${r.officialDocNo ? '<br><strong>Resmi Yazi No:</strong> ' + escHtml(r.officialDocNo) : ''}
@@ -3835,7 +3835,7 @@
             html += `
               <div style="background:#eef2ff;padding:16px 20px;border-radius:12px;margin-bottom:12px;border-left:3px solid #6366f1;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                  <strong style="font-size:13px;color:#6366f1;"><i class="fa-solid fa-user-shield"></i> Yonetici</strong>
+                  <strong style="font-size:13px;color:#6366f1;"><i class="fa-solid fa-user-shield"></i> Yönetici</strong>
                   <span style="font-size:11px;color:var(--muted);">${respDate}</span>
                 </div>
                 <p style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;margin:0;">${escHtml(resp.message)}</p>
@@ -3890,11 +3890,11 @@
         const data = await res.json();
         if (res.ok) {
           msg.className = "message success show";
-          msg.textContent = "Cevap gonderildi!";
+          msg.textContent = "Cevap gönderildi!";
           setTimeout(() => renderAdminRequestDetail(id), 1000);
         } else {
           msg.className = "message error show";
-          msg.textContent = data.error || "Gonderilemedi.";
+          msg.textContent = data.error || "Gönderilemedi.";
         }
       } catch (e) {
         msg.className = "message error show";
@@ -3930,11 +3930,11 @@
       container.style.textAlign = "";
       let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;">';
       const cards = [
-        { label: "Toplam Kullanici", value: d.users.total, icon: "fa-users", color: "#6366f1" },
+        { label: "Toplam Kullanıcı", value: d.users.total, icon: "fa-users", color: "#6366f1" },
         { label: "Veri Toplama", value: d.totals.surveys, icon: "fa-square-poll-vertical", color: "#22c55e" },
-        { label: "Yanit", value: d.totals.responses, icon: "fa-reply", color: "#f59e0b" },
-        { label: "Dosya Yukleme", value: d.totals.files, icon: "fa-upload", color: "#a855f7" },
-        { label: "Dosya Indirme", value: d.totals.fileDownloads, icon: "fa-download", color: "#06b6d4" },
+        { label: "Yanıt", value: d.totals.responses, icon: "fa-reply", color: "#f59e0b" },
+        { label: "Dosya Yükleme", value: d.totals.files, icon: "fa-upload", color: "#a855f7" },
+        { label: "Dosya İndirme", value: d.totals.fileDownloads, icon: "fa-download", color: "#06b6d4" },
         { label: "Duyuru", value: d.totals.announcements, icon: "fa-bullhorn", color: "#ef4444" },
         { label: "Ort. Okunma", value: "%" + d.totals.avgReadRate, icon: "fa-eye", color: "#ec4899" },
       ];
@@ -3953,7 +3953,7 @@
         + '<span style="font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.label + '</span>'
         + '<span style="font-weight:600;font-size:13px;color:var(--text);text-align:right;">' + r.count + '</span>'
         + '<span style="font-size:12px;color:var(--muted);text-align:right;">(' + pct + '%)</span></div>';
-      html += '<div class="report-card"><h4><i class="fa-solid fa-users"></i> Kullanici Dagilimi</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
+      html += '<div class="report-card"><h4><i class="fa-solid fa-users"></i> Kullanıcı Dağılımı</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
         + '<canvas id="userPieChart" width="160" height="160"></canvas><div style="width:100%;">';
       const roles = [
         { label: "Admin", count: d.users.admin, color: "#6366f1" },
@@ -3969,7 +3969,7 @@
 
       // 1b) School distribution pie (türe göre)
       const schools = d.schools || { total: 0, resmi: 0, ozel: 0, belirsiz: 0 };
-      html += '<div class="report-card"><h4><i class="fa-solid fa-school"></i> Okul Dagilimi</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
+      html += '<div class="report-card"><h4><i class="fa-solid fa-school"></i> Okul Dağılımı</h4><div style="display:flex;flex-direction:column;align-items:center;gap:12px;">'
         + '<canvas id="schoolPieChart" width="160" height="160"></canvas><div style="width:100%;">';
       const schoolTypes = [
         { label: "Resmi", count: schools.resmi, color: "#16a34a" },
@@ -3984,7 +3984,7 @@
       html += '</div>';
 
       // 2) Daily activity (last 7 days)
-      html += '<div class="report-card"><h4><i class="fa-solid fa-chart-line"></i> Son 7 Gun Aktivite</h4><div style="margin-top:8px;">';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-chart-line"></i> Son 7 Gün Aktivite</h4><div style="margin-top:8px;">';
       const maxDaily = Math.max(...d.dailyActivity.map((a) => a.count), 1);
       d.dailyActivity.forEach((a) => {
         const pct = (a.count / maxDaily) * 100;
@@ -4000,7 +4000,7 @@
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
 
       // 3) Monthly activity
-      html += '<div class="report-card"><h4><i class="fa-solid fa-calendar"></i> Aylik Aktivite</h4><div style="display:flex;align-items:flex-end;gap:6px;margin-top:12px;height:120px;padding:0 4px;">';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-calendar"></i> Aylık Aktivite</h4><div style="display:flex;align-items:flex-end;gap:6px;margin-top:12px;height:120px;padding:0 4px;">';
       const maxMonth = Math.max(...d.monthlyActivity.map((a) => a.count), 1);
       d.monthlyActivity.forEach((a) => {
         const pct = (a.count / maxMonth) * 100;
@@ -4021,7 +4021,7 @@
           + '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:4px;"></div></div>'
           + '<span style="font-size:12px;font-weight:600;color:var(--text);text-align:right;">' + count + '</span></div>';
       };
-      html += '<div class="report-card"><h4><i class="fa-solid fa-bolt"></i> En Cok Yapilan Islemler</h4><div style="margin-top:8px;">';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-bolt"></i> En Çok Yapılan İşlemler</h4><div style="margin-top:8px;">';
       const topActions = d.activityByAction.slice(0, 8);
       const maxAction = Math.max(...topActions.map((a) => a.count), 1);
       const actionColors = ["#6366f1","#22c55e","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#14b8a6"];
@@ -4031,10 +4031,10 @@
       html += '</div></div>';
 
       // 4b) Top login users
-      html += '<div class="report-card"><h4><i class="fa-solid fa-right-to-bracket"></i> En Cok Giris Yapanlar</h4><div style="margin-top:8px;">';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-right-to-bracket"></i> En Çok Giriş Yapanlar</h4><div style="margin-top:8px;">';
       const topLogins = (d.topLogins || []).slice(0, 8);
       if (topLogins.length === 0) {
-        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz giris yapilmamis.</div>';
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henüz giriş yapılmamış.</div>';
       } else {
         const maxLogin = Math.max(...topLogins.map((x) => x.count), 1);
         const loginColors = ["#22c55e","#6366f1","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#14b8a6"];
@@ -4049,9 +4049,9 @@
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;">';
 
       // 5) Survey response rates
-      html += '<div class="report-card"><h4><i class="fa-solid fa-square-poll-vertical"></i> Anket Yanitlama Oranlari</h4><div style="margin-top:8px;">';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-square-poll-vertical"></i> Anket Yanıtlama Oranları</h4><div style="margin-top:8px;">';
       if (d.surveyStats.length === 0) {
-        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz anket bulunmuyor.</div>';
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henüz anket bulunmuyor.</div>';
       } else {
         d.surveyStats.forEach((s) => {
           const barColor = s.rate >= 70 ? "#22c55e" : s.rate >= 40 ? "#f59e0b" : "#ef4444";
@@ -4065,9 +4065,9 @@
       html += '</div></div>';
 
       // 6) Top files
-      html += '<div class="report-card"><h4><i class="fa-solid fa-file-zipper"></i> En Cok Indirilen Dosyalar</h4><div style="margin-top:8px;">';
+      html += '<div class="report-card"><h4><i class="fa-solid fa-file-zipper"></i> En Çok İndirilen Dosyalar</h4><div style="margin-top:8px;">';
       if (d.topFiles.length === 0) {
-        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz dosya yuklenmemis.</div>';
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henüz dosya yüklenmemiş.</div>';
       } else {
         const maxDl = Math.max(...d.topFiles.map((f) => f.downloads), 1);
         d.topFiles.forEach((f) => {
@@ -4081,13 +4081,13 @@
         });
       }
       html += '</div></div></div>';
-      html += '<div style="text-align:center;padding:12px;color:#bbb;font-size:11px;">Raporlar gercek zamanli verilerle olusturulmustur.</div>';
+      html += '<div style="text-align:center;padding:12px;color:#bbb;font-size:11px;">Raporlar gerçek zamanlı verilerle oluşturulmuştur.</div>';
 
       // 7) Anket ilce raporu
       const surveyed = (d.surveyStats || []).filter((s) => s.id);
       html += '<div class="report-card" style="margin-bottom:28px;"><h4><i class="fa-solid fa-map-location-dot"></i> Anket İlçe Raporu</h4>';
       if (surveyed.length === 0) {
-        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henuz anket bulunmuyor.</div>';
+        html += '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henüz anket bulunmuyor.</div>';
       } else {
         html += '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:12px 0;"><div style="flex:1;min-width:220px;max-width:480px;"><select id="districtSurveySelect" class="form-control" onchange="loadDistrictStats()">'
           + surveyed.map((s, i) => '<option value="' + s.id + '">' + escHtml(s.title) + '</option>').join("")

@@ -543,7 +543,7 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
   try {
     const { email, captchaId, captcha } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: "Gecerli bir e-posta adresi girin." });
+      return res.status(400).json({ error: "Geçerli bir e-posta adresi girin." });
     }
     // MEB typo kontrolü: meb.k12.tr'ye benzeyip tam eşleşmeyen domaini erken reddet
     // (admin gibi farklı domainlere izin verilir, sadece bariz typo engellenir)
@@ -563,16 +563,16 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
       }
     }
     if (!captchaId || !captcha) {
-      return res.status(400).json({ error: "Guvenlik kodu gerekli." });
+      return res.status(400).json({ error: "Güvenlik kodu gerekli." });
     }
 
     const stored = captchaStore.get(captchaId);
     if (!stored) {
-      return res.status(400).json({ error: "Guvenlik kodunun süresi dolmus. Yeniden yükleyin.", captchaExpired: true });
+      return res.status(400).json({ error: "Güvenlik kodunun süresi dolmuş. Yeniden yükleyin.", captchaExpired: true });
     }
     if (stored.answer !== captcha.trim()) {
       captchaStore.delete(captchaId);
-      return res.status(400).json({ error: "Guvenlik kodu yanlis.", captchaExpired: true });
+      return res.status(400).json({ error: "Güvenlik kodu yanlİş.", captchaExpired: true });
     }
     captchaStore.delete(captchaId);
 
@@ -600,7 +600,7 @@ app.post("/api/send-otp", otpSendLimiter, async (req, res) => {
     if (lastReq && now - lastReq < OTP_COOLDOWN_MS) {
       const remaining = Math.ceil((OTP_COOLDOWN_MS - (now - lastReq)) / 1000);
       return res.status(429).json({
-        error: `Yeni kod istemek icin ${remaining} saniye bekleyin.`,
+        error: `Yeni kod istemek için ${remaining} saniye bekleyin.`,
         cooldown: remaining,
       });
     }
@@ -681,7 +681,7 @@ app.post("/api/verify-otp", otpVerifyLimiter, (req, res) => {
     tokenPayload.crossRoles = users[normEmail].crossRoles;
   }
   const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: tokenExpiry });
-  appendLog(makeLog("login", normEmail, `${normEmail} basariyla giris yapti.`, req));
+  appendLog(makeLog("login", normEmail, `${normEmail} başarıyla giriş yaptı.`, req));
   res.json({ token, email: normEmail, role: users[normEmail].role, crossRoles: users[normEmail].crossRoles || [] });
 });
 
@@ -859,7 +859,7 @@ app.post("/api/users", (req, res) => {
   const userRole = validRoles.includes(role) ? role : detectRole(email);
   const normOwn = detectOwnership(ownership);
   if (userRole !== "admin" && !normOwn) {
-    return res.status(400).json({ error: "Okul türü gerekli (resmi / ozel)." });
+    return res.status(400).json({ error: "Okul türü gerekli (resmi / özel)." });
   }
 
   const normEmail = email.toLowerCase().trim();
@@ -931,7 +931,7 @@ app.delete("/api/users/clear", (req, res) => {
     }
   }
   saveUsers(users);
-  appendLog(makeLog("user_delete", decoded.email, `${deleted} kullanıcı silindi (admin haric).`, req));
+  appendLog(makeLog("user_delete", decoded.email, `${deleted} kullanıcı silindi (admin hariç).`, req));
   res.json({ deleted });
 });
 
@@ -1124,13 +1124,13 @@ app.post("/api/users/import", (req, res) => {
   const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
   importUpload.single("file")(req, res, (err) => {
     if (err) return res.status(400).json({ error: "Dosya yüklenirken hata: " + err.message });
-    if (!req.file) return res.status(400).json({ error: "Dosya secilmedi." });
+    if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi." });
 
     try {
       const wb = XLSX.read(req.file.buffer, { type: "buffer" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      if (rows.length === 0) return res.status(400).json({ error: "Excel dosyasi bos." });
+      if (rows.length === 0) return res.status(400).json({ error: "Excel dosyası boş." });
 
       const users = loadUsers();
       let added = 0, updated = 0, skipped = 0, errors = [];
@@ -1150,7 +1150,7 @@ app.post("/api/users/import", (req, res) => {
         else if (k === "kurum" || k.includes("kurumad") || k.includes("adi")) colMap.kurum = key;
       }
       if (!colMap.kurumKodu) {
-        return res.status(400).json({ error: "Excel'de 'Kurum Kodu' sutunu bulunamadı." });
+        return res.status(400).json({ error: "Excel'de 'Kurum Kodu' sütunu bulunamadı." });
       }
 
       for (let i = 0; i < rows.length; i++) {
@@ -1649,7 +1649,7 @@ app.post("/api/surveys", (req, res) => {
 
   const { title, description, targetType, targetGroup, targetGroups, targetOwnership, targetRoles, targetUsers, expiresInDays, allowEdit, questions } = req.body;
   if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
-    return res.status(400).json({ error: "Baslik ve en az bir soru gerekli." });
+    return res.status(400).json({ error: "Başlık ve en az bir soru gerekli." });
   }
   const validTargets = ["all", "group", "users"];
   if (!validTargets.includes(targetType)) {
@@ -1690,7 +1690,7 @@ app.post("/api/surveys", (req, res) => {
   };
   list.push(survey);
   saveSurveys(list);
-  appendLog(makeLog("survey_create", decoded.email, `"${title}" anket oluşturuldu.`, req));
+  appendLog(makeLog("survey_create", decoded.email, `"${title}" anketi oluşturuldu.`, req));
   res.status(201).json(survey);
 });
 
@@ -1776,7 +1776,7 @@ app.put("/api/surveys/:id", (req, res) => {
     });
   }
   saveSurveys(list);
-  appendLog(makeLog("survey_edit", decoded.email, `"${list[idx].title}" ankete duzenlendi.`, req));
+  appendLog(makeLog("survey_edit", decoded.email, `"${list[idx].title}" anketi düzenlendi.`, req));
   res.json(list[idx]);
 });
 
@@ -1794,7 +1794,7 @@ app.delete("/api/surveys/:id", (req, res) => {
   const respList = loadResponses();
   const filtered = respList.filter((r) => r.surveyId !== req.params.id);
   if (filtered.length !== respList.length) saveResponses(filtered);
-  appendLog(makeLog("survey_delete", decoded.email, `"${deleted.title}" anket silindi.`, req));
+  appendLog(makeLog("survey_delete", decoded.email, `"${deleted.title}" anketi silindi.`, req));
   res.json({ message: "Anket silindi." });
 });
 
@@ -1854,7 +1854,7 @@ app.post("/api/surveys/:id/respond", (req, res) => {
       return res.status(400).json({ error: `"${q.title}" sorusu için sadece metin girin.` });
     }
     if (q.validation === "uppercase" && val && val !== val.toUpperCase()) {
-      return res.status(400).json({ error: `"${q.title}" sorusunu büyük harfle yazin.` });
+      return res.status(400).json({ error: `"${q.title}" sorusunu büyük harfle yazın.` });
     }
     if (q.validation === "email" && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
       return res.status(400).json({ error: `"${q.title}" geçerli bir e-posta adresi girin.` });
@@ -1891,7 +1891,7 @@ app.post("/api/surveys/:id/respond", (req, res) => {
   }
   saveResponses(respList);
   const isEdit = existingIdx !== -1;
-  appendLog(makeLog(isEdit ? "survey_respond_edit" : "survey_respond", decoded.email, `"${survey.title}" anketine ${isEdit ? "yanıtı düzenlendi" : "yanıtı eklendi"}.`, req));
+  appendLog(makeLog(isEdit ? "survey_respond_edit" : "survey_respond", decoded.email, `"${survey.title}" anketine ${isEdit ? "yanıt düzenlendi" : "yanıt eklendi"}.`, req));
   res.json(entry);
 });
 
@@ -2057,7 +2057,7 @@ app.get("/api/surveys/:id/status/export-xlsx", (req, res) => {
   const ws = XLSX.utils.json_to_sheet(rows);
   ws["!cols"] = [{ wch: 45 }, { wch: 16 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Kullanici Durumu");
+  XLSX.utils.book_append_sheet(wb, ws, "Kullanıcı Durumu");
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -2156,35 +2156,35 @@ app.post("/api/files", (req, res) => {
   fileUpload.single("file")(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
-        if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "Dosya boyutu 10 MB'i gecmemeli." });
-        return res.status(400).json({ error: "Dosya yuklenirken hata: " + err.message });
+        if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "Dosya boyutu 10 MB'ı geçmemeli." });
+        return res.status(400).json({ error: "Dosya yüklenirken hata: " + err.message });
       }
       return res.status(400).json({ error: err.message });
     }
-    if (!req.file) return res.status(400).json({ error: "Dosya secilmedi." });
+    if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi." });
     if (!req.body.description || !req.body.description.trim()) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Aciklama zorunlu." });
+      return res.status(400).json({ error: "Açıklama zorunlu." });
     }
     if (!req.body.startsAt) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Indirme baslangic tarihi zorunlu." });
+      return res.status(400).json({ error: "İndirme başlangİç tarihi zorunlu." });
     }
     if (!req.body.expiresAt) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Indirme bitis tarihi zorunlu." });
+      return res.status(400).json({ error: "İndirme bitiş tarihi zorunlu." });
     }
     if (!Number.isFinite(Number(req.body.startsAt)) || !Number.isFinite(Number(req.body.expiresAt))) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Gecersiz tarih degeri." });
+      return res.status(400).json({ error: "Geçersiz tarih değeri." });
     }
     if (Number(req.body.startsAt) >= Number(req.body.expiresAt)) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Baslangic tarihi bitis tarihinden once olmalidir." });
+      return res.status(400).json({ error: "Başlangİç tarihi bitiş tarihinden önce olmalıdır." });
     }
     if (!["all", "group", "users"].includes(req.body.targetType)) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: "Gecersiz hedef kitle." });
+      return res.status(400).json({ error: "Geçersiz hedef kitle." });
     }
     const fileTg = resolveTargetSelection(req.body.targetType, req.body);
     if (req.body.targetType === "group" && fileTg.groups.length === 0 && fileTg.ownership === null) {
@@ -2216,7 +2216,7 @@ app.post("/api/files", (req, res) => {
     const list = loadFiles();
     list.push(entry);
     saveFiles(list);
-    appendLog(makeLog("file_upload", decoded.email, `"${entry.originalName}" dosyasi yuklendi (${entry.size} bayt).`, req));
+    appendLog(makeLog("file_upload", decoded.email, `"${entry.originalName}" dosyası yüklendi (${entry.size} bayt).`, req));
     res.json(entry);
   });
 });
@@ -2255,7 +2255,7 @@ app.get("/api/files/:id/download", (req, res) => {
   if (!file.downloads.some((d) => d.userId === decoded.email)) {
     file.downloads.push({ userId: decoded.email, downloadedAt: Date.now() });
     saveFiles(all);
-    appendLog(makeLog("file_download", decoded.email, `"${file.originalName}" dosyasi indirildi.`, req));
+    appendLog(makeLog("file_download", decoded.email, `"${file.originalName}" dosyası indirildi.`, req));
   }
 
   res.setHeader("Content-Disposition", contentDisposition(file.originalName));
@@ -2277,7 +2277,7 @@ app.delete("/api/files/:id", (req, res) => {
 
   all.splice(idx, 1);
   saveFiles(all);
-  appendLog(makeLog("file_delete", decoded.email, `"${file.originalName}" dosyasi silindi.`, req));
+  appendLog(makeLog("file_delete", decoded.email, `"${file.originalName}" dosyası silindi.`, req));
   res.json({ success: true });
 });
 
@@ -2346,7 +2346,7 @@ app.get("/api/files/:id/export", (req, res) => {
       };
     });
 
-  const csv = "\uFEFF" + ["Kullanici", "Rol", "Okul", "İlçe", "Indirme Durumu", "Indirme Tarihi"].join(";") + "\r\n"
+  const csv = "\uFEFF" + ["Kullanıcı", "Rol", "Okul", "İlçe", "İndirme Durumu", "İndirme Tarihi"].join(";") + "\r\n"
     + targetUsers.map((u) => {
       const status = u.downloaded ? "Indirdi" : "Indirmedi";
       const date = u.downloadedAt ? new Date(u.downloadedAt).toLocaleDateString("tr-TR") + " " + new Date(u.downloadedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "";
@@ -2629,8 +2629,8 @@ app.post("/api/requests", (req, res) => {
   requestUpload.single("file")(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
-        if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "Dosya boyutu 10 MB'i gecmemeli." });
-        return res.status(400).json({ error: "Dosya yuklenirken hata: " + err.message });
+        if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "Dosya boyutu 10 MB'ı geçmemeli." });
+        return res.status(400).json({ error: "Dosya yüklenirken hata: " + err.message });
       }
       return res.status(400).json({ error: err.message });
     }
@@ -2680,13 +2680,13 @@ app.put("/api/requests/:id", (req, res) => {
   const users = loadUsers();
   const user = users[decoded.email];
   if (!user) return res.status(403).json({ error: "Kullanıcı bulunamadı." });
-  if (user.role === "admin") return res.status(403).json({ error: "Admin talep duzenleyemez." });
+  if (user.role === "admin") return res.status(403).json({ error: "Admin talep düzenleyemez." });
 
   const all = loadRequests();
   const idx = all.findIndex((r) => r.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Talep bulunamadı." });
-  if (all[idx].submittedBy !== decoded.email) return res.status(403).json({ error: "Bu talebi duzenleyemezsiniz." });
-  if (all[idx].status !== "open") return res.status(400).json({ error: "Sadece acik talepler duzenlenebilir." });
+  if (all[idx].submittedBy !== decoded.email) return res.status(403).json({ error: "Bu talebi düzenleyemezsiniz." });
+  if (all[idx].status !== "open") return res.status(400).json({ error: "Sadece açık talepler düzenlenebilir." });
 
   const { title, description, officialDocNo } = req.body;
   if (title) all[idx].title = title.trim();
@@ -2694,7 +2694,7 @@ app.put("/api/requests/:id", (req, res) => {
   if (officialDocNo !== undefined) all[idx].officialDocNo = (officialDocNo || "").trim() || null;
 
   saveRequests(all);
-  appendLog(makeLog("request_edit", decoded.email, `"${all[idx].title}" talebi duzenlendi.`, req));
+  appendLog(makeLog("request_edit", decoded.email, `"${all[idx].title}" talebi düzenlendi.`, req));
   res.json(all[idx]);
 });
 
@@ -2757,7 +2757,7 @@ app.post("/api/requests/:id/respond", (req, res) => {
   }
 
   saveRequests(all);
-  appendLog(makeLog("request_respond", decoded.email, `"${all[idx].title}" talebine cevap verildi${all[idx].status === "closed" ? " ve kapatildi" : ""}.`, req));
+  appendLog(makeLog("request_respond", decoded.email, `"${all[idx].title}" talebine cevap verildi${all[idx].status === "closed" ? " ve kapatıldı" : ""}.`, req));
   res.json({ response, status: all[idx].status });
 });
 
@@ -2843,7 +2843,7 @@ app.get("/api/file-requests", (req, res) => {
 
   const users = loadUsers();
   const user = users[decoded.email];
-  if (!user) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!user) return res.status(403).json({ error: "Kullanıçı bulunamadı." });
 
   const activeRole = resolveRole(user, req);
   const all = loadFileRequests();
@@ -2880,10 +2880,10 @@ app.post("/api/file-requests", (req, res) => {
 
   const { title, description, targetType, targetUsers, expiresInDays } = req.body;
   if (!title || !targetType) {
-    return res.status(400).json({ error: "Baslik ve hedef tipi gerekli." });
+    return res.status(400).json({ error: "Başlık ve hedef tipi gerekli." });
   }
   if (!["all", "group", "users"].includes(targetType)) {
-    return res.status(400).json({ error: "Gecersiz hedef kitle." });
+    return res.status(400).json({ error: "Geçersiz hedef kitle." });
   }
   const frTg = resolveTargetSelection(targetType, req.body);
   if (targetType === "group" && frTg.groups.length === 0 && frTg.ownership === null) {
@@ -2926,7 +2926,7 @@ app.post("/api/file-requests/:id/submit", frUpload.array("files", 10), (req, res
   const user = users[decoded.email];
   if (!user) {
     cleanupUploadedFiles(req);
-    return res.status(403).json({ error: "Kullanici bulunamadi." });
+    return res.status(403).json({ error: "Kullanıçı bulunamadı." });
   }
 
   const activeRole = resolveRole(user, req);
@@ -2934,18 +2934,18 @@ app.post("/api/file-requests/:id/submit", frUpload.array("files", 10), (req, res
   const idx = all.findIndex((fr) => fr.id === req.params.id);
   if (idx === -1) {
     cleanupUploadedFiles(req);
-    return res.status(404).json({ error: "Talep bulunamadi." });
+    return res.status(404).json({ error: "Talep bulunamadı." });
   }
 
   const fr = all[idx];
   if (fr.expiresAt < Date.now()) {
     cleanupUploadedFiles(req);
-    return res.status(400).json({ error: "Bu talebin süresi dolmus." });
+    return res.status(400).json({ error: "Bu talebin süresi dolmuş." });
   }
 
   if (!isFrTargeted(fr, decoded.email, activeRole, getUserOwnership(users, decoded.email))) {
     cleanupUploadedFiles(req);
-    return res.status(403).json({ error: "Bu talep size ait degil." });
+    return res.status(403).json({ error: "Bu talep size ait değil." });
   }
 
   if ((fr.submissions || []).some((s) => s.userEmail === decoded.email)) {
@@ -2955,7 +2955,7 @@ app.post("/api/file-requests/:id/submit", frUpload.array("files", 10), (req, res
 
   if (!req.files || req.files.length === 0) {
     cleanupUploadedFiles(req);
-    return res.status(400).json({ error: "En az bir ZIP dosyasi yükleyin." });
+    return res.status(400).json({ error: "En az bir ZIP dosyası yükleyin." });
   }
 
   if (!fs.existsSync(FILE_REQUESTS_UPLOADS_DIR))
@@ -2995,16 +2995,16 @@ app.get("/api/file-requests/:id", (req, res) => {
 
   const all = loadFileRequests();
   const fr = all.find((fr) => fr.id === req.params.id);
-  if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (!fr) return res.status(404).json({ error: "Talep bulunamadı." });
 
   const allUsers = loadUsers();
   const liveUser = allUsers[decoded.email];
-  if (!liveUser) return res.status(403).json({ error: "Kullanici bulunamadi." });
+  if (!liveUser) return res.status(403).json({ error: "Kullanıçı bulunamadı." });
 
   if (liveUser.role !== "admin") {
     const activeRole = resolveRole(liveUser, req);
     if (!isFrTargeted(fr, decoded.email, activeRole, getUserOwnership(allUsers, decoded.email)))
-      return res.status(403).json({ error: "Bu talep size ait degil." });
+      return res.status(403).json({ error: "Bu talep size ait değil." });
     fr.submissions = (fr.submissions || []).filter((s) => s.userEmail === decoded.email);
   }
 
@@ -3026,7 +3026,7 @@ app.delete("/api/file-requests/:id", (req, res) => {
 
   const all = loadFileRequests();
   const idx = all.findIndex((fr) => fr.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (idx === -1) return res.status(404).json({ error: "Talep bulunamadı." });
 
   const removed = all.splice(idx, 1)[0];
   saveFileRequests(all);
@@ -3046,7 +3046,7 @@ app.get("/api/file-requests/:id/download-all", (req, res) => {
 
   const all = loadFileRequests();
   const fr = all.find((fr) => fr.id === req.params.id);
-  if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (!fr) return res.status(404).json({ error: "Talep bulunamadı." });
 
   const submissions = fr.submissions || [];
   if (submissions.length === 0) return res.status(404).json({ error: "Gönderi yok." });
@@ -3092,10 +3092,10 @@ app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) =
 
   const all = loadFileRequests();
   const fr = all.find((fr) => fr.id === req.params.id);
-  if (!fr) return res.status(404).json({ error: "Talep bulunamadi." });
+  if (!fr) return res.status(404).json({ error: "Talep bulunamadı." });
 
   const sub = (fr.submissions || []).find((s) => s.id === req.params.submissionId);
-  if (!sub) return res.status(404).json({ error: "Gönderi bulunamadi." });
+  if (!sub) return res.status(404).json({ error: "Gönderi bulunamadı." });
 
   // Admin tümünü, okul yalnızca kendi gönderisini indirebilir
   const users = loadUsers();
@@ -3106,10 +3106,10 @@ app.get("/api/file-requests/:id/download/:submissionId/:fileIndex", (req, res) =
 
   const fileIdx = parseInt(req.params.fileIndex, 10);
   const file = sub.files[fileIdx];
-  if (!file) return res.status(404).json({ error: "Dosya bulunamadi." });
+  if (!file) return res.status(404).json({ error: "Dosya bulunamadı." });
 
   const filePath = path.join(FILE_REQUESTS_UPLOADS_DIR, sub.id, file.storedName);
-  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya sunucuda bulunamadi." });
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Dosya sunucuda bulunamadı." });
 
   res.download(filePath, file.originalName);
 });
