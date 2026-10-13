@@ -3927,6 +3927,7 @@
 
     function renderReportsContent(d) {
       const container = document.getElementById("reportsContent");
+      container.style.textAlign = "";
       let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;">';
       const cards = [
         { label: "Toplam Kullanici", value: d.users.total, icon: "fa-users", color: "#6366f1" },
