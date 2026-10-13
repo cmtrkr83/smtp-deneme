@@ -2395,6 +2395,22 @@ app.get("/api/reports", (req, res) => {
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count);
 
+  // Top login users (admin hariç; etiket: okul adı, yoksa e-posta)
+  const loginCounts = {};
+  allLogs.forEach((l) => {
+    if (l.action !== "login" || !l.user) return;
+    loginCounts[l.user] = (loginCounts[l.user] || 0) + 1;
+  });
+  const topLogins = Object.entries(loginCounts)
+    .filter(([email]) => (users[email] || {}).role !== "admin")
+    .map(([email, count]) => ({
+      email,
+      school: (users[email]?.profile?.schoolName) || email,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
   // Survey stats
   const allSurveys = loadSurveys();
   const allResponses = loadResponses();
@@ -2482,6 +2498,7 @@ app.get("/api/reports", (req, res) => {
       diger: roleCounts.diger,
     },
     schools,
+    topLogins,
     monthlyActivity,
     dailyActivity,
     activityByAction,
