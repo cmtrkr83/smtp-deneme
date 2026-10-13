@@ -1187,6 +1187,7 @@ body.dashboard-body::before {
   justify-content: center;
   font-size: 13px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
   border-radius: 10px;
   cursor: pointer;
@@ -1235,6 +1236,15 @@ body.dashboard-body::before {
 .cal-day:focus-visible {
   outline: 2px solid var(--brand-ink);
   outline-offset: 2px;
+}
+/* Sütun aralarında soluk çizgi: başlık + gün hücreleri aynı kolonda kilitlenir (kutu modelini oynatmaz) */
+.cal-grid > :not(:nth-child(7n + 1)) {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--text) 9%, transparent);
+}
+.cal-grid > .cal-day.is-selected:not(:nth-child(7n + 1)) {
+  box-shadow:
+    0 6px 18px rgba(139, 0, 0, 0.4),
+    inset 1px 0 0 color-mix(in srgb, #ffffff 25%, transparent);
 }
 /* Gün detay kartı: hover/odak/dokunma ile açılır */
 .cal-pop {
