@@ -3956,11 +3956,11 @@
       ];
       roles.forEach((r) => {
         const pct = d.users.total > 0 ? Math.round((r.count / d.users.total) * 100) : 0;
-        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-          + '<span style="width:12px;height:12px;border-radius:3px;background:' + r.color + ';flex-shrink:0;"></span>'
-          + '<span style="flex:1;font-size:13px;color:var(--text-2);">' + r.label + '</span>'
-          + '<span style="font-weight:600;font-size:13px;color:var(--text);">' + r.count + '</span>'
-          + '<span style="font-size:12px;color:var(--muted);">(' + pct + '%)</span></div>';
+        html += '<div style="display:grid;grid-template-columns:12px minmax(0,1fr) 44px 56px;align-items:center;gap:10px;margin-bottom:8px;">'
+          + '<span style="width:12px;height:12px;border-radius:3px;background:' + r.color + ';"></span>'
+          + '<span style="font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.label + '</span>'
+          + '<span style="font-weight:600;font-size:13px;color:var(--text);text-align:right;">' + r.count + '</span>'
+          + '<span style="font-size:12px;color:var(--muted);text-align:right;">(' + pct + '%)</span></div>';
       });
       html += '</div></div></div>';
 
@@ -3999,8 +3999,8 @@
       const actionColors = ["#6366f1","#22c55e","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#14b8a6"];
       topActions.forEach((a, i) => {
         const pct = (a.count / maxAction) * 100;
-        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">'
-          + '<span style="flex:1;font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + a.label + '</span>'
+        html += '<div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;align-items:center;gap:10px;margin-bottom:5px;">'
+          + '<span style="font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + a.label + '</span>'
           + '<div style="width:120px;height:18px;background:#f0f0f5;border-radius:4px;overflow:hidden;flex-shrink:0;">'
           + '<div style="height:100%;width:' + pct + '%;background:' + actionColors[i % actionColors.length] + ';border-radius:4px;"></div></div>'
           + '<span style="width:40px;font-size:12px;font-weight:600;color:var(--text);text-align:right;">' + a.count + '</span></div>';
@@ -4034,9 +4034,9 @@
         const maxDl = Math.max(...d.topFiles.map((f) => f.downloads), 1);
         d.topFiles.forEach((f) => {
           const pct = (f.downloads / maxDl) * 100;
-          html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-            + '<i class="fa-solid fa-file-zipper" style="color:#f59e0b;font-size:14px;flex-shrink:0;"></i>'
-            + '<span style="flex:1;font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(f.name) + '</span>'
+          html += '<div style="display:grid;grid-template-columns:14px minmax(0,1fr) 80px 30px;align-items:center;gap:10px;margin-bottom:6px;">'
+            + '<i class="fa-solid fa-file-zipper" style="color:#f59e0b;font-size:14px;"></i>'
+            + '<span style="font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(f.name) + '</span>'
             + '<div style="width:80px;height:18px;background:#f0f0f5;border-radius:4px;overflow:hidden;flex-shrink:0;">'
             + '<div style="height:100%;width:' + pct + '%;background:#f59e0b;border-radius:4px;"></div></div>'
             + '<span style="width:30px;font-size:12px;font-weight:600;color:var(--text);text-align:right;">' + f.downloads + '</span></div>';
@@ -4201,7 +4201,7 @@
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const w = canvas.width, h = canvas.height;
-      const cx = w / 2, cy = h / 2, r = 68;
+      const cx = w / 2, cy = h / 2;
 
       ctx.clearRect(0, 0, w, h);
 
@@ -4212,28 +4212,26 @@
         { count: users.diger, color: "#ec4899", label: "Diğer" },
       ];
       const total = users.total || 1;
+      const visible = segments.filter((s) => s.count > 0);
+      const gap = visible.length > 1 ? 0.07 : 0;
+      const ringR = 52, ringW = 30;
       let startAngle = -Math.PI / 2;
 
-      segments.forEach((s) => {
-        if (s.count === 0) return;
+      visible.forEach((s) => {
         const sliceAngle = (s.count / total) * 2 * Math.PI;
+        const a0 = startAngle + gap / 2;
+        const a1 = startAngle + sliceAngle - gap / 2;
         ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fillStyle = s.color;
-        ctx.fill();
+        ctx.arc(cx, cy, ringR, a0, Math.max(a1, a0 + 0.02));
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = ringW;
+        ctx.lineCap = "butt";
+        ctx.stroke();
         startAngle += sliceAngle;
       });
 
-      // Center hole (donut)
-      const isDarkChart = document.documentElement.dataset.theme === "dark";
-      ctx.beginPath();
-      ctx.arc(cx, cy, 36, 0, 2 * Math.PI);
-      ctx.fillStyle = isDarkChart ? "#1a2233" : "#fff";
-      ctx.fill();
-
       // Center text
+      const isDarkChart = document.documentElement.dataset.theme === "dark";
       ctx.fillStyle = isDarkChart ? "#e9edf5" : "#1a1a2e";
       ctx.font = "bold 18px sans-serif";
       ctx.textAlign = "center";
