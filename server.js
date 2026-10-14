@@ -278,20 +278,49 @@ function resolveExpiresAt(body, defaultDays) {
   if (!Number.isFinite(days) || days <= 0) return { error: "Geçersiz süre." };
   return { at: Date.now() + days * 24 * 60 * 60 * 1000 };
 }
+const MODULE_KEYS = ["announcements", "surveys", "files", "file-requests", "requests", "deliveries"];
 function loadSettings() {
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
       const raw = JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8"));
-      if (raw && typeof raw === "object") return { maintenance: raw.maintenance === true };
+      if (raw && typeof raw === "object") {
+        const modules = {};
+        for (const k of MODULE_KEYS) modules[k] = !raw.modules || raw.modules[k] !== false;
+        return { maintenance: raw.maintenance === true, modules };
+      }
     }
   } catch (_) {}
-  return { maintenance: false };
+  return { maintenance: false, modules: Object.fromEntries(MODULE_KEYS.map((k) => [k, true])) };
 }
 function saveSettings(s) {
-  atomicSaveJson(SETTINGS_FILE, JSON.stringify({ maintenance: !!(s && s.maintenance) }, null, 2));
+  const modules = {};
+  for (const k of MODULE_KEYS) modules[k] = !s || !s.modules || s.modules[k] !== false;
+  atomicSaveJson(SETTINGS_FILE, JSON.stringify({ maintenance: !!(s && s.maintenance), modules }, null, 2));
 }
 function isMaintenanceOn() {
   return loadSettings().maintenance === true;
+}
+function isModuleOpen(key) {
+  return loadSettings().modules[key] !== false;
+}
+// Modul kapisi: kapali modulde admin gecer, digerleri 403 + bilgi mesaji alir
+const MODULE_PREFIXES = [
+  ["/api/announcements", "announcements"],
+  ["/api/surveys", "surveys"],
+  ["/api/files", "files"],
+  ["/api/file-requests", "file-requests"],
+  ["/api/requests", "requests"],
+  ["/api/deliveries", "deliveries"],
+];
+function moduleGuard(req, res, next) {
+  const hit = MODULE_PREFIXES.find(([p]) => req.path.startsWith(p));
+  if (!hit || isModuleOpen(hit[1])) return next();
+  const decoded = authUser(req);
+  if (decoded) {
+    const users = loadUsers();
+    if ((users[decoded.email] || {}).role === "admin") return next();
+  }
+  return res.status(403).json({ error: "Bu modül yönetici tarafından kullanıma kapatılmıştır." });
 }
 function makeLog(action, user, detail, req) {
   return {
@@ -314,6 +343,7 @@ const generalLimiter = rateLimit({
   message: { error: "Çok fazla istek. Lütfen bekleyin." },
 });
 app.use(generalLimiter);
+app.use(moduleGuard);
 
 const otpSendLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -1536,6 +1566,7 @@ const actionLabels = {
   event_delete: "Takvim Etkinliği Silme",
   maintenance_on: "Bakım Modu Açma",
   maintenance_off: "Bakım Modu Kapatma",
+  module_change: "Modül Durumu Değiştirme",
   delivery_generate: "Teslimat Kodu Üretme",
   delivery_assign: "Teslimat Kodu Atama",
   delivery_confirm: "Teslimat Onayı",
@@ -3394,7 +3425,8 @@ app.post("/api/csp-report", (req, res) => {
 
 // ---- Sistem durumu (herkese acik, giris ekrani uyarisi icin) ----
 app.get("/api/status", (req, res) => {
-  res.json({ maintenance: isMaintenanceOn() });
+  const s = loadSettings();
+  res.json({ maintenance: s.maintenance === true, modules: s.modules });
 });
 
 // ---- Ayarlar (admin) ----
@@ -3407,9 +3439,18 @@ app.get("/api/settings", (req, res) => {
 app.put("/api/settings", (req, res) => {
   const decoded = requireAdmin(req, res);
   if (!decoded) return;
+  const prev = loadSettings();
   const next = { maintenance: req.body && req.body.maintenance === true };
+  if (req.body && typeof req.body.modules === "object" && req.body.modules) {
+    next.modules = {};
+    for (const k of MODULE_KEYS) next.modules[k] = req.body.modules[k] !== false;
+  } else {
+    next.modules = prev.modules;
+  }
   saveSettings(next);
   appendLog(makeLog(next.maintenance ? "maintenance_on" : "maintenance_off", decoded.email, next.maintenance ? "Sistem bakıma alındı." : "Sistem tekrar açıldı.", req));
+  const changed = MODULE_KEYS.filter((k) => (prev.modules || {})[k] !== next.modules[k]);
+  if (changed.length) appendLog(makeLog("module_change", decoded.email, `Modül durumu değişti: ${changed.map((k) => k + "=" + (next.modules[k] ? "açık" : "kapalı")).join(", ")}.`, req));
   res.json(next);
 });
 
