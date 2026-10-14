@@ -1543,6 +1543,7 @@ const actionLabels = {
   delivery_lock: "Teslimat Kilidi",
   delivery_delete: "Teslimat Kodu Silme",
   delivery_unassign: "Teslimat Atama İptali",
+  delivery_bulk: "Toplu Teslimat Atama",
 };
 
 app.get("/api/logs", (req, res) => {
@@ -3020,8 +3021,7 @@ app.post("/api/deliveries/delete", (req, res) => {
   res.json({ deleted });
 });
 
-app.post("/api/deliveries/unassign", (req, res) => {
-  const decoded = requireAdmin(req, res);
+app.post("/api/deliveries/unassign", (req, res) => {  const decoded = requireAdmin(req, res);
   if (!decoded) return;
   const code = String((req.body && req.body.code) || "").toUpperCase().trim();
   const data = loadDeliveries();
@@ -3036,6 +3036,36 @@ app.post("/api/deliveries/unassign", (req, res) => {
   saveDeliveries(data);
   appendLog(makeLog("delivery_unassign", decoded.email, `${code} ataması iptal edilip havuza döndü.`, req));
   res.json({ code, status: entry.status });
+});
+
+app.post("/api/deliveries/bulk", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const ownership = ["resmi", "ozel"].includes(req.body && req.body.ownership) ? req.body.ownership : "all";
+  const roles = Array.isArray(req.body && req.body.roles) ? req.body.roles.filter((r) => ["lise", "ortaokul", "diger"].includes(r)) : [];
+  const note = String((req.body && req.body.note) || "").slice(0, 200);
+  const users = loadUsers();
+  const matched = Object.values(users)
+    .filter((u) => u.role !== "admin" && isGroupTargeted({ targetOwnership: ownership, targetRoles: roles }, u.role, ((u.profile || {}).ownership) || ""))
+    .map((u) => u.email)
+    .slice(0, 500);
+  const data = loadDeliveries();
+  const existing = new Set(data.codes.map((c) => c.code));
+  const made = [];
+  for (const email of matched) {
+    const code = newDeliveryCode(existing);
+    if (!code) break;
+    existing.add(code);
+    made.push({
+      code, status: "atanmis", schoolEmail: email, note,
+      createdAt: Date.now(), assignedAt: Date.now(), confirmedAt: null,
+      confirmedBy: null, confirmIp: null, failCount: 0, lockedUntil: 0,
+    });
+  }
+  data.codes.push(...made);
+  saveDeliveries(data);
+  appendLog(makeLog("delivery_bulk", decoded.email, `${made.length} okula toplu kod atandı (${ownership}${roles.length ? " + " + roles.join("+") : ""}).`, req));
+  res.json({ assigned: made.length, codes: made.map((c) => c.code) });
 });
 
 app.get("/api/deliveries/print", async (req, res) => {

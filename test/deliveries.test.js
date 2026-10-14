@@ -6,6 +6,7 @@
 
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("node:path");
 const { startServer, adminToken, userToken } = require("./helpers");
 
@@ -262,8 +263,8 @@ test("onaylanmis kayit cozulmez/silinemez", async () => {
   const d = await adminPost("/api/deliveries/delete", { codes: [code] });
   assert.equal((await d.json()).deleted, 0);
 });
-
-test("confirm 15dk/20 hiz sinirina takilir", async () => {  // Bicim-disi kodlar kilide dokunmaz ama limiter sayacina girer; IP sayaci onceki 10 confirmde.
+test("confirm 15dk/20 hiz sinirina takilir", async () => {
+  // Bicim-disi kodlar kilide dokunmaz ama limiter sayacina girer; IP sayaci onceki 10 confirmde.
   const jwt = require(path.join(__dirname, "..", "node_modules", "jsonwebtoken"));
   const { TEST_SECRET } = require("./helpers");
   const fresh = jwt.sign({ email: "limit@test.local", role: "lise" }, TEST_SECRET, { expiresIn: "10m" });
@@ -278,4 +279,42 @@ test("confirm 15dk/20 hiz sinirina takilir", async () => {  // Bicim-disi kodlar
   }
   assert.equal(sts[0], 400);
   assert.equal(sts[10], 429);
+});
+
+async function bulkAssign(body) {
+  const r = await fetch(srv.base + "/api/deliveries/bulk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify(body),
+  });
+  return { status: r.status, data: await r.json() };
+}
+
+test("bulk filtreye uyan okullara atar, uymayana atmaz", async () => {
+  const users = JSON.parse(fs.readFileSync(path.join(srv.dir, "users.json"), "utf-8"));
+  users["resmi@test.local"] = { email: "resmi@test.local", role: "lise", profile: { ownership: "resmi" }, created: 1, lastLogin: null };
+  users["ozel@test.local"] = { email: "ozel@test.local", role: "ortaokul", profile: { ownership: "ozel" }, created: 1, lastLogin: null };
+  fs.writeFileSync(path.join(srv.dir, "users.json"), JSON.stringify(users, null, 2));
+  const { status, data } = await bulkAssign({ ownership: "resmi", roles: ["lise", "ortaokul"], note: "T" });
+  assert.equal(status, 200);
+  assert.equal(data.assigned, 1);
+  assert.equal(data.codes.length, 1);
+  const list = await (await fetch(srv.base + "/api/deliveries", {
+    headers: { Authorization: "Bearer " + adminToken() },
+  })).json();
+  const got = list.items.filter((x) => x.status === "atanmis" && x.note === "T").map((x) => x.schoolEmail);
+  assert.deepEqual(got, ["resmi@test.local"]);
+});
+
+test("bulk bekleyeni olana da ikinci kodu atar", async () => {
+  const before = (await (await fetch(srv.base + "/api/deliveries", {
+    headers: { Authorization: "Bearer " + adminToken() },
+  })).json()).items.filter((x) => x.schoolEmail === "kullanici@test.local" && x.status === "atanmis").length;
+  const { status, data } = await bulkAssign({ ownership: "all", roles: [] });
+  assert.equal(status, 200);
+  assert.ok(data.assigned >= 3);
+  const after = (await (await fetch(srv.base + "/api/deliveries", {
+    headers: { Authorization: "Bearer " + adminToken() },
+  })).json()).items.filter((x) => x.schoolEmail === "kullanici@test.local" && x.status === "atanmis").length;
+  assert.equal(after, before + 1);
 });
