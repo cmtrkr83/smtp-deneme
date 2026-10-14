@@ -3145,6 +3145,22 @@
             </div>
             <div id="deliveryAssignMsg" class="message" style="margin-top:12px;"></div>
           </div>
+          <div class="report-card">
+            <h4><i class="fa-solid fa-layer-group"></i> Toplu Ata</h4>
+            <p style="font-size:13px;color:var(--muted);margin:0;">Filtreye uyan her okula 1 kod üretilip atanır. Atanan kodlar yazdırma için otomatik işaretlenir.</p>
+            <div id="bulkTarget" style="margin-top:12px;"></div>
+            <div style="margin-top:10px;">
+              <label for="deliveryBulkNote" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Notu (opsiyonel)</label>
+              <input type="text" id="deliveryBulkNote" class="form-control" maxlength="200" placeholder="Örn: 2026 LGS dosyaları" />
+            </div>
+            <div style="margin-top:12px;">
+              <button type="button" class="add-btn" onclick="bulkAssignDeliveries()">
+                <span class="add-btn__text">Üret ve Ata</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+              </button>
+            </div>
+            <div id="deliveryBulkMsg" class="message" style="margin-top:12px;"></div>
+          </div>
         </div>
         <div class="report-card">
           <h4><i class="fa-solid fa-list-check"></i> İzleme</h4>
@@ -3152,9 +3168,10 @@
         </div>
       `;
       await Promise.all([loadDeliveryPool(), loadDeliverySchools(), loadDeliveriesAdmin()]);
+      document.getElementById("bulkTarget").innerHTML = targetSelectorHtml("dl", { ownership: "all", roles: [] });
     }
 
-    async function loadDeliveryPool() {
+    async function loadDeliveryPool(precheck) {
       const box = document.getElementById("deliveryPool");
       if (!box) return;
       try {
@@ -3166,8 +3183,9 @@
           box.innerHTML = '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Havuzda boş kod yok. Üretin.</div>';
           return;
         }
+        const pre = precheck instanceof Set ? precheck : new Set();
         box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;">'
-          + window._deliveryPool.map((c) => '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);border-radius:8px;padding:6px 8px;"><input type="checkbox" class="dl-print" value="' + escHtml(c.code) + '" /> ' + escHtml(c.code) + '</label>').join("")
+          + window._deliveryPool.map((c) => '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);border-radius:8px;padding:6px 8px;"><input type="checkbox" class="dl-print" value="' + escHtml(c.code) + '"' + (pre.has(c.code) ? " checked" : "") + ' /> ' + escHtml(c.code) + '</label>').join("")
           + '</div>';
       } catch {
         box.innerHTML = '<div style="padding:20px;color:#dc2626;">Havuz yüklenemedi.</div>';
@@ -3365,6 +3383,38 @@
             }
           } catch {
             showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
+    }
+
+    async function bulkAssignDeliveries() {
+      const msg = document.getElementById("deliveryBulkMsg");
+      const sel = collectTargetSelection("dl");
+      const note = ((document.getElementById("deliveryBulkNote") || {}).value || "").trim();
+      showConfirmModal({
+        title: "Toplu Ata",
+        message: "Filtreye uyan her okula 1 kod üretilip atanacak. Devam edilsin mi?",
+        confirmText: "Üret ve Ata",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/deliveries/bulk", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ownership: sel.ownership, roles: sel.roles, note }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              showToast(data.assigned + " okula kod atandı.", "success");
+              if (msg) { msg.textContent = ""; msg.className = "message"; }
+              await loadDeliveryPool(new Set(data.codes || []));
+              await loadDeliveriesAdmin();
+            } else if (res.status !== 401 && msg) {
+              msg.textContent = data.error || "Atanamadı.";
+              msg.className = "message error show";
+            }
+          } catch {
+            if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
           }
         },
       });
