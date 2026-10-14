@@ -495,10 +495,16 @@ function getDashboardData(role, users, email) {
     const pendingFr = activeFr.filter((fr) => !(fr.submissions || []).some((s) => s.userEmail === email)).length;
 
     if (roleData[role] && roleData[role].links) {
+      const openUserRequests = loadRequests().filter((r) => r.status === "open" && r.submittedBy === email).length;
       roleData[role].links[0].badge = unreadAnn;
       roleData[role].links[1].badge = unansweredSurveys;
       roleData[role].links[2].badge = undownloadedFiles;
-      roleData[role].links[3].badge = loadRequests().filter((r) => r.status === "open" && r.submittedBy === email).length;
+      roleData[role].links[3].badge = openUserRequests;
+      // Bekleyen iş varsa kart kırmızı + pulse (işlem yapılınca normale döner)
+      if (unreadAnn > 0) roleData[role].links[0].highlight = true;
+      if (unansweredSurveys > 0) roleData[role].links[1].highlight = true;
+      if (undownloadedFiles > 0) roleData[role].links[2].highlight = true;
+      if (openUserRequests > 0) roleData[role].links[3].highlight = true;
       const frLink = roleData[role].links[4];
       if (pendingFr > 0) {
         frLink.badge = pendingFr;
