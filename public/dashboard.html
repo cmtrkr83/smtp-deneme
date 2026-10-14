@@ -459,7 +459,18 @@
         buildSidebar(currentUser.role);
 
         const firstNav = document.querySelector(".nav-item");
-        if (firstNav) firstNav.click();
+        // QR girisi: ?teslimat=KOD varsa teslimat sayfasini kod dolu ac
+        let targetNav = firstNav;
+        try {
+          const tp = (new URLSearchParams(window.location.search).get("teslimat") || "").toUpperCase();
+          if (/^[A-HJ-NP-Z2-9]{6}$/.test(tp)) {
+            window._deliveryPrefill = tp;
+            try { window.history.replaceState(null, "", "/dashboard.html"); } catch {}
+            const delNav = document.querySelector('.nav-item[data-page="deliveries"]');
+            if (delNav) targetNav = delNav;
+          }
+        } catch {}
+        if (targetNav) targetNav.click();
         else renderDashboard();
       } catch {
         document.getElementById("contentArea").innerHTML =
@@ -2967,6 +2978,8 @@
 
     async function renderDeliveries(prefill) {
       const area = document.getElementById("contentArea");
+      const pre = prefill || window._deliveryPrefill || "";
+      window._deliveryPrefill = "";
       area.innerHTML = `
         <div class="content-header">
           <div>
@@ -2979,7 +2992,7 @@
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
             <div style="flex:1;min-width:180px;">
               <label for="deliveryCode" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Kodu</label>
-              ${deliveryCodeInput("deliveryCode", prefill)}
+              ${deliveryCodeInput("deliveryCode", pre)}
             </div>
             <button type="button" class="add-btn" onclick="confirmDelivery()">
               <span class="add-btn__text">Teslim Aldım</span>

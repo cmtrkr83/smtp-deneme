@@ -94,8 +94,16 @@
 
   <script>
     const token = localStorage.getItem("token");
+    // QR girisleri ?next= ile gelir; yalnizca uygulama ici dashboard yoluna donulur (acik yonlendirme yok)
+    function safeNext(fallback) {
+      try {
+        const n = new URLSearchParams(window.location.search).get("next");
+        if (n && n.startsWith("/dashboard.html")) return n;
+      } catch {}
+      return fallback;
+    }
     if (token) {
-      window.location.href = "/dashboard.html";
+      window.location.href = safeNext("/dashboard.html");
     }
 
     let currentEmail = "";
@@ -261,7 +269,7 @@
         if (res.ok) {
           localStorage.setItem("token", data.token);
           showMessage(msg, "Giriş başarılı! Yönlendiriliyor...", "success");
-          setTimeout(() => window.location.replace("/dashboard.html"), 800);
+          setTimeout(() => window.location.replace(safeNext("/dashboard.html")), 800);
         } else {
           if (data.lockout) {
             showMessage(msg, data.lockout + " saniye bekleyin.", "warning");
