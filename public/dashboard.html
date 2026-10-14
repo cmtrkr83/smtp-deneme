@@ -3102,15 +3102,19 @@
               </div>
               <button type="button" class="add-btn add-btn--sm" onclick="generateDeliveryCodes()">
                 <span class="add-btn__text">Üret</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
               </button>
               <button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="printDeliveryLabels()">
                 <span class="add-btn__text">Seçilenleri Yazdır</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
               </button>
               <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteSelectedDeliveryCodes()">
                 <span class="add-btn__text">Seçilenleri Sil</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
               </button>
               <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteAllDeliveryCodes()">
                 <span class="add-btn__text">Tümünü Sil</span>
+                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
               </button>
             </div>
             <div id="deliveryPool" style="margin-top:12px;max-height:260px;overflow-y:auto;">Yükleniyor...</div>
@@ -3133,9 +3137,10 @@
                 <input type="text" id="deliveryNote" class="form-control" maxlength="200" placeholder="Örn: LGS dosyaları" />
               </div>
               <div>
-                <button type="button" class="add-btn" onclick="assignDeliveryCode()">
-                  <span class="add-btn__text">Ata</span>
-                </button>
+            <button type="button" class="add-btn" onclick="assignDeliveryCode()">
+              <span class="add-btn__text">Ata</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
+            </button>
               </div>
             </div>
             <div id="deliveryAssignMsg" class="message" style="margin-top:12px;"></div>
