@@ -469,7 +469,9 @@
             window._deliveryPrefill = tp;
             try { window.history.replaceState(null, "", "/dashboard.html"); } catch {}
             const delNav = document.querySelector('.nav-item[data-page="deliveries"]');
+            const admNav = document.querySelector('.nav-item[data-page="admin-deliveries"]');
             if (delNav) targetNav = delNav;
+            else if (admNav) { targetNav = admNav; window._deliveryAssignPrefill = tp; }
           }
         } catch {}
         if (targetNav) targetNav.click();
@@ -3081,6 +3083,8 @@
 
     async function renderAdminDeliveries() {
       const area = document.getElementById("contentArea");
+      const assignPre = window._deliveryAssignPrefill || "";
+      window._deliveryAssignPrefill = "";
       area.innerHTML = `
         <div class="content-header">
           <div>
@@ -3116,7 +3120,7 @@
               </div>
               <div>
                 <label for="deliveryAssignCode" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Kodu</label>
-                ${deliveryCodeInput("deliveryAssignCode", "")}
+                ${deliveryCodeInput("deliveryAssignCode", assignPre)}
               </div>
               <div>
                 <label for="deliveryNote" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Notu (opsiyonel)</label>

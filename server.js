@@ -331,6 +331,14 @@ const otpVerifyLimiter = rateLimit({
   message: { error: "Çok fazla doğrulama denemesi. Lütfen bekleyin." },
 });
 
+const deliveryConfirmLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Çok fazla onay denemesi. Lütfen bekleyin." },
+});
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
@@ -2830,7 +2838,7 @@ function saveFileRequests(list) {
 }
 
 // Fiziki Teslimat kod havuzu: 6 hane, 32'li alfabe (0/O/1/I yok), benzersiz
-const DELIVERY_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const DELIVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function loadDeliveries() {
   try {
     if (fs.existsSync(DELIVERIES_FILE)) {
@@ -2918,7 +2926,7 @@ function deliveryLockKey(email, req) {
   return email + "|" + clientIp(req);
 }
 
-app.post("/api/deliveries/confirm", (req, res) => {
+app.post("/api/deliveries/confirm", deliveryConfirmLimiter, (req, res) => {
   const decoded = authUser(req);
   if (!decoded) return res.status(401).json({ error: "Token gerekli." });
   const code = String((req.body && req.body.code) || "").toUpperCase().trim();

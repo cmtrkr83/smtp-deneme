@@ -26,8 +26,19 @@ test("admin 10 kod uretir (alfabe + benzersizlik)", async () => {
   assert.equal(new Set(data.codes).size, 10);
 });
 
-test("tokensiz generate 401, non-admin 403", async () => {
-  let r = await fetch(srv.base + "/api/deliveries/generate", {
+test("alfabe 32 karakterdir (L dahil)", async () => {
+  const r = await fetch(srv.base + "/api/deliveries/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ count: 300 }),
+  });
+  assert.equal(r.status, 200);
+  const chars = new Set((await r.json()).codes.join("").split(""));
+  assert.equal(chars.size, 32);
+  assert.ok(chars.has("L"));
+});
+
+test("tokensiz generate 401, non-admin 403", async () => {  let r = await fetch(srv.base + "/api/deliveries/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ count: 1 }),
@@ -170,4 +181,22 @@ test("yedek deliveries.json icerir", async () => {
   const names = dir.files.map((f) => f.path);
   assert.ok(names.includes("data/deliveries.json"));
   assert.ok(names.includes("manifest.json"));
+});
+
+test("confirm 15dk/20 hiz sinirina takilir", async () => {
+  // Bicim-disi kodlar kilide dokunmaz ama limiter sayacina girer; IP sayaci onceki 10 confirmde.
+  const jwt = require(path.join(__dirname, "..", "node_modules", "jsonwebtoken"));
+  const { TEST_SECRET } = require("./helpers");
+  const fresh = jwt.sign({ email: "limit@test.local", role: "lise" }, TEST_SECRET, { expiresIn: "10m" });
+  const sts = [];
+  for (let i = 0; i < 25; i++) {
+    const r = await fetch(srv.base + "/api/deliveries/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + fresh },
+      body: JSON.stringify({ code: "00II" + String(i).padStart(2, "0") }),
+    });
+    sts.push(r.status);
+  }
+  assert.equal(sts[0], 400);
+  assert.equal(sts[10], 429);
 });

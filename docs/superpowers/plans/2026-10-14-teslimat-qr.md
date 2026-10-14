@@ -39,7 +39,7 @@
 
 **Interfaces:**
 - Consumes: `atomicSaveJson` (`server.js:71`), `requireAdmin` (`server.js:786`), `loadUsers`, `appendLog`/`makeLog`, `actionLabels` (yeni anahtarlar `delivery_generate`, `delivery_assign` Türkçe etiketlerle).
-- Produces: `loadDeliveries() -> { codes: [] }` (dosya yoksa `{ codes: [] }` döner); `DELIVERY_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"`; route'lar `POST /api/deliveries/generate`, `GET /api/deliveries/pool`, `POST /api/deliveries/assign`.
+- Produces: `loadDeliveries() -> { codes: [] }` (dosya yoksa `{ codes: [] }` döner); `DELIVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"`; route'lar `POST /api/deliveries/generate`, `GET /api/deliveries/pool`, `POST /api/deliveries/assign`.
 
 - [ ] **Step 1: Write the failing test**
 
