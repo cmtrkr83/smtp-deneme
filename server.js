@@ -2912,6 +2912,79 @@ app.post("/api/deliveries/assign", (req, res) => {
   res.json({ code, status: entry.status, schoolEmail, note });
 });
 
+const DELIVERY_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
+const DELIVERY_LOCK_MS = 15 * 60 * 1000;
+function deliveryLockKey(email, req) {
+  return email + "|" + clientIp(req);
+}
+
+app.post("/api/deliveries/confirm", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+  const code = String((req.body && req.body.code) || "").toUpperCase().trim();
+  if (!DELIVERY_CODE_RE.test(code)) {
+    return res.status(400).json({ error: "Kod 6 haneli harf/rakam olmalı." });
+  }
+  const data = loadDeliveries();
+  if (!data.locks) data.locks = {};
+  const key = deliveryLockKey(decoded.email, req);
+  const lock = data.locks[key];
+  if (lock && lock.lockedUntil > Date.now()) {
+    return res.status(429).json({ error: "Çok fazla yanlış deneme. 15 dakika bekleyin." });
+  }
+  const entry = data.codes.find((c) => c.code === code);
+  if (!entry || entry.status === "bos") {
+    const cur = data.locks[key] || { failCount: 0, lockedUntil: 0 };
+    cur.failCount += 1;
+    if (cur.failCount >= 5) {
+      cur.lockedUntil = Date.now() + DELIVERY_LOCK_MS;
+      cur.failCount = 0;
+      data.locks[key] = cur;
+      saveDeliveries(data);
+      appendLog(makeLog("delivery_lock", decoded.email, `${decoded.email} 5 yanlış denemeden kilitlendi.`, req));
+      return res.status(429).json({ error: "Çok fazla yanlış deneme. 15 dakika bekleyin." });
+    }
+    data.locks[key] = cur;
+    saveDeliveries(data);
+    appendLog(makeLog("delivery_fail", decoded.email, `${code} kodu bulunamadı.`, req));
+    return res.status(404).json({ error: "Kod bulunamadı." });
+  }
+  if (entry.schoolEmail !== decoded.email) {
+    return res.status(403).json({ error: "Bu kod size atanmadı." });
+  }
+  if (entry.status !== "atanmis") {
+    return res.status(400).json({ error: "Kod zaten kullanılmış." });
+  }
+  entry.status = "teslim_alindi";
+  entry.confirmedAt = Date.now();
+  entry.confirmedBy = decoded.email;
+  entry.confirmIp = clientIp(req);
+  delete data.locks[key];
+  saveDeliveries(data);
+  appendLog(makeLog("delivery_confirm", decoded.email, `${code} paketi teslim alındı.`, req));
+  res.json({ code, status: entry.status, note: entry.note });
+});
+
+app.get("/api/deliveries/mine", (req, res) => {
+  const decoded = authUser(req);
+  if (!decoded) return res.status(401).json({ error: "Token gerekli." });
+  const items = loadDeliveries().codes
+    .filter((c) => c.schoolEmail === decoded.email)
+    .map((c) => ({ code: c.code, status: c.status, note: c.note, schoolEmail: c.schoolEmail, assignedAt: c.assignedAt, confirmedAt: c.confirmedAt }));
+  res.json({ items });
+});
+
+app.get("/api/deliveries", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const items = loadDeliveries().codes.map((c) => ({
+    code: c.code, status: c.status, schoolEmail: c.schoolEmail, note: c.note,
+    createdAt: c.createdAt, assignedAt: c.assignedAt, confirmedAt: c.confirmedAt,
+    confirmedBy: c.confirmedBy, confirmIp: c.confirmIp,
+  }));
+  res.json({ items });
+});
+
 const frTempDir = path.join(FILE_REQUESTS_UPLOADS_DIR, "temp");
 if (!fs.existsSync(frTempDir)) fs.mkdirSync(frTempDir, { recursive: true });
 // Belge İstekleri teslimi: yalnızca .zip, dosya başına en fazla 10 MB (en fazla 10 dosya route'ta denetlenir)
