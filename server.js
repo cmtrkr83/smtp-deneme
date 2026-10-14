@@ -2978,7 +2978,7 @@ app.get("/api/deliveries/mine", (req, res) => {
   if (!decoded) return res.status(401).json({ error: "Token gerekli." });
   const items = loadDeliveries().codes
     .filter((c) => c.schoolEmail === decoded.email)
-    .map((c) => ({ code: c.code, status: c.status, note: c.note, schoolEmail: c.schoolEmail, assignedAt: c.assignedAt, confirmedAt: c.confirmedAt }));
+    .map((c) => ({ code: c.status === "teslim_alindi" ? c.code : c.code.slice(0, 2) + "••••", status: c.status, note: c.note, schoolEmail: c.schoolEmail, assignedAt: c.assignedAt, confirmedAt: c.confirmedAt }));
   res.json({ items });
 });
 

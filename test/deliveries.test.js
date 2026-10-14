@@ -137,14 +137,44 @@ test("5 yanlisda 15 dk kilit (dogru kod bile 429)", async () => {
 });
 
 test("mine yalniz kendi paketlerini listeler", async () => {
-  const code = await freshCode("benim");
+  await freshCode("benim");
   const r = await fetch(srv.base + "/api/deliveries/mine", {
     headers: { Authorization: "Bearer " + userToken() },
   });
   assert.equal(r.status, 200);
   const data = await r.json();
-  assert.ok(data.items.some((x) => x.code === code));
+  assert.ok(data.items.some((x) => x.note === "benim"));
   assert.ok(data.items.every((x) => x.schoolEmail === "kullanici@test.local"));
+});
+
+test("mine onaylanmamis kodu maskeli doner", async () => {
+  const g = await fetch(srv.base + "/api/deliveries/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ count: 1 }),
+  });
+  const code = (await g.json()).codes[0];
+  await fetch(srv.base + "/api/deliveries/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code, schoolEmail: "admin@test.local", note: "maskeli" }),
+  });
+  const authH = { Authorization: "Bearer " + adminToken() };
+  let r = await fetch(srv.base + "/api/deliveries/mine", { headers: authH });
+  let item = (await r.json()).items.find((x) => x.note === "maskeli");
+  assert.ok(item);
+  assert.notEqual(item.code, code);
+  assert.equal(item.code.length, 6);
+  assert.ok(item.code.startsWith(code.slice(0, 2)));
+  r = await fetch(srv.base + "/api/deliveries/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code }),
+  });
+  assert.equal(r.status, 200);
+  r = await fetch(srv.base + "/api/deliveries/mine", { headers: authH });
+  item = (await r.json()).items.find((x) => x.note === "maskeli");
+  assert.equal(item.code, code);
 });
 
 test("print yalniz bos kodlari QR ile doner", async () => {  const g = await fetch(srv.base + "/api/deliveries/generate", {
