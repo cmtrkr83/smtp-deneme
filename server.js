@@ -459,6 +459,7 @@ function getDashboardData(role, users, email) {
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
         { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Talep ve itirazlarınızı iletin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
+        { title: "Fiziki Teslimat", url: "/navigate/deliveries", icon: "fa-box-open", desc: "Paket teslimatlarını onaylayın" },
       ],
     },
     ortaokul: {
@@ -470,6 +471,7 @@ function getDashboardData(role, users, email) {
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
         { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Talep ve itirazlarınızı iletin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
+        { title: "Fiziki Teslimat", url: "/navigate/deliveries", icon: "fa-box-open", desc: "Paket teslimatlarını onaylayın" },
       ],
     },
     diger: {
@@ -481,6 +483,7 @@ function getDashboardData(role, users, email) {
         { title: "Dosya Dağıtım", url: "/navigate/files", icon: "fa-folder-open", desc: "Dağıtılan dosyaları indirin" },
         { title: "Talep/İtiraz", url: "/navigate/requests", icon: "fa-paper-plane", desc: "Talep ve itirazlarınızı iletin" },
         { title: "Belge İstekleri", url: "/navigate/file-requests", icon: "fa-file-arrow-up", desc: "İstenen belgeleri yükleyin" },
+        { title: "Fiziki Teslimat", url: "/navigate/deliveries", icon: "fa-box-open", desc: "Paket teslimatlarını onaylayın" },
       ],
     },
   };
@@ -503,6 +506,8 @@ function getDashboardData(role, users, email) {
     const activeFr = allFr.filter((fr) => fr.expiresAt > now && isFrTargeted(fr, email, role, getUserOwnership(users, email)));
     const pendingFr = activeFr.filter((fr) => !(fr.submissions || []).some((s) => s.userEmail === email)).length;
 
+    const pendingDeliveries = loadDeliveries().codes.filter((c) => c.schoolEmail === email && c.status === "atanmis").length;
+
     if (roleData[role] && roleData[role].links) {
       const openUserRequests = loadRequests().filter((r) => r.status === "open" && r.submittedBy === email).length;
       roleData[role].links[0].badge = unreadAnn;
@@ -520,6 +525,11 @@ function getDashboardData(role, users, email) {
         frLink.highlight = true;
       } else {
         roleData[role].links.splice(4, 1);
+      }
+      const dlLink = roleData[role].links.find((l) => l.url === "/navigate/deliveries");
+      if (dlLink && pendingDeliveries > 0) {
+        dlLink.badge = pendingDeliveries;
+        dlLink.highlight = true;
       }
     }
   }
@@ -1531,6 +1541,8 @@ const actionLabels = {
   delivery_confirm: "Teslimat Onayı",
   delivery_fail: "Teslimat Başarısız Deneme",
   delivery_lock: "Teslimat Kilidi",
+  delivery_delete: "Teslimat Kodu Silme",
+  delivery_unassign: "Teslimat Atama İptali",
 };
 
 app.get("/api/logs", (req, res) => {
@@ -2991,6 +3003,39 @@ app.get("/api/deliveries", (req, res) => {
     confirmedBy: c.confirmedBy, confirmIp: c.confirmIp,
   }));
   res.json({ items });
+});
+
+app.post("/api/deliveries/delete", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const wanted = Array.isArray(req.body && req.body.codes) ? req.body.codes.map((s) => String(s).toUpperCase().trim()) : [];
+  if (wanted.length === 0) return res.status(400).json({ error: "En az bir kod gerekli." });
+  const data = loadDeliveries();
+  const want = new Set(wanted);
+  const before = data.codes.length;
+  data.codes = data.codes.filter((c) => !(c.status === "bos" && want.has(c.code)));
+  const deleted = before - data.codes.length;
+  saveDeliveries(data);
+  appendLog(makeLog("delivery_delete", decoded.email, `${deleted} boş kod silindi.`, req));
+  res.json({ deleted });
+});
+
+app.post("/api/deliveries/unassign", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const code = String((req.body && req.body.code) || "").toUpperCase().trim();
+  const data = loadDeliveries();
+  const entry = data.codes.find((c) => c.code === code);
+  if (!entry) return res.status(404).json({ error: "Kod bulunamadı." });
+  if (entry.status === "teslim_alindi") return res.status(400).json({ error: "Onaylanmış kayıt çözülemez." });
+  if (entry.status !== "atanmis") return res.status(400).json({ error: "Kod zaten havuzda." });
+  entry.status = "bos";
+  entry.schoolEmail = null;
+  entry.note = "";
+  entry.assignedAt = null;
+  saveDeliveries(data);
+  appendLog(makeLog("delivery_unassign", decoded.email, `${code} ataması iptal edilip havuza döndü.`, req));
+  res.json({ code, status: entry.status });
 });
 
 app.get("/api/deliveries/print", async (req, res) => {

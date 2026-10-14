@@ -853,7 +853,7 @@
         ];
         html += `<div class="overview-split"><div>`;
         html += `<div class="section-title"><i class="fa-solid fa-link"></i> Hızlı Erişim</div>`;
-        const modulePages = ["announcements", "surveys", "files", "file-requests", "requests"];
+        const modulePages = ["announcements", "surveys", "files", "file-requests", "requests", "deliveries"];
         const linkCard = (l, i) => {
           const isNav = l.url.startsWith("/navigate/");
           const badge = l.badge > 0 ? `<span class="card-badge">${l.badge}</span>` : "";
@@ -3106,6 +3106,12 @@
               <button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="printDeliveryLabels()">
                 <span class="add-btn__text">Seçilenleri Yazdır</span>
               </button>
+              <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteSelectedDeliveryCodes()">
+                <span class="add-btn__text">Seçilenleri Sil</span>
+              </button>
+              <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteAllDeliveryCodes()">
+                <span class="add-btn__text">Tümünü Sil</span>
+              </button>
             </div>
             <div id="deliveryPool" style="margin-top:12px;max-height:260px;overflow-y:auto;">Yükleniyor...</div>
             <div id="deliveryPoolMsg" class="message" style="margin-top:12px;"></div>
@@ -3255,13 +3261,16 @@
         const fmtD = (ts) => ts ? new Date(ts).toLocaleDateString("tr-TR") : "-";
         box.style.textAlign = "";
         box.innerHTML = '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
-          + '<th>Kod</th><th>Okul</th><th>Paket</th><th>Durum</th><th>Atanma</th><th>Onay</th></tr></thead><tbody>'
+          + '<th>Kod</th><th>Okul</th><th>Paket</th><th>Durum</th><th>Atanma</th><th>Onay</th><th style="text-align:right;">İşlem</th></tr></thead><tbody>'
           + items.map((x) => '<tr><td style="font-weight:700;letter-spacing:2px;">' + escHtml(x.code) + '</td>'
             + '<td class="cell-email">' + escHtml(x.schoolEmail || "-") + '</td>'
             + '<td style="font-size:12px;">' + escHtml(x.note || "-") + '</td>'
             + '<td>' + (stLabel[x.status] || x.status) + '</td>'
             + '<td class="cell-date">' + fmtD(x.assignedAt) + '</td>'
-            + '<td class="cell-date">' + fmtD(x.confirmedAt) + '</td></tr>').join("")
+            + '<td class="cell-date">' + fmtD(x.confirmedAt) + '</td>'
+            + '<td style="text-align:right;">' + (x.status === "atanmis"
+              ? '<button class="btn-icon btn-icon-danger" onclick="unassignDeliveryCode(\'' + escHtml(x.code) + '\')" title="Atamayı sil, havuza döndür"><i class="fa-solid fa-trash-can"></i></button>'
+              : "") + '</td></tr>').join("")
           + '</tbody></table></div>';
       } catch {
         box.innerHTML = '<div style="padding:20px;color:#dc2626;">Liste yüklenemedi.</div>';
@@ -3280,8 +3289,83 @@
         + '.label-cap{font-size:8pt;color:#555;margin-top:1mm;}</style>';
     }
 
-    async function printDeliveryLabels() {
+    async function runDeliveryDelete(codes) {
+      try {
+        const res = await apiFetch("/api/deliveries/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codes }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          showToast(data.deleted + " kod silindi.", "success");
+          await Promise.all([loadDeliveryPool(), loadDeliveriesAdmin()]);
+        } else if (res.status !== 401) {
+          showToast(data.error || "Silinemedi.", "error");
+        }
+      } catch {
+        showToast("Bağlantı hatası.", "error");
+      }
+    }
+
+    async function deleteSelectedDeliveryCodes() {
       const checked = [...document.querySelectorAll(".dl-print:checked")].map((c) => c.value);
+      if (checked.length === 0) { showToast("Silmek için kod seçin.", "error"); return; }
+      showConfirmModal({
+        title: "Kodları Sil",
+        message: checked.length + " kod havuzdan silinecek. Atanmış ve onaylılara dokunulmaz. Devam edilsin mi?",
+        confirmText: "Sil",
+        onConfirm: () => runDeliveryDelete(checked),
+      });
+    }
+
+    async function deleteAllDeliveryCodes() {
+      showConfirmModal({
+        title: "Tümünü Sil",
+        message: "Havuzdaki tüm BOŞ kodlar silinecek. Atanmış ve onaylılara dokunulmaz. Devam edilsin mi?",
+        confirmText: "Tümünü Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/deliveries/pool?limit=500");
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const codes = (data.codes || []).map((c) => c.code);
+            if (codes.length === 0) { showToast("Havuzda kod yok.", "error"); return; }
+            await runDeliveryDelete(codes);
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
+    }
+
+    async function unassignDeliveryCode(code) {
+      showConfirmModal({
+        title: "Atamayı Sil",
+        message: code + " kodunun ataması silinip havuza dönecek. Devam edilsin mi?",
+        confirmText: "Sil",
+        onConfirm: async () => {
+          try {
+            const res = await apiFetch("/api/deliveries/unassign", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              showToast("Atama silindi, kod havuzda.", "success");
+              await Promise.all([loadDeliveryPool(), loadDeliveriesAdmin()]);
+            } else if (res.status !== 401) {
+              showToast(data.error || "Silinemedi.", "error");
+            }
+          } catch {
+            showToast("Bağlantı hatası.", "error");
+          }
+        },
+      });
+    }
+
+    async function printDeliveryLabels() {      const checked = [...document.querySelectorAll(".dl-print:checked")].map((c) => c.value);
       if (checked.length === 0) { showToast("Yazdırmak için kod seçin.", "error"); return; }
       try {
         const res = await apiFetch("/api/deliveries/print?codes=" + checked.join(","));

@@ -213,8 +213,57 @@ test("yedek deliveries.json icerir", async () => {
   assert.ok(names.includes("manifest.json"));
 });
 
-test("confirm 15dk/20 hiz sinirina takilir", async () => {
-  // Bicim-disi kodlar kilide dokunmaz ama limiter sayacina girer; IP sayaci onceki 10 confirmde.
+async function adminPost(p, body) {
+  return fetch(srv.base + p, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify(body),
+  });
+}
+
+test("toplu sil yalniz bos kodlari siler", async () => {
+  const codes = (await (await adminPost("/api/deliveries/generate", { count: 2 })).json()).codes;
+  await adminPost("/api/deliveries/assign", { code: codes[0], schoolEmail: "kullanici@test.local", note: "" });
+  const r = await adminPost("/api/deliveries/delete", { codes });
+  assert.equal(r.status, 200);
+  const data = await r.json();
+  assert.equal(data.deleted, 1);
+  const pool = await (await fetch(srv.base + "/api/deliveries/pool", {
+    headers: { Authorization: "Bearer " + adminToken() },
+  })).json();
+  assert.ok(!pool.codes.some((c) => c.code === codes[1]));
+});
+
+test("unassign atamayi havuza dondurur", async () => {
+  const code = (await (await adminPost("/api/deliveries/generate", { count: 1 })).json()).codes[0];
+  await adminPost("/api/deliveries/assign", { code, schoolEmail: "kullanici@test.local", note: "X" });
+  const r = await adminPost("/api/deliveries/unassign", { code });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).status, "bos");
+  const list = await (await fetch(srv.base + "/api/deliveries", {
+    headers: { Authorization: "Bearer " + adminToken() },
+  })).json();
+  const back = list.items.find((x) => x.code === code);
+  assert.ok(back);
+  assert.equal(back.status, "bos");
+  assert.equal(back.schoolEmail, null);
+});
+
+test("onaylanmis kayit cozulmez/silinemez", async () => {
+  const code = (await (await adminPost("/api/deliveries/generate", { count: 1 })).json()).codes[0];
+  await adminPost("/api/deliveries/assign", { code, schoolEmail: "admin@test.local", note: "" });
+  await fetch(srv.base + "/api/deliveries/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code }),
+  });
+  const u = await adminPost("/api/deliveries/unassign", { code });
+  assert.equal(u.status, 400);
+  const d = await adminPost("/api/deliveries/delete", { codes: [code] });
+  assert.equal((await d.json()).deleted, 0);
+});
+
+test("confirm 15dk/20 hiz sinirina takilir", async () => {  // Bicim-disi kodlar kilide dokunmaz ama limiter sayacina girer; IP sayaci onceki 10 confirmde.
   const jwt = require(path.join(__dirname, "..", "node_modules", "jsonwebtoken"));
   const { TEST_SECRET } = require("./helpers");
   const fresh = jwt.sign({ email: "limit@test.local", role: "lise" }, TEST_SECRET, { expiresIn: "10m" });

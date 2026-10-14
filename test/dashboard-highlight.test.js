@@ -7,7 +7,7 @@ const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { startServer, userToken } = require("./helpers");
+const { startServer, adminToken, userToken } = require("./helpers");
 
 let srv;
 before(async () => { srv = await startServer(4109); });
@@ -58,4 +58,29 @@ test("islemler yapilinca highlight kalkar", async () => {
   assert.equal(byTitle(data, "Veri Toplama").highlight, undefined);
   assert.equal(byTitle(data, "Dosya Dağıtım").highlight, undefined);
   assert.equal(byTitle(data, "Talep/İtiraz").highlight, undefined);
+});
+
+test("atanmis paketde Fiziki Teslimat highlight olur, onayda soner", async () => {
+  const g = await fetch(srv.base + "/api/deliveries/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ count: 1 }),
+  });
+  const code = (await g.json()).codes[0];
+  await fetch(srv.base + "/api/deliveries/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code, schoolEmail: ME, note: "" }),
+  });
+  let data = await dashboard();
+  const card = byTitle(data, "Fiziki Teslimat");
+  assert.equal(card.highlight, true);
+  assert.equal(card.badge, 1);
+  await fetch(srv.base + "/api/deliveries/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + userToken() },
+    body: JSON.stringify({ code }),
+  });
+  data = await dashboard();
+  assert.equal(byTitle(data, "Fiziki Teslimat").highlight, undefined);
 });
