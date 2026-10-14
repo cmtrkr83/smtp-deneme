@@ -27,6 +27,7 @@ function seedDataDir(dir) {
     "requests.json": { requests: [] },
     "logs.json": { logs: [] },
     "files.json": { files: [] },
+    "deliveries.json": { codes: [] },
   };
   for (const [name, obj] of Object.entries(files)) {
     fs.writeFileSync(path.join(dir, name), JSON.stringify(obj, null, 2));

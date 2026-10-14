@@ -3342,6 +3342,7 @@ const BACKUP_SECTIONS = {
   requests: { label: "Talep/İtiraz", files: ["requests.json"], uploadSubdirs: ["requests"] },
   logs: { label: "Log Kayıtları", files: ["logs.json"], uploadSubdirs: [] },
   settings: { label: "Sistem Ayarları", files: ["settings.json"], uploadSubdirs: [] },
+  deliveries: { label: "Teslimatlar", files: ["deliveries.json"], uploadSubdirs: [] },
 };
 const BACKUP_TMP_DIR = path.join(DATA_DIR, "tmp");
 const BACKUP_SNAP_DIR = path.join(DATA_DIR, "backups");

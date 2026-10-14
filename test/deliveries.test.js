@@ -6,6 +6,7 @@
 
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
+const path = require("node:path");
 const { startServer, adminToken, userToken } = require("./helpers");
 
 let srv;
@@ -135,8 +136,7 @@ test("mine yalniz kendi paketlerini listeler", async () => {
   assert.ok(data.items.every((x) => x.schoolEmail === "kullanici@test.local"));
 });
 
-test("print yalniz bos kodlari QR ile doner", async () => {
-  const g = await fetch(srv.base + "/api/deliveries/generate", {
+test("print yalniz bos kodlari QR ile doner", async () => {  const g = await fetch(srv.base + "/api/deliveries/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
     body: JSON.stringify({ count: 3 }),
@@ -155,4 +155,19 @@ test("print yalniz bos kodlari QR ile doner", async () => {
   assert.equal(data.items.length, 2);
   assert.ok(data.items.every((x) => x.qr.startsWith("data:image/png;base64,")));
   assert.deepEqual(data.items.map((x) => x.code).sort(), [codes[1], codes[2]].sort());
+});
+
+test("yedek deliveries.json icerir", async () => {
+  const unzipper = require(path.join(__dirname, "..", "node_modules", "unzipper"));
+  const r = await fetch(srv.base + "/api/backup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ sections: ["deliveries"] }),
+  });
+  assert.equal(r.status, 200);
+  const buf = Buffer.from(await r.arrayBuffer());
+  const dir = await unzipper.Open.buffer(buf);
+  const names = dir.files.map((f) => f.path);
+  assert.ok(names.includes("data/deliveries.json"));
+  assert.ok(names.includes("manifest.json"));
 });
