@@ -134,3 +134,25 @@ test("mine yalniz kendi paketlerini listeler", async () => {
   assert.ok(data.items.some((x) => x.code === code));
   assert.ok(data.items.every((x) => x.schoolEmail === "kullanici@test.local"));
 });
+
+test("print yalniz bos kodlari QR ile doner", async () => {
+  const g = await fetch(srv.base + "/api/deliveries/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ count: 3 }),
+  });
+  const codes = (await g.json()).codes;
+  await fetch(srv.base + "/api/deliveries/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code: codes[0], schoolEmail: "kullanici@test.local", note: "" }),
+  });
+  const r = await fetch(srv.base + "/api/deliveries/print?codes=" + codes.join(","), {
+    headers: { Authorization: "Bearer " + adminToken() },
+  });
+  assert.equal(r.status, 200);
+  const data = await r.json();
+  assert.equal(data.items.length, 2);
+  assert.ok(data.items.every((x) => x.qr.startsWith("data:image/png;base64,")));
+  assert.deepEqual(data.items.map((x) => x.code).sort(), [codes[1], codes[2]].sort());
+});

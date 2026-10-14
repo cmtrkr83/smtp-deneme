@@ -2985,6 +2985,24 @@ app.get("/api/deliveries", (req, res) => {
   res.json({ items });
 });
 
+app.get("/api/deliveries/print", async (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const wanted = String(req.query.codes || "").toUpperCase().split(",").map((s) => s.trim()).filter(Boolean).slice(0, 48);
+  if (wanted.length === 0) return res.status(400).json({ error: "En az bir kod gerekli." });
+  const byCode = new Map(loadDeliveries().codes.map((c) => [c.code, c]));
+  const base = (process.env.PUBLIC_BASE_URL || (req.protocol + "://" + req.get("host") || "")).replace(/\/$/, "");
+  const QRCode = require("qrcode");
+  const items = [];
+  for (const code of wanted) {
+    const entry = byCode.get(code);
+    if (!entry || entry.status !== "bos") continue;
+    const qr = await QRCode.toDataURL(base + "/dashboard.html?teslimat=" + code, { width: 200, margin: 1 });
+    items.push({ code, qr });
+  }
+  res.json({ items });
+});
+
 const frTempDir = path.join(FILE_REQUESTS_UPLOADS_DIR, "temp");
 if (!fs.existsSync(frTempDir)) fs.mkdirSync(frTempDir, { recursive: true });
 // Belge İstekleri teslimi: yalnızca .zip, dosya başına en fazla 10 MB (en fazla 10 dosya route'ta denetlenir)
