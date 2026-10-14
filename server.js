@@ -61,6 +61,7 @@ const ANNOUNCEMENTS_FILE = path.join(DATA_DIR, "announcements.json");
 const LOGS_FILE = path.join(DATA_DIR, "logs.json");
 const FILES_FILE = path.join(DATA_DIR, "files.json");
 const FILE_REQUESTS_FILE = path.join(DATA_DIR, "file-requests.json");
+const DELIVERIES_FILE = path.join(DATA_DIR, "deliveries.json");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const PRESENCE_FILE = path.join(DATA_DIR, "presence.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
@@ -1517,6 +1518,11 @@ const actionLabels = {
   event_delete: "Takvim Etkinliği Silme",
   maintenance_on: "Bakım Modu Açma",
   maintenance_off: "Bakım Modu Kapatma",
+  delivery_generate: "Teslimat Kodu Üretme",
+  delivery_assign: "Teslimat Kodu Atama",
+  delivery_confirm: "Teslimat Onayı",
+  delivery_fail: "Teslimat Başarısız Deneme",
+  delivery_lock: "Teslimat Kilidi",
 };
 
 app.get("/api/logs", (req, res) => {
@@ -2822,6 +2828,89 @@ function loadFileRequests() {
 function saveFileRequests(list) {
   atomicSaveJson(FILE_REQUESTS_FILE, JSON.stringify({ requests: list }, null, 2));
 }
+
+// Fiziki Teslimat kod havuzu: 6 hane, 32'li alfabe (0/O/1/I yok), benzersiz
+const DELIVERY_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function loadDeliveries() {
+  try {
+    if (fs.existsSync(DELIVERIES_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DELIVERIES_FILE, "utf-8"));
+      if (data && Array.isArray(data.codes)) return data;
+    }
+  } catch (_) {}
+  return { codes: [] };
+}
+function saveDeliveries(data) {
+  atomicSaveJson(DELIVERIES_FILE, JSON.stringify(data, null, 2));
+}
+function newDeliveryCode(existing) {
+  for (let i = 0; i < 100; i++) {
+    let code = "";
+    for (let j = 0; j < 6; j++) {
+      code += DELIVERY_ALPHABET[crypto.randomInt(0, DELIVERY_ALPHABET.length)];
+    }
+    if (!existing.has(code)) return code;
+  }
+  return null;
+}
+
+app.post("/api/deliveries/generate", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const count = Number(req.body && req.body.count);
+  if (!Number.isInteger(count) || count < 1 || count > 500) {
+    return res.status(400).json({ error: "Adet 1-500 arasında olmalı." });
+  }
+  const data = loadDeliveries();
+  const existing = new Set(data.codes.map((c) => c.code));
+  const made = [];
+  for (let i = 0; i < count; i++) {
+    const code = newDeliveryCode(existing);
+    if (!code) return res.status(500).json({ error: "Kod üretilemedi, tekrar deneyin." });
+    existing.add(code);
+    made.push({
+      code, status: "bos", schoolEmail: null, note: "",
+      createdAt: Date.now(), assignedAt: null, confirmedAt: null,
+      confirmedBy: null, confirmIp: null, failCount: 0, lockedUntil: 0,
+    });
+  }
+  data.codes.push(...made);
+  saveDeliveries(data);
+  appendLog(makeLog("delivery_generate", decoded.email, `${made.length} teslimat kodu üretildi.`, req));
+  res.json({ codes: made.map((c) => c.code) });
+});
+
+app.get("/api/deliveries/pool", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 200, 1), 500);
+  const list = loadDeliveries().codes
+    .filter((c) => c.status === "bos")
+    .slice(0, limit)
+    .map((c) => ({ code: c.code, createdAt: c.createdAt }));
+  res.json({ codes: list });
+});
+
+app.post("/api/deliveries/assign", (req, res) => {
+  const decoded = requireAdmin(req, res);
+  if (!decoded) return;
+  const code = String((req.body && req.body.code) || "").toUpperCase().trim();
+  const schoolEmail = String((req.body && req.body.schoolEmail) || "").toLowerCase().trim();
+  const note = String((req.body && req.body.note) || "").slice(0, 200);
+  const users = loadUsers();
+  if (!users[schoolEmail]) return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+  const data = loadDeliveries();
+  const entry = data.codes.find((c) => c.code === code);
+  if (!entry) return res.status(404).json({ error: "Kod bulunamadı." });
+  if (entry.status !== "bos") return res.status(400).json({ error: "Kod zaten kullanımda." });
+  entry.status = "atanmis";
+  entry.schoolEmail = schoolEmail;
+  entry.note = note;
+  entry.assignedAt = Date.now();
+  saveDeliveries(data);
+  appendLog(makeLog("delivery_assign", decoded.email, `${code} kodu ${schoolEmail} okuluna atandı.`, req));
+  res.json({ code, status: entry.status, schoolEmail, note });
+});
 
 const frTempDir = path.join(FILE_REQUESTS_UPLOADS_DIR, "temp");
 if (!fs.existsSync(frTempDir)) fs.mkdirSync(frTempDir, { recursive: true });
