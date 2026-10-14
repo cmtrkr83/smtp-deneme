@@ -250,7 +250,7 @@
 
     const page = item.dataset.page;
     const run = async () => {
-      if (page === "dashboard") renderDashboard();
+      if (page === "dashboard") { await refreshDashboardData(); renderDashboard(); }
       else if (page === "users") await renderUsers();
       else if (page === "announcements") await renderAnnouncements();
       else if (page === "logs") await renderLogs();
@@ -740,6 +740,56 @@
       });
     }
 
+    // Panel verisini tazeler (işlem sonrası kart rozet/highlight bayrakları güncellensin)
+    async function refreshDashboardData() {
+      try {
+        const res = await fetch("/api/dashboard" + asRoleQuery(), {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (res.ok) dashboardData = await res.json();
+      } catch {}
+    }
+
+    // Otomatik güncelleme: sekme görünür olunca + 5 dk'da bir salt-okunur sayfaları tazeler.
+    // Form/modal ile uğraşırken dokunmaz (yazılanlar silinmesin).
+    const AUTO_REFRESH_PAGES = ["dashboard", "announcements"];
+    let _autoRefreshAt = 0;
+    function currentPageKey() {
+      try {
+        const el = document.querySelector(".nav-item.active");
+        return el ? el.dataset.page : "";
+      } catch (_) { return ""; }
+    }
+    function autoRefreshBlocked() {
+      try {
+        const ae = document.activeElement;
+        if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT" || ae.isContentEditable)) return true;
+        const ovs = document.querySelectorAll(".modal-overlay");
+        for (const o of ovs) {
+          if (o.style && o.style.display && o.style.display !== "none") return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+    async function autoRefreshNow() {
+      const page = currentPageKey();
+      if (!AUTO_REFRESH_PAGES.includes(page) || autoRefreshBlocked()) return;
+      try {
+        if (page === "dashboard") { await refreshDashboardData(); renderDashboard(); }
+        else if (page === "announcements") { await renderAnnouncements(); }
+        _autoRefreshAt = Date.now();
+      } catch {}
+    }
+    if (!window._autoRefreshBound) {
+      window._autoRefreshBound = true;
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && Date.now() - _autoRefreshAt >= 60 * 1000) autoRefreshNow();
+      });
+      setInterval(() => {
+        if (document.visibilityState === "visible" && Date.now() - _autoRefreshAt >= 5 * 60 * 1000) autoRefreshNow();
+      }, 60 * 1000);
+    }
+
     function renderDashboard() {
       const area = document.getElementById("contentArea");
       const data = dashboardData;
@@ -798,7 +848,7 @@
             <a href="${isNav ? 'javascript:void(0)' : l.url}" class="link-card${l.highlight ? ' highlight' : ''}" data-nav="${isNav ? l.url.replace('/navigate/', '') : ''}" style="${hlStyle}">
               <div class="card-icon" style="background:${iconBg.bg};color:${iconBg.color};"><i class="fa-solid ${l.icon}"></i>${badge}</div>
               ${l.highlight ? '<h4 style="color:#fff;">' + l.title + '</h4>' : '<h4>' + l.title + '</h4>'}
-              ${l.highlight ? '<p style="color:#fca5a5;">' + l.desc + '</p>' : '<p>' + l.desc + '</p>'}
+              ${l.highlight ? '<p style="color:#fca5a5;">İlgilenmeniz gerekiyor.</p>' : '<p>' + l.desc + '</p>'}
             </a>
           `;
         };
@@ -2878,6 +2928,7 @@
         if (res.ok) {
           currentUser.profile = data;
           closeSchoolProfileForm();
+          await refreshDashboardData();
           renderDashboard();
         } else {
           const err = await res.json();
