@@ -226,6 +226,7 @@
         { page: "logs", icon: "fa-clipboard-list", label: "Log Kayıtları", roles: ["admin"] },
         { page: "school-profile", icon: "fa-school", label: "Okul Bilgilerim", roles: ["lise", "ortaokul", "diger"] },
         { page: "schools", icon: "fa-school", label: "Okullar", roles: ["admin"] },
+        { page: "admin-deliveries", icon: "fa-boxes-packing", label: "Teslimatlar", roles: ["admin"] },
         { page: "reports", icon: "fa-chart-bar", label: "Raporlar", roles: ["admin"] },
         { page: "settings", icon: "fa-sliders", label: "Ayarlar", roles: ["admin"] },
       ];
@@ -263,6 +264,7 @@
       else if (page === "file-requests") { renderFileRequests(); }
       else if (page === "requests") { renderRequests(); }
       else if (page === "deliveries") await renderDeliveries();
+      else if (page === "admin-deliveries") await renderAdminDeliveries();
       else if (page === "reports") await renderReports();
       else if (page === "settings") await renderSettings();
       else renderPlaceholder(page);
@@ -3064,6 +3066,235 @@
         }
       } catch {
         if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+      }
+    }
+
+    // ---- Fiziki Teslimat (admin) ----
+
+    // Baskı sayfalama: TW-2324 sayfa başına 24 etiket (3x8) — saf fonksiyon
+    function deliveryLabelPages(items) {
+      const pages = [];
+      for (let i = 0; i < items.length; i += 24) pages.push(items.slice(i, i + 24));
+      return pages;
+    }
+
+    async function renderAdminDeliveries() {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <div>
+            <h2>Teslimatlar</h2>
+            <p>Teslimat kodları üretin, okullara atayın ve durumları izleyin.</p>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:20px;">
+          <div class="report-card">
+            <h4><i class="fa-solid fa-plus"></i> Kod Havuzu</h4>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
+              <div>
+                <label for="deliveryCount" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Adet (1-500)</label>
+                <input type="number" id="deliveryCount" class="form-control" style="width:110px;" min="1" max="500" value="24" />
+              </div>
+              <button type="button" class="add-btn add-btn--sm" onclick="generateDeliveryCodes()">
+                <span class="add-btn__text">Üret</span>
+              </button>
+              <button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="printDeliveryLabels()">
+                <span class="add-btn__text">Seçilenleri Yazdır</span>
+              </button>
+            </div>
+            <div id="deliveryPool" style="margin-top:12px;max-height:260px;overflow-y:auto;">Yükleniyor...</div>
+            <div id="deliveryPoolMsg" class="message" style="margin-top:12px;"></div>
+          </div>
+          <div class="report-card">
+            <h4><i class="fa-solid fa-link"></i> Eşleştirme</h4>
+            <p style="font-size:13px;color:var(--muted);margin:0;">Kurumu seçip boş bir kodu pakete atayın. Paketteki QR'ı telefonla okutursanız kod alana dolar.</p>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+              <div>
+                <label for="deliverySchool" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Kurum</label>
+                <select id="deliverySchool" class="form-control"><option>Yükleniyor...</option></select>
+              </div>
+              <div>
+                <label for="deliveryAssignCode" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Kodu</label>
+                ${deliveryCodeInput("deliveryAssignCode", "")}
+              </div>
+              <div>
+                <label for="deliveryNote" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Notu (opsiyonel)</label>
+                <input type="text" id="deliveryNote" class="form-control" maxlength="200" placeholder="Örn: LGS dosyaları" />
+              </div>
+              <div>
+                <button type="button" class="add-btn" onclick="assignDeliveryCode()">
+                  <span class="add-btn__text">Ata</span>
+                </button>
+              </div>
+            </div>
+            <div id="deliveryAssignMsg" class="message" style="margin-top:12px;"></div>
+          </div>
+        </div>
+        <div class="report-card">
+          <h4><i class="fa-solid fa-list-check"></i> İzleme</h4>
+          <div id="deliveryAdminList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>
+        </div>
+      `;
+      await Promise.all([loadDeliveryPool(), loadDeliverySchools(), loadDeliveriesAdmin()]);
+    }
+
+    async function loadDeliveryPool() {
+      const box = document.getElementById("deliveryPool");
+      if (!box) return;
+      try {
+        const res = await apiFetch("/api/deliveries/pool?limit=200");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        window._deliveryPool = data.codes || [];
+        if (window._deliveryPool.length === 0) {
+          box.innerHTML = '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Havuzda boş kod yok. Üretin.</div>';
+          return;
+        }
+        box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;">'
+          + window._deliveryPool.map((c) => '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);border-radius:8px;padding:6px 8px;"><input type="checkbox" class="dl-print" value="' + escHtml(c.code) + '" /> ' + escHtml(c.code) + '</label>').join("")
+          + '</div>';
+      } catch {
+        box.innerHTML = '<div style="padding:20px;color:#dc2626;">Havuz yüklenemedi.</div>';
+      }
+    }
+
+    async function generateDeliveryCodes() {
+      const msg = document.getElementById("deliveryPoolMsg");
+      const count = Math.min(500, Math.max(1, parseInt((document.getElementById("deliveryCount") || {}).value) || 0));
+      try {
+        const res = await apiFetch("/api/deliveries/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ count }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          showToast(count + " kod üretildi.", "success");
+          await loadDeliveryPool();
+        } else if (res.status !== 401 && msg) {
+          msg.textContent = data.error || "Üretilemedi.";
+          msg.className = "message error show";
+        }
+      } catch {
+        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+      }
+    }
+
+    async function loadDeliverySchools() {
+      const sel = document.getElementById("deliverySchool");
+      if (!sel) return;
+      try {
+        const res = await apiFetch("/api/users");
+        if (!res.ok) throw new Error();
+        const users = await res.json();
+        const schools = users.filter((u) => u.role !== "admin");
+        sel.innerHTML = schools.map((u) => {
+          const name = (u.profile && u.profile.schoolName) || u.email;
+          return '<option value="' + escHtml(u.email) + '">' + escHtml(name) + ' (' + escHtml(u.email) + ')</option>';
+        }).join("") || '<option value="">Okul yok</option>';
+      } catch {
+        sel.innerHTML = '<option value="">Yüklenemedi</option>';
+      }
+    }
+
+    async function assignDeliveryCode() {
+      const msg = document.getElementById("deliveryAssignMsg");
+      const schoolEmail = (document.getElementById("deliverySchool") || {}).value || "";
+      const code = ((document.getElementById("deliveryAssignCode") || {}).value || "").toUpperCase().trim();
+      const note = ((document.getElementById("deliveryNote") || {}).value || "").trim();
+      if (!schoolEmail) {
+        if (msg) { msg.textContent = "Kurum seçin."; msg.className = "message error show"; }
+        return;
+      }
+      if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+        if (msg) { msg.textContent = "6 haneli paket kodunu girin."; msg.className = "message error show"; }
+        return;
+      }
+      try {
+        const res = await apiFetch("/api/deliveries/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, schoolEmail, note }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          showToast("Kod atandı.", "success");
+          const ni = document.getElementById("deliveryNote");
+          const ci = document.getElementById("deliveryAssignCode");
+          if (ni) ni.value = "";
+          if (ci) ci.value = "";
+          if (msg) { msg.textContent = ""; msg.className = "message"; }
+          await Promise.all([loadDeliveryPool(), loadDeliveriesAdmin()]);
+        } else if (res.status !== 401 && msg) {
+          msg.textContent = data.error || "Atanamadı.";
+          msg.className = "message error show";
+        }
+      } catch {
+        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+      }
+    }
+
+    async function loadDeliveriesAdmin() {
+      const box = document.getElementById("deliveryAdminList");
+      if (!box) return;
+      try {
+        const res = await apiFetch("/api/deliveries");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const items = data.items || [];
+        if (items.length === 0) {
+          box.innerHTML = '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Henüz kod üretilmemiş.</div>';
+          return;
+        }
+        const stLabel = { bos: '<span style="color:var(--muted);">Havuzda</span>', atanmis: '<span style="color:#d97706;font-weight:600;">Atanmış</span>', teslim_alindi: '<span style="color:#16a34a;font-weight:600;">Teslim Alındı</span>' };
+        const fmtD = (ts) => ts ? new Date(ts).toLocaleDateString("tr-TR") : "-";
+        box.style.textAlign = "";
+        box.innerHTML = '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
+          + '<th>Kod</th><th>Okul</th><th>Paket</th><th>Durum</th><th>Atanma</th><th>Onay</th></tr></thead><tbody>'
+          + items.map((x) => '<tr><td style="font-weight:700;letter-spacing:2px;">' + escHtml(x.code) + '</td>'
+            + '<td class="cell-email">' + escHtml(x.schoolEmail || "-") + '</td>'
+            + '<td style="font-size:12px;">' + escHtml(x.note || "-") + '</td>'
+            + '<td>' + (stLabel[x.status] || x.status) + '</td>'
+            + '<td class="cell-date">' + fmtD(x.assignedAt) + '</td>'
+            + '<td class="cell-date">' + fmtD(x.confirmedAt) + '</td></tr>').join("")
+          + '</tbody></table></div>';
+      } catch {
+        box.innerHTML = '<div style="padding:20px;color:#dc2626;">Liste yüklenemedi.</div>';
+      }
+    }
+
+    function deliveryLabelCss() {
+      return '<style>@page{size:A4;margin:0;}'
+        + 'body{margin:0;font-family:Arial,sans-serif;}'
+        + '.label-page{width:210mm;page-break-after:always;}'
+        + '.label-page:last-child{page-break-after:auto;}'
+        + '.label-grid{display:grid;grid-template-columns:repeat(3,70mm);grid-auto-rows:35mm;}'
+        + '.label-cell{width:70mm;height:35mm;overflow:hidden;display:flex;align-items:center;gap:3mm;padding:2mm;box-sizing:border-box;}'
+        + '.label-cell img{width:28mm;height:28mm;flex-shrink:0;}'
+        + '.label-code{font-size:17pt;font-weight:700;letter-spacing:2px;font-family:monospace;}'
+        + '.label-cap{font-size:8pt;color:#555;margin-top:1mm;}</style>';
+    }
+
+    async function printDeliveryLabels() {
+      const checked = [...document.querySelectorAll(".dl-print:checked")].map((c) => c.value);
+      if (checked.length === 0) { showToast("Yazdırmak için kod seçin.", "error"); return; }
+      try {
+        const res = await apiFetch("/api/deliveries/print?codes=" + checked.join(","));
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const pages = deliveryLabelPages(data.items || []);
+        if (pages.length === 0) { showToast("Yazdırılacak boş kod yok.", "error"); return; }
+        const w = window.open("");
+        if (!w) { showToast("Açılır pencere engellendi.", "error"); return; }
+        const body = pages.map((pg) => '<div class="label-page"><div class="label-grid">'
+          + pg.map((it) => '<div class="label-cell"><img src="' + it.qr + '" alt="QR" />'
+            + '<div><div class="label-code">' + escHtml(it.code) + '</div>'
+            + '<div class="label-cap">Fiziki Teslimat</div></div></div>').join("")
+          + '</div></div>').join("");
+        w.document.write('<html><head><title>Etiket Baskısı</title>' + deliveryLabelCss() + '</head><body onload="window.print()">' + body + '</body></html>');
+        w.document.close();
+      } catch {
+        showToast("Bağlantı hatası.", "error");
       }
     }
 
