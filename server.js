@@ -3045,10 +3045,10 @@ app.post("/api/deliveries/delete", (req, res) => {
   const data = loadDeliveries();
   const want = new Set(wanted);
   const before = data.codes.length;
-  data.codes = data.codes.filter((c) => !(c.status === "bos" && want.has(c.code)));
+  data.codes = data.codes.filter((c) => !((c.status === "bos" || c.status === "atanmis") && want.has(c.code)));
   const deleted = before - data.codes.length;
   saveDeliveries(data);
-  appendLog(makeLog("delivery_delete", decoded.email, `${deleted} boş kod silindi.`, req));
+  appendLog(makeLog("delivery_delete", decoded.email, `${deleted} kod silindi (boş/atanmış).`, req));
   res.json({ deleted });
 });
 
@@ -3110,7 +3110,7 @@ app.get("/api/deliveries/print", async (req, res) => {
   const items = [];
   for (const code of wanted) {
     const entry = byCode.get(code);
-    if (!entry || entry.status !== "bos") continue;
+    if (!entry || (entry.status !== "bos" && entry.status !== "atanmis")) continue;
     const qr = await QRCode.toDataURL(base + "/dashboard.html?teslimat=" + code, { width: 200, margin: 1 });
     items.push({ code, qr });
   }

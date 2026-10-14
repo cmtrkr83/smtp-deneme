@@ -177,8 +177,8 @@ test("mine onaylanmamis kodu maskeli doner", async () => {
   item = (await r.json()).items.find((x) => x.note === "maskeli");
   assert.equal(item.code, code);
 });
-
-test("print yalniz bos kodlari QR ile doner", async () => {  const g = await fetch(srv.base + "/api/deliveries/generate", {
+test("print bos + atanmisi QR ile doner, onayliyi vermez", async () => {
+  const g = await fetch(srv.base + "/api/deliveries/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
     body: JSON.stringify({ count: 3 }),
@@ -189,6 +189,16 @@ test("print yalniz bos kodlari QR ile doner", async () => {  const g = await fet
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
     body: JSON.stringify({ code: codes[0], schoolEmail: "kullanici@test.local", note: "" }),
   });
+  await fetch(srv.base + "/api/deliveries/assign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code: codes[1], schoolEmail: "admin@test.local", note: "" }),
+  });
+  await fetch(srv.base + "/api/deliveries/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
+    body: JSON.stringify({ code: codes[1] }),
+  });
   const r = await fetch(srv.base + "/api/deliveries/print?codes=" + codes.join(","), {
     headers: { Authorization: "Bearer " + adminToken() },
   });
@@ -196,7 +206,7 @@ test("print yalniz bos kodlari QR ile doner", async () => {  const g = await fet
   const data = await r.json();
   assert.equal(data.items.length, 2);
   assert.ok(data.items.every((x) => x.qr.startsWith("data:image/png;base64,")));
-  assert.deepEqual(data.items.map((x) => x.code).sort(), [codes[1], codes[2]].sort());
+  assert.deepEqual(data.items.map((x) => x.code).sort(), [codes[0], codes[2]].sort());
 });
 
 test("yedek deliveries.json icerir", async () => {
@@ -222,13 +232,13 @@ async function adminPost(p, body) {
   });
 }
 
-test("toplu sil yalniz bos kodlari siler", async () => {
+test("toplu sil bos + atanmisi siler", async () => {
   const codes = (await (await adminPost("/api/deliveries/generate", { count: 2 })).json()).codes;
   await adminPost("/api/deliveries/assign", { code: codes[0], schoolEmail: "kullanici@test.local", note: "" });
   const r = await adminPost("/api/deliveries/delete", { codes });
   assert.equal(r.status, 200);
   const data = await r.json();
-  assert.equal(data.deleted, 1);
+  assert.equal(data.deleted, 2);
   const pool = await (await fetch(srv.base + "/api/deliveries/pool", {
     headers: { Authorization: "Bearer " + adminToken() },
   })).json();

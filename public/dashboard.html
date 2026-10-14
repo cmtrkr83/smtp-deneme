@@ -1299,9 +1299,6 @@
           <h4><i class="fa-solid fa-toggle-on"></i> Modüller</h4>
           <p style="font-size:13px;color:var(--muted);margin:0;">Kapalı modüller kullanıcılara bilgi mesajı gösterir; yöneticiler etkilenmez.</p>
           <div id="moduleToggles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px;margin:12px 0;"></div>
-          <button type="button" class="add-btn add-btn--sm" onclick="saveModules()">
-            <span class="add-btn__text">Kaydet</span>
-          </button>
           <div id="modulesMessage" class="message" style="margin-top:12px;"></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:28px;">
@@ -1434,7 +1431,8 @@
       if (!box) return;
       box.innerHTML = MODULE_DEFS.map(([k, label]) => {
         const on = modules[k] !== false;
-        return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" class="mod-toggle" value="' + k + '"' + (on ? " checked" : "") + ' style="width:16px;height:16px;accent-color:#16a34a;" /> ' + label + '</label>';
+        return '<label style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;">' + label
+          + '<span class="mod-switch"><input type="checkbox" class="mod-toggle" value="' + k + '"' + (on ? " checked" : "") + ' onchange="saveModules()" aria-label="' + label + '" /><span class="track"></span><span class="thumb"></span></span></label>';
       }).join("");
     }
 
@@ -1451,14 +1449,18 @@
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           paintModules(data.modules || modules);
-          showToast("Modül durumları kaydedildi.", "success");
+          showToast("Modül durumu kaydedildi.", "success");
           if (msg) { msg.textContent = ""; msg.className = "message"; }
-        } else if (res.status !== 401 && msg) {
-          msg.textContent = data.error || "Kaydedilemedi.";
-          msg.className = "message error show";
+        } else {
+          if (res.status !== 401 && msg) {
+            msg.textContent = data.error || "Kaydedilemedi.";
+            msg.className = "message error show";
+          }
+          await loadSettings();
         }
       } catch {
         if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
+        try { await loadSettings(); } catch (_) {}
       }
     }
 
@@ -3171,183 +3173,44 @@
         <div class="content-header">
           <div>
             <h2>Teslimatlar</h2>
-            <p>Teslimat kodları üretin, okullara atayın ve durumları izleyin.</p>
+            <p>Okullara toplu kod atayın, yazdırın ve durumları izleyin.</p>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:20px;">
-          <div class="report-card">
-            <h4><i class="fa-solid fa-plus"></i> Kod Havuzu</h4>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
-              <div>
-                <label for="deliveryCount" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Adet (1-500)</label>
-                <input type="number" id="deliveryCount" class="form-control" style="width:110px;" min="1" max="500" value="24" />
-              </div>
-              <button type="button" class="add-btn add-btn--sm" onclick="generateDeliveryCodes()">
-                <span class="add-btn__text">Üret</span>
-                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
-              </button>
-              <button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="printDeliveryLabels()">
-                <span class="add-btn__text">Seçilenleri Yazdır</span>
+        <div class="report-card" style="margin-bottom:20px;">
+          <h4><i class="fa-solid fa-layer-group"></i> Toplu Ata</h4>
+          <p style="font-size:13px;color:var(--muted);margin:0;">Filtreye uyan her okula 1 kod üretilip atanır. Atanan kodlar aşağıdaki listeden yazdırılabilir.</p>
+          <div id="bulkTarget" style="margin-top:12px;"></div>
+          <div style="margin-top:10px;">
+            <label for="deliveryBulkNote" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Notu (opsiyonel)</label>
+            <input type="text" id="deliveryBulkNote" class="form-control" maxlength="200" placeholder="Örn: 2026 LGS dosyaları" />
+          </div>
+          <div style="margin-top:12px;">
+            <button type="button" class="add-btn" onclick="bulkAssignDeliveries()">
+              <span class="add-btn__text">Üret ve Ata</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+            </button>
+          </div>
+          <div id="deliveryBulkMsg" class="message" style="margin-top:12px;"></div>
+        </div>
+        <div class="report-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h4 style="margin-bottom:0;"><i class="fa-solid fa-list-check"></i> İzleme</h4>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="add-btn add-btn--sm add-btn--teal" onclick="printTrackingLabels()">
+                <span class="add-btn__text">Yazdır</span>
                 <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
               </button>
-              <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteSelectedDeliveryCodes()">
-                <span class="add-btn__text">Seçilenleri Sil</span>
-                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
-              </button>
-              <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteAllDeliveryCodes()">
+              <button type="button" class="add-btn add-btn--sm add-btn--red" onclick="deleteAllTracking()">
                 <span class="add-btn__text">Tümünü Sil</span>
                 <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
               </button>
             </div>
-            <div id="deliveryPool" style="margin-top:12px;max-height:260px;overflow-y:auto;">Yükleniyor...</div>
-            <div id="deliveryPoolMsg" class="message" style="margin-top:12px;"></div>
           </div>
-          <div class="report-card">
-            <h4><i class="fa-solid fa-link"></i> Eşleştirme</h4>
-            <p style="font-size:13px;color:var(--muted);margin:0;">Kurumu seçip boş bir kodu pakete atayın. Paketteki QR'ı telefonla okutursanız kod alana dolar.</p>
-            <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
-              <div>
-                <label for="deliverySchool" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Kurum</label>
-                <select id="deliverySchool" class="form-control"><option>Yükleniyor...</option></select>
-              </div>
-              <div>
-                <label for="deliveryAssignCode" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Kodu</label>
-                ${deliveryCodeInput("deliveryAssignCode", assignPre)}
-              </div>
-              <div>
-                <label for="deliveryNote" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Notu (opsiyonel)</label>
-                <input type="text" id="deliveryNote" class="form-control" maxlength="200" placeholder="Örn: LGS dosyaları" />
-              </div>
-              <div>
-            <button type="button" class="add-btn" onclick="assignDeliveryCode()">
-              <span class="add-btn__text">Ata</span>
-              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
-            </button>
-              </div>
-            </div>
-            <div id="deliveryAssignMsg" class="message" style="margin-top:12px;"></div>
-          </div>
-          <div class="report-card">
-            <h4><i class="fa-solid fa-layer-group"></i> Toplu Ata</h4>
-            <p style="font-size:13px;color:var(--muted);margin:0;">Filtreye uyan her okula 1 kod üretilip atanır. Atanan kodlar yazdırma için otomatik işaretlenir.</p>
-            <div id="bulkTarget" style="margin-top:12px;"></div>
-            <div style="margin-top:10px;">
-              <label for="deliveryBulkNote" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Notu (opsiyonel)</label>
-              <input type="text" id="deliveryBulkNote" class="form-control" maxlength="200" placeholder="Örn: 2026 LGS dosyaları" />
-            </div>
-            <div style="margin-top:12px;">
-              <button type="button" class="add-btn" onclick="bulkAssignDeliveries()">
-                <span class="add-btn__text">Üret ve Ata</span>
-                <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
-              </button>
-            </div>
-            <div id="deliveryBulkMsg" class="message" style="margin-top:12px;"></div>
-          </div>
-        </div>
-        <div class="report-card">
-          <h4><i class="fa-solid fa-list-check"></i> İzleme</h4>
           <div id="deliveryAdminList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>
         </div>
       `;
-      await Promise.all([loadDeliveryPool(), loadDeliverySchools(), loadDeliveriesAdmin()]);
+      await loadDeliveriesAdmin();
       document.getElementById("bulkTarget").innerHTML = targetSelectorHtml("dl", { ownership: "all", roles: [] });
-    }
-
-    async function loadDeliveryPool(precheck) {
-      const box = document.getElementById("deliveryPool");
-      if (!box) return;
-      try {
-        const res = await apiFetch("/api/deliveries/pool?limit=200");
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        window._deliveryPool = data.codes || [];
-        if (window._deliveryPool.length === 0) {
-          box.innerHTML = '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Havuzda boş kod yok. Üretin.</div>';
-          return;
-        }
-        const pre = precheck instanceof Set ? precheck : new Set();
-        box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;">'
-          + window._deliveryPool.map((c) => '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);border-radius:8px;padding:6px 8px;"><input type="checkbox" class="dl-print" value="' + escHtml(c.code) + '"' + (pre.has(c.code) ? " checked" : "") + ' /> ' + escHtml(c.code) + '</label>').join("")
-          + '</div>';
-      } catch {
-        box.innerHTML = '<div style="padding:20px;color:#dc2626;">Havuz yüklenemedi.</div>';
-      }
-    }
-
-    async function generateDeliveryCodes() {
-      const msg = document.getElementById("deliveryPoolMsg");
-      const count = Math.min(500, Math.max(1, parseInt((document.getElementById("deliveryCount") || {}).value) || 0));
-      try {
-        const res = await apiFetch("/api/deliveries/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ count }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-          showToast(count + " kod üretildi.", "success");
-          await loadDeliveryPool();
-        } else if (res.status !== 401 && msg) {
-          msg.textContent = data.error || "Üretilemedi.";
-          msg.className = "message error show";
-        }
-      } catch {
-        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
-      }
-    }
-
-    async function loadDeliverySchools() {
-      const sel = document.getElementById("deliverySchool");
-      if (!sel) return;
-      try {
-        const res = await apiFetch("/api/users");
-        if (!res.ok) throw new Error();
-        const users = await res.json();
-        const schools = users.filter((u) => u.role !== "admin");
-        sel.innerHTML = schools.map((u) => {
-          const name = (u.profile && u.profile.schoolName) || u.email;
-          return '<option value="' + escHtml(u.email) + '">' + escHtml(name) + ' (' + escHtml(u.email) + ')</option>';
-        }).join("") || '<option value="">Okul yok</option>';
-      } catch {
-        sel.innerHTML = '<option value="">Yüklenemedi</option>';
-      }
-    }
-
-    async function assignDeliveryCode() {
-      const msg = document.getElementById("deliveryAssignMsg");
-      const schoolEmail = (document.getElementById("deliverySchool") || {}).value || "";
-      const code = ((document.getElementById("deliveryAssignCode") || {}).value || "").toUpperCase().trim();
-      const note = ((document.getElementById("deliveryNote") || {}).value || "").trim();
-      if (!schoolEmail) {
-        if (msg) { msg.textContent = "Kurum seçin."; msg.className = "message error show"; }
-        return;
-      }
-      if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
-        if (msg) { msg.textContent = "6 haneli paket kodunu girin."; msg.className = "message error show"; }
-        return;
-      }
-      try {
-        const res = await apiFetch("/api/deliveries/assign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, schoolEmail, note }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-          showToast("Kod atandı.", "success");
-          const ni = document.getElementById("deliveryNote");
-          const ci = document.getElementById("deliveryAssignCode");
-          if (ni) ni.value = "";
-          if (ci) ci.value = "";
-          if (msg) { msg.textContent = ""; msg.className = "message"; }
-          await Promise.all([loadDeliveryPool(), loadDeliveriesAdmin()]);
-        } else if (res.status !== 401 && msg) {
-          msg.textContent = data.error || "Atanamadı.";
-          msg.className = "message error show";
-        }
-      } catch {
-        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
-      }
     }
 
     async function loadDeliveriesAdmin() {
@@ -3374,7 +3237,7 @@
             + '<td class="cell-date">' + fmtD(x.assignedAt) + '</td>'
             + '<td class="cell-date">' + fmtD(x.confirmedAt) + '</td>'
             + '<td style="text-align:right;">' + (x.status === "atanmis"
-              ? '<button class="btn-icon btn-icon-danger" onclick="unassignDeliveryCode(\'' + escHtml(x.code) + '\')" title="Atamayı sil, havuza döndür"><i class="fa-solid fa-trash-can"></i></button>'
+              ? '<button class="btn-icon btn-icon-danger" onclick="unassignDeliveryCode(\'' + escHtml(x.code) + '\')" title="Atamayı sil"><i class="fa-solid fa-trash-can"></i></button>'
               : "") + '</td></tr>').join("")
           + '</tbody></table></div>';
       } catch {
@@ -3394,49 +3257,54 @@
         + '.label-cap{font-size:8pt;color:#555;margin-top:1mm;}</style>';
     }
 
-    async function runDeliveryDelete(codes) {
+    async function printTrackingLabels() {
       try {
-        const res = await apiFetch("/api/deliveries/delete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ codes }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-          showToast(data.deleted + " kod silindi.", "success");
-          await Promise.all([loadDeliveryPool(), loadDeliveriesAdmin()]);
-        } else if (res.status !== 401) {
-          showToast(data.error || "Silinemedi.", "error");
-        }
+        const res = await apiFetch("/api/deliveries");
+        if (!res.ok) throw new Error();
+        const items = ((await res.json()).items || []).filter((x) => x.status !== "teslim_alindi");
+        if (items.length === 0) { showToast("Yazdırılacak kod yok.", "error"); return; }
+        const pr = await apiFetch("/api/deliveries/print?codes=" + items.map((x) => x.code).join(","));
+        if (!pr.ok) throw new Error();
+        const data = await pr.json();
+        const pages = deliveryLabelPages(data.items || []);
+        if (pages.length === 0) { showToast("Yazdırılacak kod yok.", "error"); return; }
+        const w = window.open("");
+        if (!w) { showToast("Açılır pencere engellendi.", "error"); return; }
+        const body = pages.map((pg) => '<div class="label-page"><div class="label-grid">'
+          + pg.map((it) => '<div class="label-cell"><img src="' + it.qr + '" alt="QR" />'
+            + '<div><div class="label-code">' + escHtml(it.code) + '</div>'
+            + '<div class="label-cap">Fiziki Teslimat</div></div></div>').join("")
+          + '</div></div>').join("");
+        w.document.write('<html><head><title>Etiket Baskısı</title>' + deliveryLabelCss() + '</head><body onload="window.print()">' + body + '</body></html>');
+        w.document.close();
       } catch {
         showToast("Bağlantı hatası.", "error");
       }
     }
 
-    async function deleteSelectedDeliveryCodes() {
-      const checked = [...document.querySelectorAll(".dl-print:checked")].map((c) => c.value);
-      if (checked.length === 0) { showToast("Silmek için kod seçin.", "error"); return; }
-      showConfirmModal({
-        title: "Kodları Sil",
-        message: checked.length + " kod havuzdan silinecek. Atanmış ve onaylılara dokunulmaz. Devam edilsin mi?",
-        confirmText: "Sil",
-        onConfirm: () => runDeliveryDelete(checked),
-      });
-    }
-
-    async function deleteAllDeliveryCodes() {
+    async function deleteAllTracking() {
       showConfirmModal({
         title: "Tümünü Sil",
-        message: "Havuzdaki tüm BOŞ kodlar silinecek. Atanmış ve onaylılara dokunulmaz. Devam edilsin mi?",
+        message: "Listedeki tüm BOŞ ve ATANMIŞ kodlar silinecek. Onaylılara dokunulmaz. Devam edilsin mi?",
         confirmText: "Tümünü Sil",
         onConfirm: async () => {
           try {
-            const res = await apiFetch("/api/deliveries/pool?limit=500");
+            const res = await apiFetch("/api/deliveries");
             if (!res.ok) throw new Error();
-            const data = await res.json();
-            const codes = (data.codes || []).map((c) => c.code);
-            if (codes.length === 0) { showToast("Havuzda kod yok.", "error"); return; }
-            await runDeliveryDelete(codes);
+            const codes = ((await res.json()).items || []).filter((x) => x.status !== "teslim_alindi").map((x) => x.code);
+            if (codes.length === 0) { showToast("Silinecek kod yok.", "error"); return; }
+            const del = await apiFetch("/api/deliveries/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ codes }),
+            });
+            const data = await del.json().catch(() => ({}));
+            if (del.ok) {
+              showToast(data.deleted + " kod silindi.", "success");
+              await loadDeliveriesAdmin();
+            } else if (del.status !== 401) {
+              showToast(data.error || "Silinemedi.", "error");
+            }
           } catch {
             showToast("Bağlantı hatası.", "error");
           }
@@ -3458,8 +3326,8 @@
             });
             const data = await res.json().catch(() => ({}));
             if (res.ok) {
-              showToast("Atama silindi, kod havuzda.", "success");
-              await Promise.all([loadDeliveryPool(), loadDeliveriesAdmin()]);
+              showToast("Atama silindi.", "success");
+              await loadDeliveriesAdmin();
             } else if (res.status !== 401) {
               showToast(data.error || "Silinemedi.", "error");
             }
@@ -3489,7 +3357,6 @@
             if (res.ok) {
               showToast(data.assigned + " okula kod atandı.", "success");
               if (msg) { msg.textContent = ""; msg.className = "message"; }
-              await loadDeliveryPool(new Set(data.codes || []));
               await loadDeliveriesAdmin();
             } else if (res.status !== 401 && msg) {
               msg.textContent = data.error || "Atanamadı.";
@@ -3500,28 +3367,6 @@
           }
         },
       });
-    }
-
-    async function printDeliveryLabels() {      const checked = [...document.querySelectorAll(".dl-print:checked")].map((c) => c.value);
-      if (checked.length === 0) { showToast("Yazdırmak için kod seçin.", "error"); return; }
-      try {
-        const res = await apiFetch("/api/deliveries/print?codes=" + checked.join(","));
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        const pages = deliveryLabelPages(data.items || []);
-        if (pages.length === 0) { showToast("Yazdırılacak boş kod yok.", "error"); return; }
-        const w = window.open("");
-        if (!w) { showToast("Açılır pencere engellendi.", "error"); return; }
-        const body = pages.map((pg) => '<div class="label-page"><div class="label-grid">'
-          + pg.map((it) => '<div class="label-cell"><img src="' + it.qr + '" alt="QR" />'
-            + '<div><div class="label-code">' + escHtml(it.code) + '</div>'
-            + '<div class="label-cap">Fiziki Teslimat</div></div></div>').join("")
-          + '</div></div>').join("");
-        w.document.write('<html><head><title>Etiket Baskısı</title>' + deliveryLabelCss() + '</head><body onload="window.print()">' + body + '</body></html>');
-        w.document.close();
-      } catch {
-        showToast("Bağlantı hatası.", "error");
-      }
     }
 
     // ---- File Distribution ----

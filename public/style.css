@@ -967,6 +967,49 @@ body.dashboard-body::before {
   margin-top: auto;
   align-self: flex-start;
 }
+/* Modül aç/kapa anahtarı (tema uyumlu) */
+.mod-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.mod-switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.mod-switch .track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.18s ease;
+}
+.mod-switch .thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: left 0.18s ease;
+}
+.mod-switch input:checked ~ .track {
+  background: #16a34a;
+}
+.mod-switch input:checked ~ .thumb {
+  left: 21px;
+}
+.mod-switch input:focus-visible ~ .track {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+}
 /* Star Students tarzı okul satırı: ikon + bilgi + rozetler */
 .school-row {
   display: flex;
