@@ -768,6 +768,7 @@
         for (const o of ovs) {
           if (o.style && o.style.display && o.style.display !== "none") return true;
         }
+        if (document.querySelector(".cal-day.pop-open")) return true;
       } catch (_) {}
       return false;
     }
