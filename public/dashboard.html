@@ -218,6 +218,7 @@
         { page: "files", icon: "fa-folder-open", label: "Dosya Dağıtım", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "file-requests", icon: "fa-file-arrow-up", label: "Belge İstekleri", roles: ["admin", "lise", "ortaokul", "diger"] },
         { page: "requests", icon: "fa-paper-plane", label: "Talep/İtiraz", roles: ["admin", "lise", "ortaokul", "diger"] },
+        { page: "deliveries", icon: "fa-box-open", label: "Fiziki Teslimat", roles: ["lise", "ortaokul", "diger"] },
       ];
 
       const opsItems = [
@@ -261,6 +262,7 @@
       else if (page === "files") { renderFiles(); }
       else if (page === "file-requests") { renderFileRequests(); }
       else if (page === "requests") { renderRequests(); }
+      else if (page === "deliveries") await renderDeliveries();
       else if (page === "reports") await renderReports();
       else if (page === "settings") await renderSettings();
       else renderPlaceholder(page);
@@ -2954,6 +2956,101 @@
         renderAdminSurveys();
       } else {
         renderUserSurveys();
+      }
+    }
+
+    // ---- Fiziki Teslimat (okul) ----
+
+    function deliveryCodeInput(id, value) {
+      return `<input type="text" id="${id}" class="form-control" style="text-transform:uppercase;" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC123" value="${escHtml(value || "")}" oninput="this.value=this.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,'').slice(0,6)" />`;
+    }
+
+    async function renderDeliveries(prefill) {
+      const area = document.getElementById("contentArea");
+      area.innerHTML = `
+        <div class="content-header">
+          <div>
+            <h2>Fiziki Teslimat</h2>
+            <p>Size atanan paketlerin kodunu girerek teslim aldığınızı onaylayın.</p>
+          </div>
+        </div>
+        <div class="report-card" style="margin-bottom:20px;">
+          <h4><i class="fa-solid fa-box-open"></i> Teslim Onayı</h4>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
+            <div style="flex:1;min-width:180px;">
+              <label for="deliveryCode" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;">Paket Kodu</label>
+              ${deliveryCodeInput("deliveryCode", prefill)}
+            </div>
+            <button type="button" class="add-btn" onclick="confirmDelivery()">
+              <span class="add-btn__text">Teslim Aldım</span>
+              <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+            </button>
+          </div>
+          <div id="deliveryMessage" class="message" style="margin-top:12px;"></div>
+        </div>
+        <div class="report-card">
+          <h4><i class="fa-solid fa-boxes-packing"></i> Paketlerim</h4>
+          <div id="deliveryList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>
+        </div>
+      `;
+      await loadDeliveriesMine();
+    }
+
+    async function loadDeliveriesMine() {
+      const box = document.getElementById("deliveryList");
+      if (!box) return;
+      try {
+        const res = await apiFetch("/api/deliveries/mine");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const items = data.items || [];
+        if (items.length === 0) {
+          box.innerHTML = '<div style="padding:20px;text-align:center;color:#ccc;font-size:13px;">Atanmış paket bulunmuyor.</div>';
+          return;
+        }
+        const fmtD = (ts) => ts ? new Date(ts).toLocaleDateString("tr-TR") : "-";
+        box.style.textAlign = "";
+        box.innerHTML = '<div class="users-table-wrapper"><table class="users-table"><thead><tr>'
+          + '<th>Paket</th><th>Kod</th><th>Durum</th><th>Atanma</th><th>Onay</th></tr></thead><tbody>'
+          + items.map((x) => '<tr><td class="cell-email">' + escHtml(x.note || "-") + '</td>'
+            + '<td style="font-weight:700;letter-spacing:2px;">' + escHtml(x.code) + '</td>'
+            + '<td>' + (x.status === "teslim_alindi"
+              ? '<span style="color:#16a34a;font-weight:600;">Teslim Alındı</span>'
+              : '<span style="color:#d97706;font-weight:600;">Bekliyor</span>') + '</td>'
+            + '<td class="cell-date">' + fmtD(x.assignedAt) + '</td>'
+            + '<td class="cell-date">' + fmtD(x.confirmedAt) + '</td></tr>').join("")
+          + '</tbody></table></div>';
+      } catch {
+        box.innerHTML = '<div style="padding:20px;color:#dc2626;">Paketler yüklenemedi.</div>';
+      }
+    }
+
+    async function confirmDelivery() {
+      const msg = document.getElementById("deliveryMessage");
+      const input = document.getElementById("deliveryCode");
+      const code = (input ? input.value : "").toUpperCase().trim();
+      if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+        if (msg) { msg.textContent = "6 haneli paket kodunu girin."; msg.className = "message error show"; }
+        return;
+      }
+      try {
+        const res = await apiFetch("/api/deliveries/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          if (msg) { msg.textContent = "Teslim alındı olarak işlendi."; msg.className = "message success show"; }
+          if (input) input.value = "";
+          await refreshDashboardData();
+          await loadDeliveriesMine();
+        } else if (res.status !== 401 && msg) {
+          msg.textContent = data.error || "Onaylanamadı.";
+          msg.className = "message error show";
+        }
+      } catch {
+        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
       }
     }
 
