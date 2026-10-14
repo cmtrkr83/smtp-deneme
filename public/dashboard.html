@@ -1295,6 +1295,15 @@
           </button>
         </div>
         <div id="settingsMessage" class="message" style="margin-top:12px;"></div>
+        <div class="report-card" style="margin-top:20px;">
+          <h4><i class="fa-solid fa-toggle-on"></i> Modüller</h4>
+          <p style="font-size:13px;color:var(--muted);margin:0;">Kapalı modüller kullanıcılara bilgi mesajı gösterir; yöneticiler etkilenmez.</p>
+          <div id="moduleToggles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px;margin:12px 0;"></div>
+          <button type="button" class="add-btn add-btn--sm" onclick="saveModules()">
+            <span class="add-btn__text">Kaydet</span>
+          </button>
+          <div id="modulesMessage" class="message" style="margin-top:12px;"></div>
+        </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:28px;">
           <div class="report-card settings-split">
             <h4><i class="fa-solid fa-download"></i> Yedek Al</h4>
@@ -1404,9 +1413,52 @@
         if (!res.ok) throw new Error();
         const s = await res.json();
         paintMaintenance(s.maintenance === true);
+        paintModules(s.modules || {});
         if (msg) { msg.textContent = ""; msg.className = "message"; }
       } catch {
         if (msg) { msg.textContent = "Ayarlar yüklenemedi."; msg.className = "message error show"; }
+      }
+    }
+
+    const MODULE_DEFS = [
+      ["announcements", "Duyurular"],
+      ["surveys", "Veri Toplama"],
+      ["files", "Dosya Dağıtım"],
+      ["file-requests", "Belge İstekleri"],
+      ["requests", "Talep/İtiraz"],
+      ["deliveries", "Teslimatlar"],
+    ];
+
+    function paintModules(modules) {
+      const box = document.getElementById("moduleToggles");
+      if (!box) return;
+      box.innerHTML = MODULE_DEFS.map(([k, label]) => {
+        const on = modules[k] !== false;
+        return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" class="mod-toggle" value="' + k + '"' + (on ? " checked" : "") + ' style="width:16px;height:16px;accent-color:#16a34a;" /> ' + label + '</label>';
+      }).join("");
+    }
+
+    async function saveModules() {
+      const msg = document.getElementById("modulesMessage");
+      const modules = {};
+      document.querySelectorAll(".mod-toggle").forEach((c) => { modules[c.value] = c.checked; });
+      try {
+        const res = await apiFetch("/api/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maintenance: maintenanceState, modules }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          paintModules(data.modules || modules);
+          showToast("Modül durumları kaydedildi.", "success");
+          if (msg) { msg.textContent = ""; msg.className = "message"; }
+        } else if (res.status !== 401 && msg) {
+          msg.textContent = data.error || "Kaydedilemedi.";
+          msg.className = "message error show";
+        }
+      } catch {
+        if (msg) { msg.textContent = "Bağlantı hatası."; msg.className = "message error show"; }
       }
     }
 
@@ -2133,8 +2185,36 @@
 
     let editingAnnId = null;
 
+    // Modül kapısı (önyüz): kapalı modülde bilgi kartı gösterilir
+    async function moduleOpenClient(key) {
+      try {
+        if (!window._modStatus || Date.now() - (window._modStatusAt || 0) > 60000) {
+          const res = await fetch("/api/status");
+          const data = await res.json();
+          window._modStatus = (data && data.modules) || {};
+          window._modStatusAt = Date.now();
+        }
+        return window._modStatus[key] !== false;
+      } catch { return true; }
+    }
+    function moduleClosedHtml() {
+      return `<div class="content-header"><div><h2>Bilgi</h2></div></div>
+        <div class="report-card" style="text-align:center;padding:40px;color:var(--muted);">
+          <i class="fa-solid fa-lock" style="font-size:32px;margin-bottom:12px;display:block;"></i>
+          <div style="font-size:14px;">Bu modül yönetici tarafından kullanıma kapatılmıştır.</div>
+        </div>`;
+    }
+    async function moduleGate(key) {
+      if (currentUser && currentUser.role !== "admin" && !(await moduleOpenClient(key))) {
+        document.getElementById("contentArea").innerHTML = moduleClosedHtml();
+        return false;
+      }
+      return true;
+    }
+
     async function renderAnnouncements() {
       const area = document.getElementById("contentArea");
+      if (!(await moduleGate("announcements"))) return;
       const isAdmin = currentUser.role === "admin";
 
       if (isAdmin) {
@@ -2967,7 +3047,8 @@
 
     let editSurveyId = null;
 
-    function renderSurveys() {
+    async function renderSurveys() {
+      if (!(await moduleGate("surveys"))) return;
       if (currentUser.role === "admin") {
         renderAdminSurveys();
       } else {
@@ -2982,6 +3063,7 @@
     }
 
     async function renderDeliveries(prefill) {
+      if (!(await moduleGate("deliveries"))) return;
       const area = document.getElementById("contentArea");
       const pre = prefill || window._deliveryPrefill || "";
       window._deliveryPrefill = "";
@@ -3444,7 +3526,8 @@
 
     // ---- File Distribution ----
 
-    function renderFiles() {
+    async function renderFiles() {
+      if (!(await moduleGate("files"))) return;
       if (currentUser.role === "admin") {
         renderAdminFiles();
       } else {
@@ -3933,7 +4016,8 @@
       }
     }
 
-    function renderRequests() {
+    async function renderRequests() {
+      if (!(await moduleGate("requests"))) return;
       if (currentUser.role === "admin") {
         renderAdminRequests();
       } else {
@@ -5765,7 +5849,8 @@
 
     // ---- File Requests ----
 
-    function renderFileRequests() {
+    async function renderFileRequests() {
+      if (!(await moduleGate("file-requests"))) return;
       if (currentUser.role === "admin") renderAdminFileRequests();
       else renderUserFileRequests();
     }
