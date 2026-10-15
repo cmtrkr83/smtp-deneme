@@ -3248,7 +3248,9 @@
     function deliveryLabelCss() {
       return '<style>@page{size:A4;margin:0;}'
         + 'body{margin:0;font-family:Arial,sans-serif;}'
-        + '.label-page{width:210mm;page-break-after:always;}'
+        + '.print-hint{background:#fef3c7;color:#92400e;font-size:13px;padding:10px 16px;border-bottom:1px solid #fcd34d;}'
+        + '@media print{.print-hint{display:none;}}'
+        + '.label-page{width:210mm;padding-top:8.5mm;box-sizing:border-box;page-break-after:always;}'
         + '.label-page:last-child{page-break-after:auto;}'
         + '.label-grid{display:grid;grid-template-columns:repeat(3,70mm);grid-auto-rows:35mm;}'
         + '.label-cell{width:70mm;height:35mm;overflow:hidden;display:flex;align-items:center;gap:3mm;padding:2mm;box-sizing:border-box;}'
@@ -3280,7 +3282,9 @@
             + (it.school ? '<div class="label-school">' + escHtml(it.school) + '</div>' : '')
             + '</div></div>').join("")
           + '</div></div>').join("");
-        w.document.write('<html><head><title>Etiket Baskısı</title>' + deliveryLabelCss() + '</head><body onload="window.print()">' + body + '</body></html>');
+        w.document.write('<html><head><title>Etiket Baskısı</title>' + deliveryLabelCss() + '</head><body onload="window.print()">'
+          + '<div class="print-hint">Etiketlerin denk gelmesi için yazdırma ayarlarında <b>Kenar boşlukları: Yok</b> ve <b>Ölçek: %100</b> seçin.</div>'
+          + body + '</body></html>');
         w.document.close();
       } catch {
         showToast("Bağlantı hatası.", "error");
