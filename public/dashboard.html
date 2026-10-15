@@ -3253,8 +3253,10 @@
         + '.label-grid{display:grid;grid-template-columns:repeat(3,70mm);grid-auto-rows:35mm;}'
         + '.label-cell{width:70mm;height:35mm;overflow:hidden;display:flex;align-items:center;gap:3mm;padding:2mm;box-sizing:border-box;}'
         + '.label-cell img{width:28mm;height:28mm;flex-shrink:0;}'
+        + '.label-meta{width:34mm;overflow:hidden;}'
+        + '.label-district{font-size:7.5pt;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
         + '.label-code{font-size:17pt;font-weight:700;letter-spacing:2px;font-family:monospace;}'
-        + '.label-cap{font-size:8pt;color:#555;margin-top:1mm;}</style>';
+        + '.label-school{font-size:7.5pt;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}</style>';
     }
 
     async function printTrackingLabels() {
@@ -3272,8 +3274,11 @@
         if (!w) { showToast("Açılır pencere engellendi.", "error"); return; }
         const body = pages.map((pg) => '<div class="label-page"><div class="label-grid">'
           + pg.map((it) => '<div class="label-cell"><img src="' + it.qr + '" alt="QR" />'
-            + '<div><div class="label-code">' + escHtml(it.code) + '</div>'
-            + '<div class="label-cap">Fiziki Teslimat</div></div></div>').join("")
+            + '<div class="label-meta">'
+            + (it.district ? '<div class="label-district">' + escHtml(it.district) + '</div>' : '')
+            + '<div class="label-code">' + escHtml(it.code) + '</div>'
+            + (it.school ? '<div class="label-school">' + escHtml(it.school) + '</div>' : '')
+            + '</div></div>').join("")
           + '</div></div>').join("");
         w.document.write('<html><head><title>Etiket Baskısı</title>' + deliveryLabelCss() + '</head><body onload="window.print()">' + body + '</body></html>');
         w.document.close();

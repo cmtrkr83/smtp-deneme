@@ -3105,6 +3105,7 @@ app.get("/api/deliveries/print", async (req, res) => {
   const wanted = String(req.query.codes || "").toUpperCase().split(",").map((s) => s.trim()).filter(Boolean).slice(0, 48);
   if (wanted.length === 0) return res.status(400).json({ error: "En az bir kod gerekli." });
   const byCode = new Map(loadDeliveries().codes.map((c) => [c.code, c]));
+  const users = loadUsers();
   const base = (process.env.PUBLIC_BASE_URL || (req.protocol + "://" + req.get("host") || "")).replace(/\/$/, "");
   const QRCode = require("qrcode");
   const items = [];
@@ -3112,7 +3113,8 @@ app.get("/api/deliveries/print", async (req, res) => {
     const entry = byCode.get(code);
     if (!entry || (entry.status !== "bos" && entry.status !== "atanmis")) continue;
     const qr = await QRCode.toDataURL(base + "/dashboard.html?teslimat=" + code, { width: 200, margin: 1 });
-    items.push({ code, qr });
+    const prof = (users[entry.schoolEmail] || {}).profile || {};
+    items.push({ code, qr, school: prof.schoolName || "", district: prof.district || "" });
   }
   res.json({ items });
 });

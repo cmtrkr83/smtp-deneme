@@ -178,6 +178,9 @@ test("mine onaylanmamis kodu maskeli doner", async () => {
   assert.equal(item.code, code);
 });
 test("print bos + atanmisi QR ile doner, onayliyi vermez", async () => {
+  const users = JSON.parse(fs.readFileSync(path.join(srv.dir, "users.json"), "utf-8"));
+  users["etiket@test.local"] = { email: "etiket@test.local", role: "lise", profile: { schoolName: "Atatürk Lisesi", district: "Merkez" }, created: 1, lastLogin: null };
+  fs.writeFileSync(path.join(srv.dir, "users.json"), JSON.stringify(users, null, 2));
   const g = await fetch(srv.base + "/api/deliveries/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
@@ -187,7 +190,7 @@ test("print bos + atanmisi QR ile doner, onayliyi vermez", async () => {
   await fetch(srv.base + "/api/deliveries/assign", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + adminToken() },
-    body: JSON.stringify({ code: codes[0], schoolEmail: "kullanici@test.local", note: "" }),
+    body: JSON.stringify({ code: codes[0], schoolEmail: "etiket@test.local", note: "" }),
   });
   await fetch(srv.base + "/api/deliveries/assign", {
     method: "POST",
@@ -207,6 +210,12 @@ test("print bos + atanmisi QR ile doner, onayliyi vermez", async () => {
   assert.equal(data.items.length, 2);
   assert.ok(data.items.every((x) => x.qr.startsWith("data:image/png;base64,")));
   assert.deepEqual(data.items.map((x) => x.code).sort(), [codes[0], codes[2]].sort());
+  const atanmis = data.items.find((x) => x.code === codes[0]);
+  assert.equal(atanmis.school, "Atatürk Lisesi");
+  assert.equal(atanmis.district, "Merkez");
+  const bos = data.items.find((x) => x.code === codes[2]);
+  assert.equal(bos.school, "");
+  assert.equal(bos.district, "");
 });
 
 test("yedek deliveries.json icerir", async () => {
