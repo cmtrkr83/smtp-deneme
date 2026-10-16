@@ -1287,7 +1287,7 @@
         <div class="announcement-item" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
           <div style="flex:1;min-width:220px;">
             <h4><i class="fa-solid fa-power-off" style="color:#8b0000;"></i> Bakım Modu</h4>
-            <p id="maintenanceDesc">Yükleniyor...</p>
+            <p id="maintenanceDesc" style="color:var(--text-2);">Yükleniyor...</p>
           </div>
           <button type="button" class="add-btn" id="maintenanceBtn" onclick="toggleMaintenance()" disabled>
             <span class="add-btn__text">Yükleniyor...</span>
@@ -1306,15 +1306,15 @@
             <h4><i class="fa-solid fa-download"></i> Yedek Al</h4>
             <p style="font-size:13px;color:var(--muted);margin:0;">Yedeğe alınacak bölümleri seçin. Veri Toplama yanıtlarıyla, dosya içeren bölümler dosyalarıyla birlikte gelir.</p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:12px 0;">
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="users" checked /> Kullanıcılar</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="announcements" checked /> Duyurular</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="surveys" checked /> Veri Toplama + Yanıtlar</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="files" checked /> Dosya Dağıtım</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="file-requests" checked /> Belge İstekleri</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="requests" checked /> Talep/İtiraz</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="logs" checked /> Log Kayıtları</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="settings" checked /> Sistem Ayarları</label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" class="bk-sec" value="deliveries" checked /> Teslimatlar</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="users" checked /> Kullanıcılar</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="announcements" checked /> Duyurular</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="surveys" checked /> Veri Toplama + Yanıtlar</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="files" checked /> Dosya Dağıtım</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="file-requests" checked /> Belge İstekleri</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="requests" checked /> Talep/İtiraz</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="logs" checked /> Log Kayıtları</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="settings" checked /> Sistem Ayarları</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;"><input type="checkbox" class="bk-sec" value="deliveries" checked /> Teslimatlar</label>
             </div>
             <button type="button" class="add-btn add-btn--teal" onclick="downloadBackup()">
               <span class="add-btn__text">Yedeği İndir</span>
@@ -1326,7 +1326,7 @@
             <h4><i class="fa-solid fa-upload"></i> Yedeği Geri Yükle</h4>
             <p style="font-size:13px;color:var(--muted);margin:0;">Yedekteki bölümler mevcut verilerin üzerine yazılır. Yüklemeden önce otomatik güvenlik kopyası alınır.</p>
             <div style="margin:12px 0;">
-              <input type="file" id="bkFile" accept=".zip" style="font-size:13px;" />
+              <input type="file" id="bkFile" accept=".zip" style="font-size:13px;color:var(--text-2);" />
             </div>
             <button type="button" class="add-btn add-btn--red" onclick="restoreBackup()">
               <span class="add-btn__text">Yedeği Geri Yükle</span>
@@ -2612,10 +2612,43 @@
         user_create: "#22c55e",
         user_delete: "#ef4444",
         user_role_change: "#f59e0b",
+        user_ownership_change: "#f59e0b",
+        user_import: "#22c55e",
         announcement_create: "#22c55e",
         announcement_edit: "#f59e0b",
         announcement_delete: "#ef4444",
         announcement_read: "#6366f1",
+        survey_create: "#22c55e",
+        survey_edit: "#f59e0b",
+        survey_delete: "#ef4444",
+        survey_respond: "#22c55e",
+        survey_respond_edit: "#f59e0b",
+        file_upload: "#22c55e",
+        file_delete: "#ef4444",
+        file_download: "#6366f1",
+        request_create: "#22c55e",
+        request_edit: "#f59e0b",
+        request_delete: "#ef4444",
+        request_respond: "#0d9488",
+        profile_update: "#f59e0b",
+        file_request_create: "#22c55e",
+        file_request_submit: "#22c55e",
+        file_request_delete: "#ef4444",
+        event_add: "#22c55e",
+        event_update: "#f59e0b",
+        event_delete: "#ef4444",
+        maintenance_on: "#ef4444",
+        maintenance_off: "#22c55e",
+        module_change: "#f59e0b",
+        backup_restore: "#a855f7",
+        delivery_generate: "#22c55e",
+        delivery_assign: "#22c55e",
+        delivery_confirm: "#22c55e",
+        delivery_fail: "#f59e0b",
+        delivery_lock: "#ef4444",
+        delivery_delete: "#ef4444",
+        delivery_unassign: "#f59e0b",
+        delivery_bulk: "#22c55e",
       };
       return colors[action] || "#888";
     }

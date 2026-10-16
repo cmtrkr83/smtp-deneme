@@ -1056,6 +1056,25 @@ body.dashboard-body::before {
   outline: 2px solid var(--brand-ink);
   outline-offset: 2px;
 }
+/* Dosya girdisi: düğme dahil tema uyumlu */
+input[type="file"] {
+  color: var(--text-2);
+}
+input[type="file"]::file-selector-button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--btn-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+  background: var(--btn-bg-hover);
+}
 /* Star Students tarzı okul satırı: ikon + bilgi + rozetler */
 .school-row {
   display: flex;
