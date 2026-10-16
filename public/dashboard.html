@@ -1298,7 +1298,7 @@
         <div class="report-card" style="margin-top:20px;">
           <h4><i class="fa-solid fa-toggle-on"></i> Modüller</h4>
           <p style="font-size:13px;color:var(--muted);margin:0;">Kapalı modüller kullanıcılara bilgi mesajı gösterir; yöneticiler etkilenmez.</p>
-          <div id="moduleToggles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px;margin:12px 0;"></div>
+          <div id="moduleToggles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:12px 0;"></div>
           <div id="modulesMessage" class="message" style="margin-top:12px;"></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:28px;">
@@ -1418,21 +1418,24 @@
     }
 
     const MODULE_DEFS = [
-      ["announcements", "Duyurular"],
-      ["surveys", "Veri Toplama"],
-      ["files", "Dosya Dağıtım"],
-      ["file-requests", "Belge İstekleri"],
-      ["requests", "Talep/İtiraz"],
-      ["deliveries", "Teslimatlar"],
+      ["announcements", "Duyurular", "fa-bullhorn", "#ef4444", "Duyuru listesi", "Kapalıysa kullanıcılar duyuruları göremez."],
+      ["surveys", "Veri Toplama", "fa-square-poll-vertical", "#22c55e", "Anket yanıtlama", "Kapalıysa kullanıcılar formları göremez ve yanıtlayamaz."],
+      ["files", "Dosya Dağıtım", "fa-folder-open", "#f59e0b", "Dosya indirme", "Kapalıysa dağıtılan dosyalar indirilemez."],
+      ["file-requests", "Belge İstekleri", "fa-file-arrow-up", "#a855f7", "Belge yükleme", "Kapalıysa istenen belgeler yüklenemez."],
+      ["requests", "Talep/İtiraz", "fa-paper-plane", "#06b6d4", "Talep oluşturma", "Kapalıysa yeni talep ve itiraz açılamaz."],
+      ["deliveries", "Teslimatlar", "fa-boxes-packing", "#0d9488", "Teslim onayı", "Kapalıysa paket teslim onayı yapılamaz."],
     ];
 
     function paintModules(modules) {
       const box = document.getElementById("moduleToggles");
       if (!box) return;
-      box.innerHTML = MODULE_DEFS.map(([k, label]) => {
+      box.innerHTML = MODULE_DEFS.map(([k, label, icon, color, sub, desc]) => {
         const on = modules[k] !== false;
-        return '<label style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;">' + label
-          + '<span class="mod-switch"><input type="checkbox" class="mod-toggle" value="' + k + '"' + (on ? " checked" : "") + ' onchange="saveModules()" aria-label="' + label + '" /><span class="track"></span><span class="thumb"></span></span></label>';
+        return '<div class="msw-card"><div class="msw-content">'
+          + '<span class="msw-icon" style="background:' + color + '1a;color:' + color + ';"><i class="fa-solid ' + icon + '"></i></span>'
+          + '<div class="msw-text"><span class="msw-label">' + label + '<span class="msw-sub">(' + sub + ')</span></span>'
+          + '<span class="msw-desc">' + desc + '</span></div></div>'
+          + '<label class="msw-switch"><input type="checkbox" class="mod-toggle" value="' + k + '"' + (on ? " checked" : "") + ' onchange="saveModules()" aria-label="' + label + '" /><span class="msw-slider"></span></label></div>';
       }).join("");
     }
 
