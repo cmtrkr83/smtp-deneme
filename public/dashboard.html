@@ -1418,22 +1418,22 @@
     }
 
     const MODULE_DEFS = [
-      ["announcements", "Duyurular", "fa-bullhorn", "#ef4444", "Duyuru listesi", "Kapalıysa kullanıcılar duyuruları göremez."],
-      ["surveys", "Veri Toplama", "fa-square-poll-vertical", "#22c55e", "Anket yanıtlama", "Kapalıysa kullanıcılar formları göremez ve yanıtlayamaz."],
-      ["files", "Dosya Dağıtım", "fa-folder-open", "#f59e0b", "Dosya indirme", "Kapalıysa dağıtılan dosyalar indirilemez."],
-      ["file-requests", "Belge İstekleri", "fa-file-arrow-up", "#a855f7", "Belge yükleme", "Kapalıysa istenen belgeler yüklenemez."],
-      ["requests", "Talep/İtiraz", "fa-paper-plane", "#06b6d4", "Talep oluşturma", "Kapalıysa yeni talep ve itiraz açılamaz."],
-      ["deliveries", "Teslimatlar", "fa-boxes-packing", "#0d9488", "Teslim onayı", "Kapalıysa paket teslim onayı yapılamaz."],
+      ["announcements", "Duyurular", "fa-bullhorn", "#ef4444", "Kapalıysa kullanıcılar duyuruları göremez."],
+      ["surveys", "Veri Toplama", "fa-square-poll-vertical", "#22c55e", "Kapalıysa kullanıcılar formları göremez ve yanıtlayamaz."],
+      ["files", "Dosya Dağıtım", "fa-folder-open", "#f59e0b", "Kapalıysa dağıtılan dosyalar indirilemez."],
+      ["file-requests", "Belge İstekleri", "fa-file-arrow-up", "#a855f7", "Kapalıysa istenen belgeler yüklenemez."],
+      ["requests", "Talep/İtiraz", "fa-paper-plane", "#06b6d4", "Kapalıysa yeni talep ve itiraz açılamaz."],
+      ["deliveries", "Teslimatlar", "fa-boxes-packing", "#0d9488", "Kapalıysa paket teslim onayı yapılamaz."],
     ];
 
     function paintModules(modules) {
       const box = document.getElementById("moduleToggles");
       if (!box) return;
-      box.innerHTML = MODULE_DEFS.map(([k, label, icon, color, sub, desc]) => {
+      box.innerHTML = MODULE_DEFS.map(([k, label, icon, color, desc]) => {
         const on = modules[k] !== false;
         return '<div class="msw-card"><div class="msw-content">'
           + '<span class="msw-icon" style="background:' + color + '1a;color:' + color + ';"><i class="fa-solid ' + icon + '"></i></span>'
-          + '<div class="msw-text"><span class="msw-label">' + label + '<span class="msw-sub">(' + sub + ')</span></span>'
+          + '<div class="msw-text"><span class="msw-label">' + label + '</span>'
           + '<span class="msw-desc">' + desc + '</span></div></div>'
           + '<label class="msw-switch"><input type="checkbox" class="mod-toggle" value="' + k + '"' + (on ? " checked" : "") + ' onchange="saveModules()" aria-label="' + label + '" /><span class="msw-slider"></span></label></div>';
       }).join("");
