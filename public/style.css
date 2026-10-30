@@ -2322,8 +2322,8 @@ html[data-theme="dark"] .ann-tag.diger { color: #f9a8d4; }
   gap: 12px;
 }
 .peg-loader {
-  width: 192px;
-  height: 192px;
+  width: 144px;
+  height: 144px;
   overflow: visible;
 }
 .peg-loader-text {
