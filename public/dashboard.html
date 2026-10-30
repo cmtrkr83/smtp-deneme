@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/style.css?v=3" />
+  <link rel="stylesheet" href="/style.css?v=4" />
   <style>
     /* Toast bildirimleri (ekleme, mevcut stilleri ezmez) */
     #toastWrap { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: min(360px, 90vw); }
@@ -29,38 +29,100 @@
 </head>
 <body class="dashboard-body">
   <a class="skip-link" href="#contentArea">İçeriğe atla</a>
-  <!-- Peg Top Global Loader -->
+  <!-- Global Loader -->
   <div class="peg-loader-overlay" id="globalLoader" role="status" aria-live="polite" aria-hidden="true" aria-label="Yükleniyor">
     <div class="peg-loader-box">
-      <div class="peg-loader" aria-hidden="true">
-  <svg
-    id="pegtopone"
-    xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    viewBox="0 0 100 100"
-  >
-    <defs>
-      <filter id="shine"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
-      <mask id="mask"><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="white"></path></mask>
-      <radialGradient id="gradient-1" cx="50" cy="66" fx="50" fy="66" r="30" gradientTransform="translate(0 35) scale(1 0.5)" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="black" stop-opacity="0.3"></stop><stop offset="50%" stop-color="black" stop-opacity="0.1"></stop><stop offset="100%" stop-color="black" stop-opacity="0"></stop></radialGradient>
-      <radialGradient id="gradient-2" cx="55" cy="20" fx="55" fy="20" r="30" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"></stop><stop offset="50%" stop-color="white" stop-opacity="0.1"></stop><stop offset="100%" stop-color="white" stop-opacity="0"></stop></radialGradient>
-      <radialGradient id="gradient-3" cx="85" cy="50" fx="85" fy="50" xlink:href="#gradient-2"></radialGradient>
-      <radialGradient id="gradient-4" cx="50" cy="58" fx="50" fy="58" r="60" gradientTransform="translate(0 47) scale(1 0.2)" xlink:href="#gradient-3"></radialGradient>
-      <linearGradient id="gradient-5" x1="50" y1="90" x2="50" y2="10" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="black" stop-opacity="0.2"></stop><stop offset="40%" stop-color="black" stop-opacity="0"></stop></linearGradient>
-    </defs>
-    <g>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path>
-      <path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path>
-    </g>
-  </svg>
-  <svg id="pegtoptwo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path></g></svg>
-  <svg id="pegtopthree" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100"><g><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="currentColor"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-1)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="none" stroke="white" opacity="0.3" stroke-width="3" filter="url(#shine)" mask="url(#mask)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-2)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-3)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-4)"></path><path d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z" fill="url(#gradient-5)"></path></g></svg>
-      </div>
+      <svg class="peg-loader" viewBox="30 14 140 142" aria-hidden="true">
+        <ellipse fill="#000" cx="102" cy="153" rx="58" ry="3" opacity=".12"></ellipse>
+
+        <rect fill="#047857" x="52" y="92" width="12" height="48" rx="3"></rect>
+        <rect fill="#fff" x="55" y="94" width="2.5" height="44" rx="1.2" opacity=".18"></rect>
+        <rect fill="#0369a1" x="66" y="80" width="16" height="60" rx="3"></rect>
+        <rect fill="#fff" x="70" y="82" width="3" height="56" rx="1.5" opacity=".18"></rect>
+        <rect fill="#bae6fd" x="69" y="90" width="10" height="5" rx="2.5" opacity=".45"></rect>
+        <rect fill="#d97706" x="85" y="88" width="12" height="52" rx="3"></rect>
+        <rect fill="#fff" x="88" y="90" width="2.5" height="48" rx="1.2" opacity=".2"></rect>
+        <rect fill="#4338ca" x="117" y="84" width="16" height="56" rx="3"></rect>
+        <rect fill="#fff" x="121" y="86" width="3" height="52" rx="1.5" opacity=".18"></rect>
+        <rect fill="#c7d2fe" x="119" y="128" width="12" height="2" rx="1" opacity=".5"></rect>
+        <rect fill="#0f766e" x="136" y="96" width="12" height="44" rx="3"></rect>
+        <rect fill="#fff" x="139" y="98" width="2.5" height="40" rx="1.2" opacity=".18"></rect>
+        <g transform="rotate(14 150 140)">
+          <rect fill="#ea580c" x="150" y="86" width="12" height="54" rx="3"></rect>
+          <rect fill="#fff" x="153" y="88" width="2.5" height="50" rx="1.2" opacity=".2"></rect>
+        </g>
+
+        <g>
+          <animateTransform attributeName="transform" type="translate" dur="5s" repeatCount="indefinite" keyTimes="0;.02;.11;.76;.88;1" values="0 0;0 0;0 -62;0 -62;0 0;0 0" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+          <g transform="translate(100 0)">
+            <g>
+              <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;.10;.16;.68;.74;1" values="1 1;1 1;0.001 1;0.001 1;1 1;1 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+              <rect fill="#be123c" x="0" y="84" width="14" height="56" rx="3"></rect>
+              <rect fill="#000" x="9" y="84" width="5" height="56" rx="2" opacity=".2"></rect>
+              <rect fill="#fff" x="3" y="86" width="2.5" height="52" rx="1.2" opacity=".2"></rect>
+              <rect fill="#fcd34d" x="2" y="92" width="10" height="2" rx="1"></rect>
+              <rect fill="#fcd34d" x="2" y="96" width="10" height="1.5" rx=".75" opacity=".6"></rect>
+              <rect fill="#fcd34d" x="2" y="130" width="10" height="2" rx="1"></rect>
+            </g>
+
+            <g>
+              <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;.10;.16;.68;.74;1" values="0.001 1;0.001 1;1 1;1 1;0.001 1;0.001 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+
+              <rect fill="#9f1239" x="0" y="84" width="44" height="56" rx="4"></rect>
+              <rect fill="#fffbeb" x="0" y="87" width="41" height="50" rx="3"></rect>
+              <rect fill="#a8a29e" x="0" y="87" width="4" height="50" opacity=".25"></rect>
+              <path stroke="#d6d3d1" stroke-width="1.2" stroke-linecap="round" d="M7 97h27M7 103h27M7 109h24M7 115h27M7 121h27M7 127h18"></path>
+
+              <g>
+                <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;.16;.24;.56;.66;1" values="1 1;1 1;-1 1;-1 1;1 1;1 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+                <animateTransform attributeName="transform" type="skewY" dur="5s" repeatCount="indefinite" keyTimes="0;.16;.20;.24;.56;.61;.66;1" values="0;0;-5;0;0;-5;0;0" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1" additive="sum"></animateTransform>
+                <rect fill="#9f1239" x="0" y="84" width="44" height="56" rx="4"></rect>
+                <rect fill="#fffbeb" x="0" y="87" width="41" height="50" rx="3"></rect>
+                <rect fill="#a8a29e" x="0" y="87" width="4" height="50" opacity=".25"></rect>
+              </g>
+
+              <g>
+                <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;0.42;0.5;.56;.66;1" values="1 1;1 1;-1 1;-1 1;1 1;1 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+                <animateTransform attributeName="transform" type="skewY" dur="5s" repeatCount="indefinite" keyTimes="0;0.42;0.46;0.5;1" values="0;0;-5;0;0" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1" additive="sum"></animateTransform>
+                <rect fill="#fffbeb" x="0" y="87" width="41" height="50" rx="3"></rect>
+                <rect fill="#a8a29e" x="0" y="87" width="4" height="50" opacity=".25"></rect>
+                <path stroke="#d6d3d1" stroke-width="1.2" stroke-linecap="round" d="M7 97h27M7 103h27M7 109h24M7 115h27M7 121h27M7 127h18"></path>
+              </g>
+
+              <g>
+                <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;0.34;0.42;.56;.66;1" values="1 1;1 1;-1 1;-1 1;1 1;1 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+                <animateTransform attributeName="transform" type="skewY" dur="5s" repeatCount="indefinite" keyTimes="0;0.34;0.38;0.42;1" values="0;0;-5;0;0" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1" additive="sum"></animateTransform>
+                <rect fill="#fffbeb" x="0" y="87" width="41" height="50" rx="3"></rect>
+                <rect fill="#a8a29e" x="0" y="87" width="4" height="50" opacity=".25"></rect>
+                <path stroke="#d6d3d1" stroke-width="1.2" stroke-linecap="round" d="M7 97h27M7 103h27M7 109h24M7 115h27M7 121h27M7 127h18"></path>
+              </g>
+
+              <g>
+                <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;0.26;0.34;.56;.66;1" values="1 1;1 1;-1 1;-1 1;1 1;1 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+                <animateTransform attributeName="transform" type="skewY" dur="5s" repeatCount="indefinite" keyTimes="0;0.26;0.3;0.34;1" values="0;0;-5;0;0" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1" additive="sum"></animateTransform>
+                <rect fill="#fffbeb" x="0" y="87" width="41" height="50" rx="3"></rect>
+                <rect fill="#a8a29e" x="0" y="87" width="4" height="50" opacity=".25"></rect>
+                <path stroke="#d6d3d1" stroke-width="1.2" stroke-linecap="round" d="M7 97h27M7 103h27M7 109h24M7 115h27M7 121h27M7 127h18"></path>
+              </g>
+
+              <g>
+                <animateTransform attributeName="transform" type="scale" dur="5s" repeatCount="indefinite" keyTimes="0;.16;.24;.56;.66;1" values="1 1;1 1;-1 1;-1 1;1 1;1 1" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1"></animateTransform>
+                <animateTransform attributeName="transform" type="skewY" dur="5s" repeatCount="indefinite" keyTimes="0;.16;.20;.24;.56;.61;.66;1" values="0;0;-5;0;0;-5;0;0" keySplines=".45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1;.45 0 .25 1" additive="sum"></animateTransform>
+                <rect fill="#be123c" x="0" y="84" width="44" height="56" rx="4"></rect>
+                <rect fill="#881337" x="22" y="84" width="22" height="56" rx="4" opacity=".35"></rect>
+                <rect fill="#000" x="0" y="84" width="5" height="56" rx="2" opacity=".18"></rect>
+                <rect stroke="#fcd34d" x="9" y="90" width="29" height="44" rx="3" fill="none" stroke-width="1.2" opacity=".7"></rect>
+                <rect fill="#fcd34d" x="14" y="98" width="19" height="2.5" rx="1.25" opacity=".9"></rect>
+                <rect fill="#fcd34d" x="17" y="104" width="13" height="2" rx="1" opacity=".55"></rect>
+              </g>
+            </g>
+          </g>
+        </g>
+
+        <rect fill="#92400e" x="40" y="140" width="124" height="9" rx="4.5"></rect>
+        <rect fill="#d97706" x="44" y="140" width="116" height="2" rx="1"></rect>
+      </svg>
+      <span class="peg-loader-text" id="globalLoaderText">Yükleniyor</span>
     </div>
   </div>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
