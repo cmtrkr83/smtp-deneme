@@ -1206,12 +1206,26 @@ input[type="file"]::file-selector-button:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 28px;
+}
+/* Sağ sütun (takvim): başlıklar üstte, takvim kutusu alt kenarla hizalı */
+.overview-split > div:last-child {
+  display: flex;
+  flex-direction: column;
+}
+.overview-split .cal-box {
+  margin-top: auto;
 }
 @media (max-width: 900px) {
   .overview-split {
     grid-template-columns: 1fr;
+  }
+  .overview-split > div:last-child {
+    flex-direction: column;
+  }
+  .overview-split .cal-box {
+    margin-top: auto;
   }
 }
 /* Takvim kutusu (referans minimal ay ızgarası, marka kırmızısı vurgu) */
