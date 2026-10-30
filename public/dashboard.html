@@ -158,7 +158,7 @@
         <div class="topbar-user">
           <div class="avatar" id="userAvatar">K</div>
           <div>
-            <div class="user-name" id="userName">Yükleniyor...</div>
+            <div class="user-name" id="userName"></div>
             <div class="user-role" id="userRole">-</div>
             <div class="session-timer" id="sessionTimer" style="font-size:10px;color:var(--muted);margin-top:1px;"></div>
           </div>
@@ -321,10 +321,10 @@
       // Okullar her açılışta filtresiz başlar: önceki seçim takılı kalırsa liste boş görünebilir
       else if (page === "schools") { window.schoolsOwnershipFilter = ""; window.schoolsSearchText = ""; await renderSchools(); }
       else if (page === "school-profile") { showSchoolProfileForm(); document.querySelector('.nav-item.active')?.classList.remove('active'); }
-      else if (page === "surveys") { renderSurveys(); }
-      else if (page === "files") { renderFiles(); }
-      else if (page === "file-requests") { renderFileRequests(); }
-      else if (page === "requests") { renderRequests(); }
+      else if (page === "surveys") { await renderSurveys(); }
+      else if (page === "files") { await renderFiles(); }
+      else if (page === "file-requests") { await renderFileRequests(); }
+      else if (page === "requests") { await renderRequests(); }
       else if (page === "deliveries") await renderDeliveries();
       else if (page === "admin-deliveries") await renderAdminDeliveries();
       else if (page === "reports") await renderReports();
@@ -444,7 +444,7 @@
 
     // Aktif rol değiştirme (üst bardaki seçici): gösterge panelini yeniler, açık sayfayı yeni rolle tekrar çizer
     window.switchActiveRole = async function (newRole) {
-      showGlobalLoader("Yükleniyor...");
+      showGlobalLoader("Yükleniyor");
       try {
       activeRole = newRole;
       const lb = roleLabels;
@@ -460,10 +460,10 @@
         const page = activePage.dataset.page;
         if (page === "dashboard") renderDashboard();
         else if (page === "announcements") await renderAnnouncements();
-        else if (page === "files") renderFiles();
-        else if (page === "file-requests") renderFileRequests();
-        else if (page === "surveys") renderSurveys();
-        else if (page === "requests") renderRequests();
+        else if (page === "files") await renderFiles();
+        else if (page === "file-requests") await renderFileRequests();
+        else if (page === "surveys") await renderSurveys();
+        else if (page === "requests") await renderRequests();
       }
       } finally {
         hideGlobalLoader();
@@ -472,7 +472,7 @@
 
     // Fetch profile and dashboard data
     async function init() {
-      showGlobalLoader("Yükleniyor...");
+      showGlobalLoader("Yükleniyor");
       try {
         const [profileRes, dashRes] = await Promise.all([
           fetch("/api/profile", { headers: { Authorization: "Bearer " + token } }),
@@ -1003,7 +1003,7 @@
       const area = document.getElementById("contentArea");
       if (!area) return;
       try {
-        const res = await fetch("/api/presence?minutes=5", { headers: { Authorization: "Bearer " + token } });
+        const res = await apiFetch("/api/presence?minutes=5");
         if (!res.ok) return;
         const d = await res.json();
         const ago = (ts) => {
@@ -1349,10 +1349,10 @@
         <div class="announcement-item" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
           <div style="flex:1;min-width:220px;">
             <h4><i class="fa-solid fa-power-off" style="color:#8b0000;"></i> Bakım Modu</h4>
-            <p id="maintenanceDesc" style="color:var(--text-2);">Yükleniyor...</p>
+            <p id="maintenanceDesc" style="color:var(--text-2);"></p>
           </div>
           <button type="button" class="add-btn" id="maintenanceBtn" onclick="toggleMaintenance()" disabled>
-            <span class="add-btn__text">Yükleniyor...</span>
+            <span class="add-btn__text"></span>
             <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span>
           </button>
         </div>
@@ -1624,7 +1624,7 @@
               </tr>
             </thead>
             <tbody id="usersTableBody">
-              <tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.2);padding:40px;"></td></tr>
             </tbody>
           </table>
         </div>
@@ -2308,7 +2308,7 @@
                 </tr>
               </thead>
               <tbody id="annTableBody">
-                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
+                <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;"></td></tr>
               </tbody>
             </table>
           </div>
@@ -2427,7 +2427,7 @@
 
     async function renderSchoolAnnouncements() {
       const container = document.getElementById("schoolAnnouncements");
-      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px;">Yükleniyor...</p>';
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px;"></p>';
       try {
         const res = await fetch("/api/announcements" + asRoleQuery(), {
           headers: { Authorization: "Bearer " + token },
@@ -2621,7 +2621,7 @@
               </tr>
             </thead>
             <tbody id="logsTableBody">
-              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;"></td></tr>
             </tbody>
           </table>
         </div>
@@ -2811,7 +2811,7 @@
           </div>
         </div>
         <div id="schoolsContent">
-          <div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+          <div style="text-align:center;padding:40px;color:var(--muted);"></div>
         </div>
       `;
       paintSchoolsOwnershipFilter();
@@ -3150,9 +3150,9 @@
     async function renderSurveys() {
       if (!(await moduleGate("surveys"))) return;
       if (currentUser.role === "admin") {
-        renderAdminSurveys();
+        await renderAdminSurveys();
       } else {
-        renderUserSurveys();
+        await renderUserSurveys();
       }
     }
 
@@ -3190,7 +3190,7 @@
         </div>
         <div class="report-card">
           <h4><i class="fa-solid fa-boxes-packing"></i> Paketlerim</h4>
-          <div id="deliveryList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>
+          <div id="deliveryList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);"></div>
         </div>
       `;
       await loadDeliveriesMine();
@@ -3304,7 +3304,7 @@
               </button>
             </div>
           </div>
-          <div id="deliveryAdminList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>
+          <div id="deliveryAdminList" style="margin-top:8px;text-align:center;padding:20px;color:var(--muted);"></div>
         </div>
       `;
       await loadDeliveriesAdmin();
@@ -3481,9 +3481,9 @@
     async function renderFiles() {
       if (!(await moduleGate("files"))) return;
       if (currentUser.role === "admin") {
-        renderAdminFiles();
+        await renderAdminFiles();
       } else {
-        renderUserFiles();
+        await renderUserFiles();
       }
     }
 
@@ -3513,7 +3513,7 @@
               </tr>
             </thead>
             <tbody id="adminFilesBody">
-              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;"></td></tr>
             </tbody>
           </table>
         </div>
@@ -3760,7 +3760,7 @@
 
     async function renderFileStatus(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = `<div class="content-header"><h2>Dosya İndirme Durumu</h2><p>Yükleniyor...</p></div><div id="fileStatusContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>`;
+      area.innerHTML = `<div class="content-header"><h2>Dosya İndirme Durumu</h2><p></p></div><div id="fileStatusContent" style="text-align:center;padding:40px;color:var(--muted);"></div>`;
       try {
         const res = await fetch("/api/files/" + id + "/status", {
           headers: { Authorization: "Bearer " + token },
@@ -3829,7 +3829,7 @@
           <h2>Dosya Dağıtım</h2>
           <p>Size gönderilen dosyaları indirin.</p>
         </div>
-        <div id="userFilesContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+        <div id="userFilesContent" style="text-align:center;padding:40px;color:var(--muted);"></div>
       `;
       try {
         const res = await fetch("/api/files" + asRoleQuery(), {
@@ -3971,9 +3971,9 @@
     async function renderRequests() {
       if (!(await moduleGate("requests"))) return;
       if (currentUser.role === "admin") {
-        renderAdminRequests();
+        await renderAdminRequests();
       } else {
-        renderUserRequests();
+        await renderUserRequests();
       }
     }
 
@@ -3990,7 +3990,7 @@
             <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
-        <div id="userRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+        <div id="userRequestsContent" style="text-align:center;padding:40px;color:var(--muted);"></div>
       `;
       await loadUserRequests();
     }
@@ -4041,7 +4041,7 @@
 
     async function renderUserRequestDetail(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p>Yükleniyor...</p></div><div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
+      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p></p></div><div style="text-align:center;padding:40px;color:var(--muted);"></div>';
       try {
         const res = await fetch("/api/requests/" + id, {
           headers: { Authorization: "Bearer " + token },
@@ -4296,7 +4296,7 @@
             <label><input type="radio" name="adminReqFilter" value="closed" onchange="setAdminReqFilter(this.value)" /><span><i class="fa-solid fa-archive"></i> Kapalı</span></label>
           </div>
         </div>
-        <div id="adminRequestsContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+        <div id="adminRequestsContent" style="text-align:center;padding:40px;color:var(--muted);"></div>
       `;
       try {
         const cur = window.adminReqFilter || "all";
@@ -4360,7 +4360,7 @@
 
     async function renderAdminRequestDetail(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p>Yükleniyor...</p></div><div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
+      area.innerHTML = '<div class="content-header"><h2>Talep Detayı</h2><p></p></div><div style="text-align:center;padding:40px;color:var(--muted);"></div>';
       try {
         const res = await fetch("/api/requests/" + id, {
           headers: { Authorization: "Bearer " + token },
@@ -4489,7 +4489,7 @@
           <h2><i class="fa-solid fa-chart-bar"></i> Raporlar</h2>
           <p>Sistem istatistikleri ve kullanım analizleri.</p>
         </div>
-        <div id="reportsContent" style="text-align:center;padding:60px;color:var(--muted);">Yükleniyor...</div>
+        <div id="reportsContent" style="text-align:center;padding:60px;color:var(--muted);"></div>
       `;
       try {
         const res = await fetch("/api/reports", {
@@ -4675,7 +4675,7 @@
           + '<label><input type="radio" name="districtView" value="bar" onchange="setDistrictView(\'bar\')" /><span><i class="fa-solid fa-chart-column"></i> Sütun</span></label>'
           + '<label><input type="radio" name="districtView" value="line" onchange="setDistrictView(\'line\')" /><span><i class="fa-solid fa-chart-line"></i> Çizgi</span></label>'
           + '</div></div>'
-          + '<div id="districtStatsContent" style="text-align:center;padding:20px;color:var(--muted);">Yükleniyor...</div>';
+          + '<div id="districtStatsContent" style="text-align:center;padding:20px;color:var(--muted);"></div>';
       }
       html += '</div>';
 
@@ -4825,7 +4825,7 @@
       const box = document.getElementById("districtStatsContent");
       if (!sel || !box) return;
       box.style.textAlign = "center";
-      box.innerHTML = '<div style="padding:20px;color:var(--muted);">Yükleniyor...</div>';
+      box.innerHTML = '<div style="padding:20px;color:var(--muted);"></div>';
       try {
         const res = await fetch("/api/surveys/" + sel.value + "/district-stats", {
           headers: { Authorization: "Bearer " + token },
@@ -5020,7 +5020,7 @@
               </tr>
             </thead>
             <tbody id="surveyTableBody">
-              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">Yükleniyor...</td></tr>
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;"></td></tr>
             </tbody>
           </table>
         </div>
@@ -5081,21 +5081,20 @@
       });
     }
 
-    function renderSurveyBuilder(id) {
+    async function renderSurveyBuilder(id) {
       editSurveyId = id;
       const area = document.getElementById("contentArea");
       if (id) {
-        fetch("/api/surveys/" + id, {
-          headers: { Authorization: "Bearer " + token },
-        })
-          .then((r) => {
-            if (!r.ok) throw new Error();
-            return r.json();
-          })
-          .then((s) => renderBuilderForm(s))
-          .catch(() => {
-            area.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Anket yüklenemedi. <button class="btn btn-ghost" style="width:auto;margin-top:12px;" onclick="renderAdminSurveys()">Geri</button></div>';
+        try {
+          const r = await fetch("/api/surveys/" + id, {
+            headers: { Authorization: "Bearer " + token },
           });
+          if (!r.ok) throw new Error();
+          const s = await r.json();
+          renderBuilderForm(s);
+        } catch {
+          area.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Anket yüklenemedi. <button class="btn btn-ghost" style="width:auto;margin-top:12px;" onclick="renderAdminSurveys()">Geri</button></div>';
+        }
       } else {
         renderBuilderForm(null);
       }
@@ -5409,7 +5408,7 @@
 
     async function renderSurveyStatus(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
+      area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"></div>';
       try {
         const [statusRes, responsesRes] = await Promise.all([
           fetch("/api/surveys/" + id + "/status", { headers: { Authorization: "Bearer " + token } }),
@@ -5583,7 +5582,7 @@
           <h2>Veri Toplama</h2>
           <p>Size gönderilen veri toplama formlarını görüntüleyin ve yanıtlayın.</p>
         </div>
-        <div id="userSurveysContent" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+        <div id="userSurveysContent" style="text-align:center;padding:40px;color:var(--muted);"></div>
       `;
       try {
         const res = await fetch("/api/surveys" + asRoleQuery(), {
@@ -5624,7 +5623,7 @@
 
     async function renderSurveyFill(id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>';
+      area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"></div>';
       try {
         const [surveyRes, myRespRes] = await Promise.all([
           fetch("/api/surveys/" + id, { headers: { Authorization: "Bearer " + token } }),
@@ -5803,8 +5802,8 @@
 
     async function renderFileRequests() {
       if (!(await moduleGate("file-requests"))) return;
-      if (currentUser.role === "admin") renderAdminFileRequests();
-      else renderUserFileRequests();
+      if (currentUser.role === "admin") await renderAdminFileRequests();
+      else await renderUserFileRequests();
     }
 
     async function renderAdminFileRequests() {
@@ -5820,7 +5819,7 @@
             <span class="add-btn__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg" aria-hidden="true"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
           </button>
         </div>
-        <div id="adminFrList" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+        <div id="adminFrList" style="text-align:center;padding:40px;color:var(--muted);"></div>
       `;
       try {
         const res = await fetch("/api/file-requests", { headers: { Authorization: "Bearer " + token } });
@@ -5857,7 +5856,7 @@
           <h2>Belge İstekleri</h2>
           <p>Yönetici tarafından istenen belgeleri görüntüleyin ve yükleyin.</p>
         </div>
-        <div id="userFrList" style="text-align:center;padding:40px;color:var(--muted);">Yükleniyor...</div>
+        <div id="userFrList" style="text-align:center;padding:40px;color:var(--muted);"></div>
       `;
       try {
         const res = await fetch("/api/file-requests" + asRoleQuery(), { headers: { Authorization: "Bearer " + token } });
@@ -5958,7 +5957,7 @@
 
     window.viewFrDetail = async function (id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
+      area.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;"></div></div>';
       try {
         const res = await fetch("/api/file-requests/" + id, { headers: { Authorization: "Bearer " + token } });
         if (!res.ok) throw new Error();
@@ -6021,7 +6020,7 @@
 
     window.viewUserFrDetail = async function (id) {
       const area = document.getElementById("contentArea");
-      area.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;">Yükleniyor...</div></div>';
+      area.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;"></i><div style="margin-top:12px;"></div></div>';
       try {
         const res = await fetch("/api/file-requests/" + id + asRoleQuery(), { headers: { Authorization: "Bearer " + token } });
         if (!res.ok) throw new Error();
@@ -6148,6 +6147,29 @@
         },
       });
     };
+
+    // Inline onclick ile çağrılan async sayfa/detay render'larını global loader ile sar.
+    // Böylece sidebar dışındaki geçişlerde de kitaplık loader'ı görünür.
+    // withGlobalLoader iç içe çağrılsa da _loaderDepth sayacı doğru çalışır.
+    [
+      "renderUsers", "renderLogs", "renderSchools", "renderSchoolAnnouncements",
+      "renderSurveys", "renderAdminSurveys", "renderUserSurveys",
+      "renderFiles", "renderAdminFiles", "renderUserFiles", "renderFileStatus",
+      "renderRequests", "renderAdminRequests", "renderUserRequests",
+      "renderUserRequestDetail", "renderAdminRequestDetail",
+      "renderFileRequests", "renderAdminFileRequests", "renderUserFileRequests",
+      "viewFrDetail", "viewUserFrDetail",
+      "renderDeliveries", "renderAdminDeliveries", "renderReports", "renderSettings",
+      "renderSurveyStatus", "renderSurveyFill", "renderSurveyBuilder", "renderCreateRequest", "renderUploadFile",
+    ].forEach((name) => {
+      const orig = window[name];
+      if (typeof orig !== "function" || orig.__withLoader) return;
+      const wrapped = function (...args) {
+        return withGlobalLoader(() => orig.apply(this, args));
+      };
+      wrapped.__withLoader = true;
+      window[name] = wrapped;
+    });
 
     init();
   </script>
