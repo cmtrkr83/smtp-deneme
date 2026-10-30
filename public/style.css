@@ -1209,23 +1209,51 @@ input[type="file"]::file-selector-button:hover {
   align-items: stretch;
   margin-bottom: 28px;
 }
-/* Sağ sütun (takvim): başlıklar üstte, takvim kutusu alt kenarla hizalı */
+/* Sağ sütun (takvim): başlıklar üstte kalır, takvim kutusu aşağı doğru
+   uzayarak sol sütundaki İşlemler kartlarının alt kenarıyla aynı hizaya gelir. */
 .overview-split > div:last-child {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .overview-split .cal-box {
-  margin-top: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.overview-split .cal-grid {
+  flex: 1;
+  grid-template-rows: auto repeat(6, 1fr);
+}
+.overview-split .cal-day {
+  aspect-ratio: auto;
+  max-height: none;
+  height: 100%;
+}
+/* İşlemler kartlarının alt boşluğu sütun yüksekliğine dahil olmasın:
+   takvimin alt kenarı tam olarak kartların alt kenarına oturur. */
+.overview-split .cards-grid:last-child {
+  margin-bottom: 0;
 }
 @media (max-width: 900px) {
   .overview-split {
     grid-template-columns: 1fr;
   }
-  .overview-split > div:last-child {
-    flex-direction: column;
-  }
   .overview-split .cal-box {
-    margin-top: auto;
+    flex: none;
+    display: block;
+  }
+  .overview-split .cal-grid {
+    flex: none;
+    grid-template-rows: none;
+  }
+  .overview-split .cal-day {
+    aspect-ratio: 1;
+    max-height: 44px;
+    height: auto;
+  }
+  .overview-split .cards-grid:last-child {
+    margin-bottom: 28px;
   }
 }
 /* Takvim kutusu (referans minimal ay ızgarası, marka kırmızısı vurgu) */
